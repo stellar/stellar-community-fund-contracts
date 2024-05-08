@@ -1,5 +1,5 @@
 [package]
-name = "nqg"
+name = "governance"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,7 +8,6 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 soroban-sdk = { workspace = true, features = ["alloc"] }
-soroban_decimal_numbers = "0.1.2"
 soroban-fixed-point-math.workspace = true
 
 [dev_dependencies]
