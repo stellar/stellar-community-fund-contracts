@@ -1,4 +1,4 @@
-name: Neurons Rust Checks
+name: Neurons Checks
 on:
   pull_request:
   push:
