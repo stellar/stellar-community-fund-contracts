@@ -1,4 +1,4 @@
-name: Voting Contract Checks
+name: Contracts Checks
 on:
   pull_request:
   push:
