@@ -1,0 +1,31 @@
+name: Neurons Rust Checks
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  voting-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./neurons
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
+        with:
+          workspaces: ./neurons
+          cache-all-crates: true
+
+      - name: Run tests
+        run: |
+          cargo test
+
+      - name: Formatting check
+        run: |
+          cargo fmt --check
+
+      - name: Lint with clippy
+        run:
+          cargo lint

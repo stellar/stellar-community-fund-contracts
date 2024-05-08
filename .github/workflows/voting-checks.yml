@@ -1,0 +1,41 @@
+name: Voting Contract Checks
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  voting-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
+        with:
+          workspaces: ./contracts
+          cache-all-crates: true
+
+      - name: Install soroban cli
+        run: |
+          cargo install --locked --version 20.2.0 soroban-cli
+
+      - name: Build contracts
+        run: |
+          soroban contract build
+
+      - name: Run tests
+        run: |
+          cargo test
+
+      - name: Formatting check
+        run: |
+          cargo fmt --check
+
+      - name: Lint with clippy
+        run:
+          cargo lint
