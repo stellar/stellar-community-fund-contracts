@@ -645,6 +645,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "nqg"
+version = "0.1.0"
+dependencies = [
+ "mocks",
+ "soroban-fixed-point-math",
+ "soroban-sdk",
+ "soroban_decimal_numbers",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -698,16 +708,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6a622008b6e321afc04970976f62ee297fdbaa6f95318ca343e3eebb9648441"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "offchain"
-version = "0.1.0"
-dependencies = [
- "mocks",
- "soroban-fixed-point-math",
- "soroban-sdk",
- "soroban_decimal_numbers",
 ]
 
 [[package]]
