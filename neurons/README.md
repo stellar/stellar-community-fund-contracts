@@ -35,3 +35,25 @@ Assigns voting power based on rounds voter previously participated in.
 
 Assigns voting power based on trust assigned to voter by other voters.
 It uses min-max normalized PageRank algorithm to compute the score.
+
+## Development
+
+### Running Tests
+
+```shell
+cargo test
+```
+
+### Running Lint
+
+```shell
+cargo lint
+```
+
+This is an alias to `cargo clippy` with special config. See `.cargo/config.toml` for more details.
+
+### Formatting
+
+```shell
+cargo fmt
+```
