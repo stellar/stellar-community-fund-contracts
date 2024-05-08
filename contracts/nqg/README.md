@@ -3,7 +3,7 @@
 This contract is a part of implementation of
 the [Neural Quorum Governance](https://stellarcommunityfund.gitbook.io/module-library) mechanism.
 
-![architecture](../voting_system/image.png)
+![architecture](image.png)
 
 Currently, because
 of [resource constraints](https://developers.stellar.org/docs/reference/resource-limits-fees#resource-limits) and to
