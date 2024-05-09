@@ -12,11 +12,13 @@ Contains source code of neurons. [See neurons docs for more details](neurons/REA
 
 ## `/contract`
 
-Contains the source code of the governance contract. [See contract docs for more details](contracts/offchain/README.md).
+Contains the source code of the governance
+contract. [See contract docs for more details](contracts/governance/README.md).
 
 ## Reporting Bugs and Issues
 
-Found a bug or an issue and want to report it? Please [open an issue](https://github.com/stellar/stellar-community-fund-contracts/issues).
+Found a bug or an issue and want to report it?
+Please [open an issue](https://github.com/stellar/stellar-community-fund-contracts/issues).
 
 ## Contributing
 
