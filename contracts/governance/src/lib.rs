@@ -34,7 +34,7 @@ pub mod types;
 pub const DECIMALS: i128 = 1_000_000_000_000_000_000;
 
 #[contract]
-pub struct VotingSystemOffchain;
+pub struct VotingSystem;
 
 type ContractResult<T> = Result<T, VotingSystemError>;
 
@@ -66,7 +66,7 @@ pub enum DataKey {
 }
 
 #[contractimpl]
-impl VotingSystemOffchain {
+impl VotingSystem {
     /// Initialize the governance contract.
     pub fn initialize(env: Env, admin: Address, current_round: u32) {
         assert!(!is_set_admin(&env), "Admin already set");
@@ -186,7 +186,7 @@ impl VotingSystemOffchain {
 }
 
 #[contractimpl]
-impl Admin for VotingSystemOffchain {
+impl Admin for VotingSystem {
     fn transfer_admin(env: Env, new_admin: Address) {
         require_admin(&env);
         set_admin(&env, &new_admin);
@@ -200,7 +200,7 @@ impl Admin for VotingSystemOffchain {
 }
 
 #[contractimpl]
-impl Governance for VotingSystemOffchain {
+impl Governance for VotingSystem {
     fn add_layer(
         env: Env,
         raw_neurons: Vec<(String, I256)>,
@@ -332,7 +332,7 @@ impl Governance for VotingSystemOffchain {
         let neural_governance = read_neural_governance(&env).unwrap();
         let mut result: Map<String, I256> = Map::new(&env);
         for layer_id in neural_governance.layers {
-            let layer_result = VotingSystemOffchain::get_layer_result(env.clone(), layer_id)?;
+            let layer_result = VotingSystem::get_layer_result(env.clone(), layer_id)?;
             for (key, value) in layer_result {
                 result.set(
                     key.clone(),

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["offchain"]
+members = ["governance"]
 
 [workspace.dependencies]
 soroban-sdk = "20.4.0"

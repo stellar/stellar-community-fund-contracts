@@ -1,4 +1,4 @@
-name: Neurons Rust Checks
+name: Contracts Checks
 on:
   pull_request:
   push:
@@ -9,14 +9,24 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./neurons
+        working-directory: ./contracts
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
         with:
-          workspaces: ./neurons
+          workspaces: ./contracts
           cache-all-crates: true
+
+      - name: Install soroban cli
+        run: |
+          cargo install --locked --version 20.2.0 soroban-cli
+
+      - name: Build contracts
+        run: |
+          soroban contract build
 
       - name: Run tests
         run: |

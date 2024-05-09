@@ -454,6 +454,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4271d37baee1b8c7e4b708028c57d816cf9d2434acb33a549475f78c181f6253"
 
 [[package]]
+name = "governance"
+version = "0.1.0"
+dependencies = [
+ "mocks",
+ "soroban-fixed-point-math",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "group"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -698,16 +707,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6a622008b6e321afc04970976f62ee297fdbaa6f95318ca343e3eebb9648441"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "offchain"
-version = "0.1.0"
-dependencies = [
- "mocks",
- "soroban-fixed-point-math",
- "soroban-sdk",
- "soroban_decimal_numbers",
 ]
 
 [[package]]
@@ -1142,12 +1141,6 @@ dependencies = [
  "wasmi_core",
  "wasmparser-nostd",
 ]
-
-[[package]]
-name = "soroban_decimal_numbers"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f3200c7c9328eb132524f05529b5466ec5044fd193b3913f61cdaf22e0e031a"
 
 [[package]]
 name = "spin"
