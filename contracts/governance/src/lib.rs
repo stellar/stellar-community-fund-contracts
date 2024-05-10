@@ -10,7 +10,7 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, Address, BytesN, Env, Map, String, Vec, I256,
 };
 
-use admin::{get_admin, is_set_admin, require_admin};
+use admin::{is_set_admin, require_admin};
 
 use crate::admin::set_admin;
 use crate::admin::traits::Admin;
@@ -89,16 +89,14 @@ impl VotingSystem {
 
     /// Change the active round.
     pub fn set_current_round(env: Env, round: u32) {
-        let admin = get_admin(&env);
-        admin.require_auth();
+        require_admin(&env);
 
         env.storage().instance().set(&DataKey::CurrentRound, &round);
     }
 
     /// Set multiple submissions.
     pub fn set_submissions(env: Env, new_submissions: Vec<String>) {
-        let admin = get_admin(&env);
-        admin.require_auth();
+        require_admin(&env);
 
         let mut submissions = Vec::new(&env);
 
@@ -124,6 +122,7 @@ impl VotingSystem {
         votes: Map<String, Vote>,
     ) -> Result<(), VotingSystemError> {
         require_admin(env);
+
         if !read_submissions(env, Self::get_current_round(env)).contains(submission_id.clone()) {
             return Err(VotingSystemError::SubmissionDoesNotExist);
         }
@@ -189,6 +188,7 @@ impl VotingSystem {
 impl Admin for VotingSystem {
     fn transfer_admin(env: Env, new_admin: Address) {
         require_admin(&env);
+
         set_admin(&env, &new_admin);
     }
 
@@ -217,6 +217,8 @@ impl Governance for VotingSystem {
     }
 
     fn remove_layer(env: Env, layer_id: String) -> Result<(), VotingSystemError> {
+        require_admin(&env);
+
         let mut neural_governance = read_neural_governance(&env).unwrap();
         let index = neural_governance
             .layers
@@ -245,6 +247,8 @@ impl Governance for VotingSystem {
         raw_neurons: Vec<(String, I256)>,
         layer_aggregator: LayerAggregator,
     ) -> Result<(), VotingSystemError> {
+        require_admin(&env);
+
         let layer = read_layer(&env, &layer_id)?;
 
         for neuron_id in layer.neurons {

@@ -18,19 +18,19 @@ mod key_data;
 pub(crate) fn read_layer(env: &Env, layer_id: &String) -> ContractResult<Layer> {
     let key = get_layer_key(layer_id);
     env.storage()
-        .temporary()
+        .instance()
         .get(&key)
         .ok_or(VotingSystemError::LayerMissing)
 }
 
 pub(crate) fn write_layer(env: &Env, layer_id: &String, layer: &Layer) {
     let key = get_layer_key(layer_id);
-    env.storage().temporary().set(&key, layer);
+    env.storage().instance().set(&key, layer);
 }
 
 pub(crate) fn remove_layer(env: &Env, layer_id: &String) {
     let key = get_layer_key(layer_id);
-    env.storage().temporary().remove(&key);
+    env.storage().instance().remove(&key);
 }
 
 pub(crate) fn read_neuron(
@@ -40,19 +40,19 @@ pub(crate) fn read_neuron(
 ) -> ContractResult<Neuron> {
     let key = get_neuron_key(layer_id, neuron_id);
     env.storage()
-        .temporary()
+        .instance()
         .get(&key)
         .ok_or(VotingSystemError::NeuronMissing)
 }
 
 pub(crate) fn write_neuron(env: &Env, layer_id: &String, neuron_id: &String, neuron: &Neuron) {
     let key = get_neuron_key(layer_id, neuron_id);
-    env.storage().temporary().set(&key, neuron);
+    env.storage().instance().set(&key, neuron);
 }
 
 pub(crate) fn remove_neuron(env: &Env, layer_id: &String, neuron_id: &String) {
     let key = get_neuron_key(layer_id, neuron_id);
-    env.storage().temporary().remove(&key);
+    env.storage().instance().remove(&key);
 }
 
 pub(crate) fn read_neuron_result(
