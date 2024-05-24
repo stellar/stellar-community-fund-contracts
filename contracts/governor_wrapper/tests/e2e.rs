@@ -1,8 +1,8 @@
-use soroban_sdk::{Address, Env, I256, Map, String, vec};
-use soroban_sdk::testutils::Address as AddressTrait;
+use crate::governance::LayerAggregator;
 use governor_wrapper::GovernorWrapper;
 use governor_wrapper::GovernorWrapperClient;
-use crate::governance::LayerAggregator;
+use soroban_sdk::testutils::Address as AddressTrait;
+use soroban_sdk::{vec, Address, Env, Map, String, I256};
 
 mod governance {
     use soroban_sdk::contractimport;
@@ -32,20 +32,36 @@ fn updating_balances() {
     let governor_wrapper_address = env.register_contract(None, GovernorWrapper);
     let governor_wrapper_client = GovernorWrapperClient::new(&env, &governor_wrapper_address);
 
-    admin_votes_client.initialize(&admin, &admin, &0, &String::from_str(&env, "test token"), &String::from_str(&env, "test"));
+    admin_votes_client.initialize(
+        &admin,
+        &admin,
+        &0,
+        &String::from_str(&env, "test token"),
+        &String::from_str(&env, "test"),
+    );
 
     governance_client.initialize(&admin, &25);
 
     governor_wrapper_client.initialize(&admin, &admin_votes_address, &governance_address);
 
-    let neurons = vec![&env, (String::from_str(&env, "Layer1"), I256::from_i128(&env, 10_i128.pow(18)))];
+    let neurons = vec![
+        &env,
+        (
+            String::from_str(&env, "Layer1"),
+            I256::from_i128(&env, 10_i128.pow(18)),
+        ),
+    ];
     governance_client.add_layer(&neurons, &LayerAggregator::Sum);
 
     let address = Address::generate(&env);
     let mut result = Map::new(&env);
     result.set(address.to_string(), I256::from_i128(&env, 10_i128.pow(18)));
 
-    governance_client.set_neuron_result(&String::from_str(&env, "0"), &String::from_str(&env, "0"), &result);
+    governance_client.set_neuron_result(
+        &String::from_str(&env, "0"),
+        &String::from_str(&env, "0"),
+        &result,
+    );
 
     governance_client.calculate_voting_powers();
 

@@ -1,9 +1,16 @@
 #![no_std]
 
-mod storage;
+use soroban_sdk::{contract, Address, Env, I256};
 
-use soroban_sdk::{contract, contracttype, Address, Env, I256, contractimpl};
-use crate::storage::{read_admin, write_admin};
+use crate::governance::DataKey;
+use crate::storage::{
+    read_admin, read_governance_contract_address, read_votes_admin_contract_address, write_admin,
+    write_governance_contract_address, write_votes_admin_contract_address,
+};
+use crate::types::{GovernorWrapperError, DECIMALS};
+
+mod storage;
+mod types;
 
 mod votes_admin {
     use soroban_sdk::contractimport;
@@ -17,19 +24,10 @@ mod governance {
     contractimport!(file = "../target/wasm32-unknown-unknown/release/governance.wasm");
 }
 
-#[derive(Clone, Debug, PartialEq)]
-#[contracttype]
-pub enum DataKey {
-    Admin,
-    VotesAdminAddress,
-    GovernanceAddress,
-    Balance(Address),
-}
-
 #[contract]
 pub struct GovernorWrapper;
 
-#[contractimpl]
+// #[contractimpl]
 impl GovernorWrapper {
     pub fn initialize(
         env: Env,
@@ -41,13 +39,9 @@ impl GovernorWrapper {
             panic!("Contract already initialized");
         }
 
-        env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage()
-            .instance()
-            .set(&DataKey::VotesAdminAddress, &votes_admin_address);
-        env.storage()
-            .instance()
-            .set(&DataKey::GovernanceAddress, &governance_address);
+        write_admin(&env, &admin);
+        write_votes_admin_contract_address(&env, &votes_admin_address);
+        write_governance_contract_address(&env, &governance_address);
     }
 
     pub fn transfer_admin(env: Env, new_admin: Address) {
@@ -57,44 +51,44 @@ impl GovernorWrapper {
         write_admin(&env, &new_admin);
     }
 
-    pub fn update_balance(env: Env, address: Address) {
+    pub fn update_balance(env: Env, address: Address) -> Result<(), GovernorWrapperError> {
         let admin = read_admin(&env);
         admin.require_auth();
 
-        let governance_address = env
-            .storage()
-            .instance()
-            .get(&DataKey::GovernanceAddress)
-            .unwrap();
-        let governance_client = governance::Client::new(&env, &governance_address);
-        let voting_powers = governance_client.get_voting_powers();
-        // TODO handle unwrap
-        let voting_power = voting_powers.get(address.to_string()).unwrap();
+        let voting_power = voting_power_for_user(&env, &address)?;
 
-        let votes_admin_address = env
-            .storage()
-            .instance()
-            .get(&DataKey::VotesAdminAddress)
-            .unwrap();
+        let votes_admin_address = read_votes_admin_contract_address(&env);
         let votes_admin_client = votes_admin::Client::new(&env, &votes_admin_address);
 
         votes_admin_client.clawback(&address, &votes_admin_client.balance(&address));
 
-        let voting_power_whole = fixed_point_decimal_to_whole(&env, voting_power, 18);
+        let voting_power_whole = fixed_point_decimal_to_whole(&env, voting_power);
         let voting_power_u96 = convert_i256_to_u96(&env, voting_power_whole);
 
         votes_admin_client.mint(&address, &voting_power_u96);
+
+        Ok(())
     }
 }
 
-fn fixed_point_decimal_to_whole(env: &Env, value: I256, decimals: u32) -> I256 {
-    value.div(&I256::from_i32(&env, 10).pow(decimals))
+fn voting_power_for_user(env: &Env, address: &Address) -> Result<I256, GovernorWrapperError> {
+    let governance_address = read_governance_contract_address(&env);
+    let governance_client = governance::Client::new(&env, &governance_address);
+    let voting_powers = governance_client.get_voting_powers();
+    voting_powers
+        .get(address.to_string())
+        .ok_or_else(|| GovernorWrapperError::VotingPowerMissingForUser)
+}
+
+fn fixed_point_decimal_to_whole(env: &Env, value: I256) -> I256 {
+    value.div(&I256::from_i32(&env, 10).pow(DECIMALS))
 }
 
 /// Convert value from i256 to u96
 ///
-/// Note: This doesn't perform any scaling, so if the I256 value is over the u96 range, this
-/// will panic
+///
+/// # Panics
+/// If the I256 value is over the u96 range, this will panic
 fn convert_i256_to_u96(env: &Env, value: I256) -> i128 {
     let i128_value: i128 = if value.le(&I256::from_i32(&env, 0)) {
         0
