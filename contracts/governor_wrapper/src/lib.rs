@@ -1,6 +1,9 @@
 #![no_std]
 
+mod storage;
+
 use soroban_sdk::{contract, contracttype, Address, Env, I256, contractimpl};
+use crate::storage::{read_admin, write_admin};
 
 mod votes_admin {
     use soroban_sdk::contractimport;
@@ -47,8 +50,15 @@ impl GovernorWrapper {
             .set(&DataKey::GovernanceAddress, &governance_address);
     }
 
+    pub fn transfer_admin(env: Env, new_admin: Address) {
+        let admin = read_admin(&env);
+        admin.require_auth();
+
+        write_admin(&env, &new_admin);
+    }
+
     pub fn update_balance(env: Env, address: Address) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        let admin = read_admin(&env);
         admin.require_auth();
 
         let governance_address = env
