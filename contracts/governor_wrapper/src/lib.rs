@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, Address, Env, I256};
+use soroban_sdk::{contract, contractimpl, Address, Env, I256};
 
 use crate::governance::DataKey;
 use crate::storage::{
@@ -27,7 +27,7 @@ mod governance {
 #[contract]
 pub struct GovernorWrapper;
 
-// #[contractimpl]
+#[contractimpl]
 impl GovernorWrapper {
     pub fn initialize(
         env: Env,

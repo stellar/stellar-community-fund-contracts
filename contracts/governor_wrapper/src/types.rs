@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address};
+use soroban_sdk::{contracterror, contracttype, Address};
 
 pub const DECIMALS: u32 = 18;
 
@@ -11,8 +11,8 @@ pub enum DataKey {
     Balance(Address),
 }
 
-#[derive(Clone, Debug, PartialEq)]
-#[contracttype]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[contracterror]
 pub enum GovernorWrapperError {
     VotingPowerMissingForUser = 1,
 }
