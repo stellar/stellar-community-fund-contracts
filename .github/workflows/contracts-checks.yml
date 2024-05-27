@@ -24,7 +24,7 @@ jobs:
 
       - name: Install soroban cli
         run: |
-          cargo install --locked --version 20.2.0 soroban-cli
+          cargo install soroban-cli@21.0.0-rc.1 --features opt
 
       - name: Build contracts
         run: |
