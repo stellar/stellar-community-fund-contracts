@@ -37,7 +37,7 @@ impl GovernorWrapper {
         governance_address: Address,
     ) {
         assert!(
-            env.storage().instance().has(&DataKey::Admin),
+            !env.storage().instance().has(&DataKey::Admin),
             "Contract already initialized"
         );
 
@@ -99,7 +99,7 @@ fn convert_i256_to_u96(env: &Env, value: &I256) -> i128 {
     };
 
     assert!(
-        i128_value < 0 || i128_value >= 2_i128.pow(96),
+        i128_value >= 0 && i128_value < 2_i128.pow(96),
         "Value too large to fit in u96"
     );
 
