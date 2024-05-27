@@ -32,7 +32,7 @@ jobs:
 
       - name: Run tests
         run: |
-          cargo test
+          cargo test --all-features
 
       - name: Formatting check
         run: |
