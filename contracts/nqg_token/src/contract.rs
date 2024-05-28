@@ -70,17 +70,11 @@ impl Admin for NQGToken {
 
 #[contractimpl]
 impl Interface for NQGToken {
-    fn allowance(_env: Env, _from: Address, _spender: Address) -> i128 {
+    fn allowance(env: Env, from: Address, spender: Address) -> i128 {
         panic!("Transfers are not supported")
     }
 
-    fn approve(
-        _env: Env,
-        _from: Address,
-        _spender: Address,
-        _amount: i128,
-        _expiration_ledger: u32,
-    ) {
+    fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
         panic!("Transfers are not supported")
     }
 
@@ -88,23 +82,23 @@ impl Interface for NQGToken {
         read_balance(&env, &id)
     }
 
-    fn transfer(_env: Env, _from: Address, _to: Address, _amount: i128) {
+    fn transfer(env: Env, from: Address, to: Address, amount: i128) {
         panic!("Transfers are not supported")
     }
 
-    fn transfer_from(_env: Env, _spender: Address, _from: Address, _to: Address, _amount: i128) {
+    fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
         panic!("Transfers are not supported")
     }
 
-    fn burn(_env: Env, _from: Address, _amount: i128) {
+    fn burn(env: Env, from: Address, amount: i128) {
         panic!("Burning is not supported")
     }
 
-    fn burn_from(_env: Env, _spender: Address, _from: Address, _amount: i128) {
+    fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
         panic!("Burning is not supported")
     }
 
-    fn decimals(_env: Env) -> u32 {
+    fn decimals(env: Env) -> u32 {
         0
     }
 
