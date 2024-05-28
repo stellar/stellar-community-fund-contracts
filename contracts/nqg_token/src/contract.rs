@@ -69,6 +69,7 @@ impl Admin for NQGToken {
     }
 }
 
+#[allow(unused_variables)]
 #[contractimpl]
 impl Interface for NQGToken {
     fn allowance(env: Env, from: Address, spender: Address) -> i128 {
