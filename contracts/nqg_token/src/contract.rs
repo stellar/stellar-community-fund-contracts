@@ -1,7 +1,11 @@
+use soroban_sdk::token::Interface;
+use soroban_sdk::{contract, contractimpl, Address, Env, String, I256};
+
 use crate::balance::{read_balance, write_balance};
-use crate::storage::{read_admin, read_governance_contract_address};
-use crate::types::GovernorWrapperError;
-use soroban_sdk::{contract, token, Address, Env, String, I256};
+use crate::storage::{
+    read_admin, read_governance_contract_address, write_admin, write_governance_contract_address,
+};
+use crate::types::{DataKey, GovernorWrapperError};
 
 mod governance {
     use soroban_sdk::contractimport;
@@ -12,8 +16,30 @@ mod governance {
 #[contract]
 pub struct NQGToken;
 
+#[contractimpl]
 #[allow(clippy::needless_pass_by_value)]
 impl NQGToken {
+    pub fn initialize(
+        env: Env,
+        admin: Address,
+        governance_address: Address,
+    ) {
+        assert!(
+            !env.storage().instance().has(&DataKey::Admin),
+            "Contract already initialized"
+        );
+
+        write_admin(&env, &admin);
+        write_governance_contract_address(&env, &governance_address);
+    }
+
+    pub fn transfer_admin(env: Env, new_admin: Address) {
+        let admin = read_admin(&env);
+        admin.require_auth();
+
+        write_admin(&env, &new_admin);
+    }
+
     pub fn update_balance(env: Env, address: Address) -> Result<(), GovernorWrapperError> {
         let admin = read_admin(&env);
         admin.require_auth();
@@ -45,7 +71,8 @@ fn fixed_point_decimal_to_whole(env: &Env, value: &I256) -> I256 {
     value.div(&I256::from_i32(env, 10).pow(decimals))
 }
 
-impl token::Interface for NQGToken {
+#[contractimpl]
+impl Interface for NQGToken {
     fn allowance(_env: Env, _from: Address, _spender: Address) -> i128 {
         panic!("Transfers are not supported")
     }
