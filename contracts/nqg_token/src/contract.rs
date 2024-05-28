@@ -12,6 +12,7 @@ mod governance {
 #[contract]
 pub struct NQGToken;
 
+#[allow(clippy::needless_pass_by_value)]
 impl NQGToken {
     pub fn update_balance(env: Env, address: Address) -> Result<(), GovernorWrapperError> {
         let admin = read_admin(&env);
@@ -45,11 +46,17 @@ fn fixed_point_decimal_to_whole(env: &Env, value: &I256) -> I256 {
 }
 
 impl token::Interface for NQGToken {
-    fn allowance(env: Env, from: Address, spender: Address) -> i128 {
+    fn allowance(_env: Env, _from: Address, _spender: Address) -> i128 {
         panic!("Transfers are not supported")
     }
 
-    fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
+    fn approve(
+        _env: Env,
+        _from: Address,
+        _spender: Address,
+        _amount: i128,
+        _expiration_ledger: u32,
+    ) {
         panic!("Transfers are not supported")
     }
 
@@ -57,23 +64,23 @@ impl token::Interface for NQGToken {
         read_balance(&env, &id)
     }
 
-    fn transfer(env: Env, from: Address, to: Address, amount: i128) {
+    fn transfer(_env: Env, _from: Address, _to: Address, _amount: i128) {
         panic!("Transfers are not supported")
     }
 
-    fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
+    fn transfer_from(_env: Env, _spender: Address, _from: Address, _to: Address, _amount: i128) {
         panic!("Transfers are not supported")
     }
 
-    fn burn(env: Env, from: Address, amount: i128) {
+    fn burn(_env: Env, _from: Address, _amount: i128) {
         panic!("Burning is not supported")
     }
 
-    fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
+    fn burn_from(_env: Env, _spender: Address, _from: Address, _amount: i128) {
         panic!("Burning is not supported")
     }
 
-    fn decimals(env: Env) -> u32 {
+    fn decimals(_env: Env) -> u32 {
         0
     }
 
