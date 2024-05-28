@@ -19,10 +19,11 @@ fn updating_balances() {
     let governance_address = env.register_contract_wasm(None, governance::WASM);
     let governance_client = governance::Client::new(&env, &governance_address);
 
-    let governor_wrapper_address = env.register_contract(None, NQGToken);
-    let nqg_token_client = NQGTokenClient::new(&env, &governor_wrapper_address);
+    let nqg_token_address = env.register_contract(None, NQGToken);
+    let nqg_token_client = NQGTokenClient::new(&env, &nqg_token_address);
 
     governance_client.initialize(&admin, &25);
+    nqg_token_client.initialize(&admin, &governance_address);
 
     let neurons = vec![
         &env,
