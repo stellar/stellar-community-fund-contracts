@@ -59,6 +59,7 @@ fn fixed_point_decimal_to_whole(env: &Env, value: &I256) -> I256 {
     value.div(&I256::from_i32(env, 10).pow(decimals))
 }
 
+#[contractimpl]
 impl Admin for NQGToken {
     fn transfer_admin(env: Env, new_admin: Address) {
         let admin = read_admin(&env);
