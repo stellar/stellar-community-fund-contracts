@@ -13,7 +13,10 @@ mod governance {
 mod admin_votes {
     use soroban_sdk::contractimport;
 
-    contractimport!(file = "./soroban-governor/target/wasm32-unknown-unknown/optimized/soroban_admin_votes.wasm");
+    contractimport!(
+        file =
+            "./soroban-governor/target/wasm32-unknown-unknown/optimized/soroban_admin_votes.wasm"
+    );
 }
 
 #[test]
