@@ -1,6 +1,6 @@
 use crate::admin::{read_admin, write_admin, Admin};
 use soroban_sdk::token::Interface;
-use soroban_sdk::{contract, contractimpl, Address, Env, String, I256};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, I256};
 
 use crate::balance::{read_balance, write_balance};
 use crate::storage::{read_governance_contract_address, write_governance_contract_address};
@@ -42,6 +42,13 @@ impl NQGToken {
         write_balance(&env, &address, voting_power_i128);
 
         Ok(())
+    }
+
+    pub fn upgrade(env: Env, wasm_hash: BytesN<32>) {
+        let admin = read_admin(&env);
+        admin.require_auth();
+
+        env.deployer().update_current_contract_wasm(wasm_hash);
     }
 }
 
