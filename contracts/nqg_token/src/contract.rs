@@ -44,6 +44,13 @@ impl NQGToken {
         Ok(())
     }
 
+    pub fn set_governance_contract_address(env: Env, governance_address: Address) {
+        let admin = read_admin(&env);
+        admin.require_auth();
+
+        write_governance_contract_address(&env, &governance_address);
+    }
+
     pub fn upgrade(env: Env, wasm_hash: BytesN<32>) {
         let admin = read_admin(&env);
         admin.require_auth();
