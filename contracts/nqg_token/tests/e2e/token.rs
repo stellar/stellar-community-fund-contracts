@@ -150,7 +150,7 @@ fn decimals() {
     let admin = Address::generate(&env);
 
     let Deployment {
-        client, address, ..
+        client,  ..
     } = deploy_and_setup(&env, &admin);
 
     assert_eq!(client.decimals(), 0);
@@ -164,7 +164,7 @@ fn name() {
     let admin = Address::generate(&env);
 
     let Deployment {
-        client, address, ..
+        client,  ..
     } = deploy_and_setup(&env, &admin);
 
     assert_eq!(client.name(), String::from_str(&env, "NQG Token"));
@@ -178,7 +178,7 @@ fn symbol() {
     let admin = Address::generate(&env);
 
     let Deployment {
-        client, address, ..
+        client,  ..
     } = deploy_and_setup(&env, &admin);
 
     assert_eq!(client.symbol(), String::from_str(&env, "NQG"));
