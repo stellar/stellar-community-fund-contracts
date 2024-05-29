@@ -60,7 +60,7 @@ fn balance() {
         client, address, ..
     } = deploy_and_setup(&env, &admin);
 
-    assert_eq!(client.balance(&address), 1_i128 * 10_i128.pow(DECIMALS));
+    assert_eq!(client.balance(&address), 10_i128.pow(DECIMALS));
 }
 
 #[test]
