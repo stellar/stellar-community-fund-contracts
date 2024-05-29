@@ -166,7 +166,7 @@ mod tests {
             base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
         );
 
-        let base_value = I256::from_i128(&env, 1123456789123456789);
+        let base_value = I256::from_i128(&env, 1_123_456_789_123_456_789);
         let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
         assert_eq!(
             nqg_score_to_balance(&env, &nqg_value),
