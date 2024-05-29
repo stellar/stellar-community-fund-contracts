@@ -6,6 +6,9 @@ use crate::balance::{read_balance, write_balance};
 use crate::storage::{read_governance_contract_address, write_governance_contract_address};
 use crate::types::{DataKey, GovernorWrapperError};
 
+const DECIMALS: u32 = 9;
+const NQG_DECIMALS: u32 = 18;
+
 mod governance {
     use soroban_sdk::contractimport;
 
@@ -34,7 +37,7 @@ impl NQGToken {
 
         let voting_power = voting_power_for_user(&env, &address)?;
 
-        let voting_power_whole = fixed_point_decimal_to_whole(&env, &voting_power);
+        let voting_power_whole = nqg_score_to_balance(&env, &voting_power);
         let voting_power_i128: i128 = voting_power_whole
             .to_i128()
             .expect("Failed to convert voting power to i128");
@@ -68,9 +71,9 @@ fn voting_power_for_user(env: &Env, address: &Address) -> Result<I256, GovernorW
         .ok_or(GovernorWrapperError::VotingPowerMissingForUser)
 }
 
-fn fixed_point_decimal_to_whole(env: &Env, value: &I256) -> I256 {
-    let decimals = 18;
-    value.div(&I256::from_i32(env, 10).pow(decimals))
+fn nqg_score_to_balance(env: &Env, value: &I256) -> I256 {
+    let decimal_shift = NQG_DECIMALS - DECIMALS;
+    value.div(&I256::from_i32(env, 10).pow(decimal_shift))
 }
 
 #[contractimpl]
@@ -115,7 +118,7 @@ impl Interface for NQGToken {
     }
 
     fn decimals(env: Env) -> u32 {
-        0
+        DECIMALS
     }
 
     fn name(env: Env) -> soroban_sdk::String {
@@ -124,5 +127,50 @@ impl Interface for NQGToken {
 
     fn symbol(env: Env) -> soroban_sdk::String {
         String::from_str(&env, "NQG")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn converting_nqg_values() {
+        let env = Env::default();
+
+        let base_value = I256::from_i32(&env, 1);
+        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        assert_eq!(
+            nqg_score_to_balance(&env, &nqg_value),
+            base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
+        );
+
+        let base_value = I256::from_i32(&env, 0);
+        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        assert_eq!(
+            nqg_score_to_balance(&env, &nqg_value),
+            base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
+        );
+
+        let base_value = I256::from_i128(&env, 2_i128.pow(100));
+        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        assert_eq!(
+            nqg_score_to_balance(&env, &nqg_value),
+            base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
+        );
+
+        let base_value = I256::from_i128(&env, 2_i128.pow(100));
+        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        assert_eq!(
+            nqg_score_to_balance(&env, &nqg_value),
+            base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
+        );
+
+        let base_value = I256::from_i128(&env, 1123456789123456789);
+        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        assert_eq!(
+            nqg_score_to_balance(&env, &nqg_value),
+            base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
+        );
     }
 }
