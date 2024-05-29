@@ -7,3 +7,4 @@ mod storage;
 mod types;
 
 pub use contract::*;
+pub use types::DataKey;

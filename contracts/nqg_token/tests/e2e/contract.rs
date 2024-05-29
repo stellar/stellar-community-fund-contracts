@@ -1,7 +1,10 @@
+use nqg_token::DataKey;
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{Address, Env, Map, String, I256};
 
-use crate::e2e::common::contract_utils::{deploy_contract, deploy_nqg_contract};
+use crate::e2e::common::contract_utils::{
+    deploy_and_setup, deploy_contract, deploy_nqg_contract, Deployment,
+};
 
 #[test]
 fn updating_balances() {
@@ -29,4 +32,36 @@ fn updating_balances() {
     nqg_token_client.update_balance(&address);
 
     assert_eq!(nqg_token_client.balance(&address), 1);
+}
+
+#[test]
+fn updating_governance_address() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+        ..
+    } = deploy_and_setup(&env, &admin);
+
+    let governance_address: Address = env.as_contract(&client.address, || {
+        env.storage()
+            .instance()
+            .get(&DataKey::GovernanceAddress)
+            .unwrap()
+    });
+    assert_eq!(governance_client.address, governance_address);
+
+    let new_address = Address::generate(&env);
+    client.set_governance_contract_address(&new_address);
+
+    let governance_address: Address = env.as_contract(&client.address, || {
+        env.storage()
+            .instance()
+            .get(&DataKey::GovernanceAddress)
+            .unwrap()
+    });
+    assert_eq!(new_address, governance_address);
 }
