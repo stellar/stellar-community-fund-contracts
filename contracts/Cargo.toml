@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["governance", "governor_wrapper", "nqg_token"]
+members = ["governance", "nqg_token"]
 
 [workspace.dependencies]
 soroban-sdk = "20.4.0"
