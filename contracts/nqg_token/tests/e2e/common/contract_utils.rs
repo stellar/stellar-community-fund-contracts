@@ -1,6 +1,7 @@
 use crate::e2e::common::contract_utils::governance::LayerAggregator;
 use nqg_token::{NQGToken, NQGTokenClient};
-use soroban_sdk::{Address, Env, I256};
+use soroban_sdk::testutils::Address as AddressTrait;
+use soroban_sdk::{Address, Env, Map, I256};
 
 mod governance {
     use soroban_sdk::contractimport;
@@ -37,4 +38,37 @@ pub fn deploy_nqg_contract<'a>(env: &Env, admin: &Address) -> governance::Client
     governance_client.add_layer(&neurons, &LayerAggregator::Sum);
 
     governance_client
+}
+
+pub struct Deployment<'a> {
+    pub client: NQGTokenClient<'a>,
+    pub governance_client: governance::Client<'a>,
+    pub address: Address,
+}
+
+pub fn deploy_and_setup<'a>(env: &Env, admin: &Address) -> Deployment<'a> {
+    let governance_client = deploy_nqg_contract(env, admin);
+    let client = deploy_contract(env, &governance_client.address, admin);
+
+    let address = Address::generate(&env);
+
+    let mut result = Map::new(&env);
+    result.set(address.to_string(), I256::from_i128(&env, 10_i128.pow(18)));
+
+    governance_client.set_neuron_result(
+        &soroban_sdk::String::from_str(&env, "0"),
+        &soroban_sdk::String::from_str(&env, "0"),
+        &result,
+    );
+
+    governance_client.calculate_voting_powers();
+
+    env.budget().reset_default();
+    client.update_balance(&address);
+
+    Deployment {
+        client,
+        governance_client,
+        address,
+    }
 }
