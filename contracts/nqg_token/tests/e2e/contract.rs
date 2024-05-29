@@ -1,4 +1,4 @@
-use nqg_token::DataKey;
+use nqg_token::{DataKey, DECIMALS};
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{Address, Env, Map, String, I256};
 
@@ -31,7 +31,10 @@ fn updating_balances() {
     env.budget().reset_default();
     nqg_token_client.update_balance(&address);
 
-    assert_eq!(nqg_token_client.balance(&address), 1);
+    assert_eq!(
+        nqg_token_client.balance(&address),
+        1_i128 * 10_i128.pow(DECIMALS)
+    );
 }
 
 #[test]

@@ -6,7 +6,7 @@ use crate::balance::{read_balance, write_balance};
 use crate::storage::{read_governance_contract_address, write_governance_contract_address};
 use crate::types::{DataKey, GovernorWrapperError};
 
-const DECIMALS: u32 = 9;
+pub const DECIMALS: u32 = 9;
 const NQG_DECIMALS: u32 = 18;
 
 mod governance {

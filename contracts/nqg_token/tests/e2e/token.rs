@@ -1,4 +1,5 @@
 use crate::e2e::common::contract_utils::{deploy_and_setup, Deployment};
+use nqg_token::DECIMALS;
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
 use soroban_sdk::{Address, Env, Error, String};
@@ -59,7 +60,7 @@ fn balance() {
         client, address, ..
     } = deploy_and_setup(&env, &admin);
 
-    assert_eq!(client.balance(&address), 1);
+    assert_eq!(client.balance(&address), 1_i128 * 10_i128.pow(DECIMALS));
 }
 
 #[test]
@@ -151,7 +152,7 @@ fn decimals() {
 
     let Deployment { client, .. } = deploy_and_setup(&env, &admin);
 
-    assert_eq!(client.decimals(), 0);
+    assert_eq!(client.decimals(), DECIMALS);
 }
 
 #[test]
