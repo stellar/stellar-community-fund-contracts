@@ -5,3 +5,4 @@ mod contract;
 mod token;
 
 pub(crate) mod common;
+mod upgrade;
