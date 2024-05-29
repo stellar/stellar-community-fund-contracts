@@ -12,7 +12,7 @@ soroban-fixed-point-math.workspace = true
 
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils", "alloc"] }
-mocks = { path = "mocks" }
+mocks = { path = "../mocks" }
 
 [features]
 testutils = ["soroban-sdk/testutils", "soroban-sdk/alloc"]
