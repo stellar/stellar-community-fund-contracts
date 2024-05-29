@@ -1,4 +1,4 @@
-use crate::governance::LayerAggregator;
+use governance::LayerAggregator;
 use nqg_token::{NQGToken, NQGTokenClient};
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{vec, Address, Env, Map, String, I256};
