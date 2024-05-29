@@ -1,13 +1,7 @@
-use governance::LayerAggregator;
-use nqg_token::{NQGToken, NQGTokenClient};
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::{vec, Address, Env, Map, String, I256};
+use soroban_sdk::{Address, Env, Map, String, I256};
 
-mod governance {
-    use soroban_sdk::contractimport;
-
-    contractimport!(file = "../target/wasm32-unknown-unknown/release/governance.wasm");
-}
+use crate::e2e::common::contract_utils::{deploy_contract, deploy_nqg_contract};
 
 #[test]
 fn updating_balances() {
@@ -16,23 +10,8 @@ fn updating_balances() {
 
     let admin = Address::generate(&env);
 
-    let governance_address = env.register_contract_wasm(None, governance::WASM);
-    let governance_client = governance::Client::new(&env, &governance_address);
-
-    let nqg_token_address = env.register_contract(None, NQGToken);
-    let nqg_token_client = NQGTokenClient::new(&env, &nqg_token_address);
-
-    governance_client.initialize(&admin, &25);
-    nqg_token_client.initialize(&admin, &governance_address);
-
-    let neurons = vec![
-        &env,
-        (
-            String::from_str(&env, "Layer1"),
-            I256::from_i128(&env, 10_i128.pow(18)),
-        ),
-    ];
-    governance_client.add_layer(&neurons, &LayerAggregator::Sum);
+    let governance_client = deploy_nqg_contract(&env, &admin);
+    let nqg_token_client = deploy_contract(&env, &governance_client.address, &admin);
 
     let address = Address::generate(&env);
     let mut result = Map::new(&env);
