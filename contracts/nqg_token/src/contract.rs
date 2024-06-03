@@ -2,7 +2,7 @@ use crate::admin::{read_admin, write_admin, Admin};
 use soroban_sdk::token::Interface;
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, I256};
 
-use crate::balance::{read_balance, write_balance};
+use crate::balance::{extend_balance, read_balance, write_balance};
 use crate::storage::{read_governance_contract_address, write_governance_contract_address};
 use crate::types::{DataKey, GovernorWrapperError};
 
@@ -43,6 +43,7 @@ impl NQGToken {
             .expect("Failed to convert voting power to i128");
 
         write_balance(&env, &address, voting_power_i128);
+        extend_balance(&env, &address);
 
         Ok(())
     }
