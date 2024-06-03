@@ -5,4 +5,9 @@ mod contract;
 mod token;
 
 pub(crate) mod common;
+
+#[cfg(feature = "testutils")]
 mod upgrade;
+
+#[cfg(feature = "testutils")]
+mod auth;

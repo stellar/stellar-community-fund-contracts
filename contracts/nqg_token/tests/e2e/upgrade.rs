@@ -10,7 +10,6 @@ mod mock_contract {
 #[test]
 fn upgrade_contract() {
     let env = Env::default();
-    env.mock_all_auths();
 
     let admin = Address::generate(&env);
 
@@ -18,6 +17,7 @@ fn upgrade_contract() {
 
     let Deployment { client, .. } = deploy_and_setup(&env, &admin);
     let address = client.address.clone();
+    env.mock_all_auths();
 
     client.upgrade(&hash);
 

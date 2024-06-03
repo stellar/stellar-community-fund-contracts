@@ -1,10 +1,33 @@
-use nqg_token::{DataKey, DECIMALS};
+use nqg_token::{DataKey, NQGToken, NQGTokenClient, DECIMALS};
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::{Address, Env, Map, String, I256};
+use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
+use soroban_sdk::{Address, Env, Error, Map, String, I256};
 
 use crate::e2e::common::contract_utils::{
     deploy_and_setup, deploy_contract, deploy_nqg_contract, Deployment,
 };
+
+#[test]
+fn initializing_contract() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+
+    let governance_client = deploy_nqg_contract(&env, &admin);
+    let nqg_token_address = env.register_contract(None, NQGToken);
+    let nqg_token_client = NQGTokenClient::new(&env, &nqg_token_address);
+
+    nqg_token_client.initialize(&admin, &governance_client.address);
+    // Try initializing again
+    assert_eq!(
+        nqg_token_client.try_initialize(&admin, &governance_client.address),
+        Err(Ok(Error::from_type_and_code(
+            ScErrorType::Context,
+            ScErrorCode::InvalidAction
+        )))
+    );
+}
 
 #[test]
 fn updating_balances() {
@@ -37,7 +60,6 @@ fn updating_balances() {
 #[test]
 fn updating_governance_address() {
     let env = Env::default();
-    env.mock_all_auths();
 
     let admin = Address::generate(&env);
     let Deployment {
@@ -45,6 +67,8 @@ fn updating_governance_address() {
         governance_client,
         ..
     } = deploy_and_setup(&env, &admin);
+
+    env.mock_all_auths();
 
     let governance_address: Address = env.as_contract(&client.address, || {
         env.storage()

@@ -47,6 +47,8 @@ pub struct Deployment<'a> {
 }
 
 pub fn deploy_and_setup<'a>(env: &Env, admin: &Address) -> Deployment<'a> {
+    env.mock_all_auths();
+
     let governance_client = deploy_nqg_contract(env, admin);
     let client = deploy_contract(env, &governance_client.address, admin);
 
@@ -65,6 +67,8 @@ pub fn deploy_and_setup<'a>(env: &Env, admin: &Address) -> Deployment<'a> {
 
     env.budget().reset_default();
     client.update_balance(&address);
+
+    env.set_auths(&[]);
 
     Deployment {
         client,
