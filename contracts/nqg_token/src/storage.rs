@@ -1,11 +1,32 @@
 use crate::types::DataKey;
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{contracttype, Address, Env};
 
-pub(crate) fn read_total_supply(env: &Env) -> i128 {
-    env.storage().instance().get(&DataKey::TotalSupply).unwrap()
+#[derive(Clone, Debug, Default)]
+#[contracttype]
+pub(crate) struct TotalSupply {
+    pub current: i128,
+    pub previous: i128,
+    pub updated: u32,
 }
 
-pub(crate) fn write_total_supply(env: &Env, value: i128) {
+impl TotalSupply {
+    pub(crate) fn new_total_supply(self, value: i128, updated: u32) -> Self {
+        Self {
+            current: value,
+            previous: self.current,
+            updated,
+        }
+    }
+}
+
+pub(crate) fn read_total_supply(env: &Env) -> TotalSupply {
+    env.storage()
+        .instance()
+        .get(&DataKey::TotalSupply)
+        .unwrap_or_default()
+}
+
+pub(crate) fn write_total_supply(env: &Env, value: TotalSupply) {
     env.storage().instance().set(&DataKey::TotalSupply, &value);
 }
 

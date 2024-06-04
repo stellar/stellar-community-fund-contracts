@@ -1,6 +1,6 @@
 use crate::e2e::common::contract_utils::governance::LayerAggregator;
 use nqg_token::{NQGToken, NQGTokenClient};
-use soroban_sdk::testutils::Address as AddressTrait;
+use soroban_sdk::testutils::{Address as AddressTrait, Ledger, LedgerInfo};
 use soroban_sdk::{Address, Env, Map, I256};
 
 mod governance {
@@ -75,4 +75,18 @@ pub fn deploy_and_setup<'a>(env: &Env, admin: &Address) -> Deployment<'a> {
         governance_client,
         address,
     }
+}
+
+/// Taken from here https://github.com/script3/soroban-governor/blob/0a7788905366ff52297f3fcecb4c3a0dc9f55cf5/contracts/tests/src/env.rs#L20
+pub fn jump(env: &mut Env, ledgers: u32) {
+    env.ledger().set(LedgerInfo {
+        timestamp: env.ledger().timestamp().saturating_add(ledgers as u64 * 5),
+        protocol_version: 20,
+        sequence_number: env.ledger().sequence().saturating_add(ledgers),
+        network_id: Default::default(),
+        base_reserve: 10,
+        min_temp_entry_ttl: 10 * 17280,
+        min_persistent_entry_ttl: 10 * 17280,
+        max_entry_ttl: 365 * 17280,
+    });
 }

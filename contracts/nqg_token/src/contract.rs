@@ -5,6 +5,7 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, I256};
 use crate::balance::{extend_balance, read_balance, write_balance};
 use crate::storage::{
     read_governance_contract_address, read_total_supply, write_governance_contract_address,
+    write_total_supply,
 };
 use crate::types::{DataKey, GovernorWrapperError};
 use crate::votes::Votes;
@@ -45,7 +46,18 @@ impl NQGToken {
             .to_i128()
             .expect("Failed to convert voting power to i128");
 
-        write_balance(&env, &address, voting_power_i128);
+        let current_ledger = env.ledger().sequence();
+
+        let old_balance = read_balance(&env, &address);
+        let new_balance = old_balance.new_balance(voting_power_i128, current_ledger);
+
+        let old_total_supply = read_total_supply(&env);
+        let new_total_supply = old_total_supply
+            .clone()
+            .new_total_supply(old_total_supply.current + voting_power_i128, current_ledger);
+
+        write_total_supply(&env, new_total_supply);
+        write_balance(&env, &address, new_balance);
         extend_balance(&env, &address);
 
         Ok(())
@@ -83,31 +95,39 @@ fn nqg_score_to_balance(env: &Env, value: &I256) -> I256 {
 #[contractimpl]
 impl Votes for NQGToken {
     fn total_supply(e: Env) -> i128 {
-        read_total_supply(&e)
+        read_total_supply(&e).current
     }
 
     fn set_vote_sequence(e: Env, sequence: u32) {}
 
     fn get_past_total_supply(e: Env, sequence: u32) -> i128 {
-        // TODO handle past data
-        read_total_supply(&e)
+        let total_supply = read_total_supply(&e);
+        if total_supply.updated > sequence {
+            total_supply.previous
+        } else {
+            total_supply.current
+        }
     }
 
     fn get_votes(e: Env, account: Address) -> i128 {
-        Self::balance(e, account)
+        read_balance(&e, &account).current
     }
 
     fn get_past_votes(e: Env, user: Address, sequence: u32) -> i128 {
-        // TODO handle past data
-        Self::balance(e, user)
+        let balance = read_balance(&e, &user);
+        if balance.updated > sequence {
+            balance.previous
+        } else {
+            balance.current
+        }
     }
 
     fn get_delegate(e: Env, account: Address) -> Address {
-        account
+        panic!("Delegation is not supported")
     }
 
     fn delegate(e: Env, account: Address, delegatee: Address) {
-        account.require_auth()
+        panic!("Delegation is not supported")
     }
 }
 
@@ -133,7 +153,7 @@ impl Interface for NQGToken {
     }
 
     fn balance(env: Env, id: Address) -> i128 {
-        read_balance(&env, &id)
+        read_balance(&env, &id).current
     }
 
     fn transfer(env: Env, from: Address, to: Address, amount: i128) {

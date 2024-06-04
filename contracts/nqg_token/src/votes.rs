@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, Env};
 
-/// This was copied over from https://github.com/script3/soroban-governor as they do not expose
-/// this trait as a dependency. 
+/// This was copied over from [this repo](https://github.com/script3/soroban-governor) as it does
+/// not expose this trait as a dependency.
 pub trait Votes {
     /// Get the total supply of voting tokens
     fn total_supply(e: Env) -> i128;
