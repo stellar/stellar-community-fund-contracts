@@ -15,7 +15,6 @@ fn checkpoints() {
     env.mock_all_auths();
 
     // Store current balances
-    let sequence = env.ledger().sequence();
     let balance = client.balance(&address);
 
     // Update the balance in future ledgers
