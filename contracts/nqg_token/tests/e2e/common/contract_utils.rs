@@ -77,6 +77,28 @@ pub fn deploy_and_setup<'a>(env: &Env, admin: &Address) -> Deployment<'a> {
     }
 }
 
+pub fn update_balance(
+    env: &Env,
+    client: &NQGTokenClient,
+    governance_client: &governance::Client,
+    address: &Address,
+    new_balance: i128,
+) {
+    let mut result = Map::new(env);
+    result.set(address.to_string(), I256::from_i128(env, new_balance));
+
+    governance_client.set_neuron_result(
+        &soroban_sdk::String::from_str(env, "0"),
+        &soroban_sdk::String::from_str(env, "0"),
+        &result,
+    );
+
+    governance_client.calculate_voting_powers();
+
+    env.budget().reset_default();
+    client.update_balance(&address);
+}
+
 /// Taken from here https://github.com/script3/soroban-governor/blob/0a7788905366ff52297f3fcecb4c3a0dc9f55cf5/contracts/tests/src/env.rs#L20
 pub fn jump(env: &mut Env, ledgers: u32) {
     env.ledger().set(LedgerInfo {

@@ -1,9 +1,9 @@
-use crate::e2e::common::contract_utils::{deploy_and_setup, jump, Deployment};
+use crate::e2e::common::contract_utils::{deploy_and_setup, jump, update_balance, Deployment};
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{Address, Env, Map, String, I256};
 
 #[test]
-fn old_balance_gets_stored() {
+fn checkpoints() {
     let mut env = Env::default();
 
     let admin = Address::generate(&env);
@@ -40,7 +40,7 @@ fn old_balance_gets_stored() {
     // Verify history is preserved for votes
     assert_eq!(client.get_votes(&address), new_balance);
     assert_eq!(
-        client.get_past_votes(&address, &(env.ledger().sequence() -1)),
+        client.get_past_votes(&address, &(env.ledger().sequence() - 1)),
         new_balance
     );
     assert_eq!(
@@ -60,4 +60,42 @@ fn old_balance_gets_stored() {
         client.get_past_total_supply(&(env.ledger().sequence() - 100)),
         balance
     );
+}
+
+#[test]
+fn total_supply() {
+    let env = Env::default();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+        address,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        20 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 20 * 10_i128.pow(9));
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        30 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 30 * 10_i128.pow(9));
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        10 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 10 * 10_i128.pow(9));
 }
