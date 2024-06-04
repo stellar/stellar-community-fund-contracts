@@ -26,8 +26,8 @@ pub(crate) fn read_total_supply(env: &Env) -> TotalSupply {
         .unwrap_or_default()
 }
 
-pub(crate) fn write_total_supply(env: &Env, value: TotalSupply) {
-    env.storage().instance().set(&DataKey::TotalSupply, &value);
+pub(crate) fn write_total_supply(env: &Env, value: &TotalSupply) {
+    env.storage().instance().set(&DataKey::TotalSupply, value);
 }
 
 pub(crate) fn read_governance_contract_address(env: &Env) -> Address {

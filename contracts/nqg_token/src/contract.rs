@@ -65,8 +65,8 @@ impl NQGToken {
             .clone()
             .new_total_supply(new_total_supply_value, current_ledger);
 
-        write_total_supply(&env, new_total_supply);
-        write_balance(&env, &address, new_balance);
+        write_total_supply(&env, &new_total_supply);
+        write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
 
         Ok(())
@@ -102,6 +102,7 @@ fn nqg_score_to_balance(env: &Env, value: &I256) -> I256 {
 }
 
 #[contractimpl]
+#[allow(unused_variables)]
 impl Votes for NQGToken {
     fn total_supply(e: Env) -> i128 {
         read_total_supply(&e).current
@@ -195,11 +196,11 @@ impl Interface for NQGToken {
         DECIMALS
     }
 
-    fn name(env: Env) -> soroban_sdk::String {
+    fn name(env: Env) -> String {
         String::from_str(&env, "NQG Token")
     }
 
-    fn symbol(env: Env) -> soroban_sdk::String {
+    fn symbol(env: Env) -> String {
         String::from_str(&env, "NQG")
     }
 }

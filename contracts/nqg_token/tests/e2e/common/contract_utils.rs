@@ -99,13 +99,16 @@ pub fn update_balance(
     governance_client.calculate_voting_powers();
 
     env.budget().reset_default();
-    client.update_balance(&address);
+    client.update_balance(address);
 }
 
-/// Taken from here https://github.com/script3/soroban-governor/blob/0a7788905366ff52297f3fcecb4c3a0dc9f55cf5/contracts/tests/src/env.rs#L20
+/// Taken from here <https://github.com/script3/soroban-governor/blob/0a7788905366ff52297f3fcecb4c3a0dc9f55cf5/contracts/tests/src/env.rs#L20/>
 pub fn jump(env: &mut Env, ledgers: u32) {
     env.ledger().set(LedgerInfo {
-        timestamp: env.ledger().timestamp().saturating_add(ledgers as u64 * 5),
+        timestamp: env
+            .ledger()
+            .timestamp()
+            .saturating_add(u64::from(ledgers) * 5),
         protocol_version: 20,
         sequence_number: env.ledger().sequence().saturating_add(ledgers),
         network_id: Default::default(),

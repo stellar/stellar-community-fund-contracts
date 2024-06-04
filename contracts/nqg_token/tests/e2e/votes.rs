@@ -46,8 +46,8 @@ fn checkpoints() {
         client.get_past_votes(&address, &(env.ledger().sequence() - 100)),
         balance
     );
-    assert_eq!(balance, 1000000000);
-    assert_eq!(new_balance, 104857600000000000);
+    assert_eq!(balance, 1_000_000_000);
+    assert_eq!(new_balance, 104_857_600_000_000_000);
 
     // Verify history is preserved for total supply
     assert_eq!(client.total_supply(), new_balance);

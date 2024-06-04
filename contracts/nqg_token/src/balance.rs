@@ -30,10 +30,10 @@ pub(crate) fn read_balance(env: &Env, address: &Address) -> Balance {
         .unwrap_or_default()
 }
 
-pub(crate) fn write_balance(env: &Env, address: &Address, balance: Balance) {
+pub(crate) fn write_balance(env: &Env, address: &Address, balance: &Balance) {
     env.storage()
         .persistent()
-        .set(&DataKey::Balance(address.clone()), &balance);
+        .set(&DataKey::Balance(address.clone()), balance);
 }
 
 pub(crate) fn extend_balance(env: &Env, address: &Address) {
