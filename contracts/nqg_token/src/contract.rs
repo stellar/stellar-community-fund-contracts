@@ -110,6 +110,11 @@ impl Votes for NQGToken {
     fn set_vote_sequence(e: Env, sequence: u32) {}
 
     fn get_past_total_supply(e: Env, sequence: u32) -> i128 {
+        assert!(
+            sequence < e.ledger().sequence(),
+            "Provided sequence must be lower than current ledger sequence"
+        );
+
         let total_supply = read_total_supply(&e);
         if total_supply.updated > sequence {
             total_supply.previous
@@ -123,6 +128,11 @@ impl Votes for NQGToken {
     }
 
     fn get_past_votes(e: Env, user: Address, sequence: u32) -> i128 {
+        assert!(
+            sequence < e.ledger().sequence(),
+            "Provided sequence must be lower than current ledger sequence"
+        );
+
         let balance = read_balance(&e, &user);
         if balance.updated > sequence {
             balance.previous

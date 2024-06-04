@@ -33,12 +33,14 @@ fn old_balance_gets_stored() {
 
     client.update_balance(&address);
 
+    jump(&mut env, 1);
+
     let new_balance = client.balance(&address);
 
     // Verify history is preserved for votes
     assert_eq!(client.get_votes(&address), new_balance);
     assert_eq!(
-        client.get_past_votes(&address, &env.ledger().sequence()),
+        client.get_past_votes(&address, &(env.ledger().sequence() -1)),
         new_balance
     );
     assert_eq!(
@@ -51,7 +53,7 @@ fn old_balance_gets_stored() {
     // Verify history is preserved for total supply
     assert_eq!(client.total_supply(), new_balance);
     assert_eq!(
-        client.get_past_total_supply(&env.ledger().sequence()),
+        client.get_past_total_supply(&(env.ledger().sequence() - 1)),
         new_balance
     );
     assert_eq!(
