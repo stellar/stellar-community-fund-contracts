@@ -20,11 +20,11 @@ mod governance {
 }
 
 #[contract]
-pub struct NQGToken;
+pub struct SCFToken;
 
 #[contractimpl]
 #[allow(clippy::needless_pass_by_value)]
-impl NQGToken {
+impl SCFToken {
     pub fn initialize(env: Env, admin: Address, governance_address: Address) {
         assert!(
             !env.storage().instance().has(&DataKey::Admin),
@@ -41,7 +41,7 @@ impl NQGToken {
 
         let voting_power = voting_power_for_user(&env, &address)?;
 
-        let voting_power_whole = nqg_score_to_balance(&env, &voting_power);
+        let voting_power_whole = scf_score_to_balance(&env, &voting_power);
         let voting_power_i128: i128 = voting_power_whole
             .to_i128()
             .expect("Failed to convert voting power to i128");
@@ -96,14 +96,14 @@ fn voting_power_for_user(env: &Env, address: &Address) -> Result<I256, GovernorW
         .ok_or(GovernorWrapperError::VotingPowerMissingForUser)
 }
 
-fn nqg_score_to_balance(env: &Env, value: &I256) -> I256 {
+fn scf_score_to_balance(env: &Env, value: &I256) -> I256 {
     let decimal_shift = NQG_DECIMALS - DECIMALS;
     value.div(&I256::from_i32(env, 10).pow(decimal_shift))
 }
 
 #[contractimpl]
 #[allow(unused_variables)]
-impl Votes for NQGToken {
+impl Votes for SCFToken {
     fn total_supply(e: Env) -> i128 {
         read_total_supply(&e).current
     }
@@ -152,7 +152,7 @@ impl Votes for NQGToken {
 }
 
 #[contractimpl]
-impl Admin for NQGToken {
+impl Admin for SCFToken {
     fn transfer_admin(env: Env, new_admin: Address) {
         let admin = read_admin(&env);
         admin.require_auth();
@@ -163,7 +163,7 @@ impl Admin for NQGToken {
 
 #[allow(unused_variables)]
 #[contractimpl]
-impl Interface for NQGToken {
+impl Interface for SCFToken {
     fn allowance(env: Env, from: Address, spender: Address) -> i128 {
         panic!("Transfers are not supported")
     }
@@ -197,11 +197,11 @@ impl Interface for NQGToken {
     }
 
     fn name(env: Env) -> String {
-        String::from_str(&env, "NQG Token")
+        String::from_str(&env, "SCF Token")
     }
 
     fn symbol(env: Env) -> String {
-        String::from_str(&env, "NQG")
+        String::from_str(&env, "SCF")
     }
 }
 
@@ -210,41 +210,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn converting_nqg_values() {
+    fn converting_scf_values() {
         let env = Env::default();
 
         let base_value = I256::from_i32(&env, 1);
-        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        let scf_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
         assert_eq!(
-            nqg_score_to_balance(&env, &nqg_value),
+            scf_score_to_balance(&env, &scf_value),
             base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
         );
 
         let base_value = I256::from_i32(&env, 0);
-        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        let scf_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
         assert_eq!(
-            nqg_score_to_balance(&env, &nqg_value),
+            scf_score_to_balance(&env, &scf_value),
             base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
         );
 
         let base_value = I256::from_i128(&env, 2_i128.pow(100));
-        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        let scf_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
         assert_eq!(
-            nqg_score_to_balance(&env, &nqg_value),
+            scf_score_to_balance(&env, &scf_value),
             base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
         );
 
         let base_value = I256::from_i128(&env, 2_i128.pow(100));
-        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        let scf_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
         assert_eq!(
-            nqg_score_to_balance(&env, &nqg_value),
+            scf_score_to_balance(&env, &scf_value),
             base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
         );
 
         let base_value = I256::from_i128(&env, 1_123_456_789_123_456_789);
-        let nqg_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        let scf_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
         assert_eq!(
-            nqg_score_to_balance(&env, &nqg_value),
+            scf_score_to_balance(&env, &scf_value),
             base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
         );
     }

@@ -1,10 +1,10 @@
-use nqg_token::{DataKey, NQGToken, NQGTokenClient, DECIMALS};
+use scf_token::{DataKey, SCFToken, SCFTokenClient, DECIMALS};
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
 use soroban_sdk::{Address, Env, Error, Map, String, I256};
 
 use crate::e2e::common::contract_utils::{
-    deploy_and_setup, deploy_contract, deploy_nqg_contract, Deployment,
+    deploy_and_setup, deploy_contract, deploy_scf_contract, Deployment,
 };
 
 #[test]
@@ -14,14 +14,14 @@ fn initializing_contract() {
 
     let admin = Address::generate(&env);
 
-    let governance_client = deploy_nqg_contract(&env, &admin);
-    let nqg_token_address = env.register_contract(None, NQGToken);
-    let nqg_token_client = NQGTokenClient::new(&env, &nqg_token_address);
+    let governance_client = deploy_scf_contract(&env, &admin);
+    let scf_token_address = env.register_contract(None, SCFToken);
+    let scf_token_client = SCFTokenClient::new(&env, &scf_token_address);
 
-    nqg_token_client.initialize(&admin, &governance_client.address);
+    scf_token_client.initialize(&admin, &governance_client.address);
     // Try initializing again
     assert_eq!(
-        nqg_token_client.try_initialize(&admin, &governance_client.address),
+        scf_token_client.try_initialize(&admin, &governance_client.address),
         Err(Ok(Error::from_type_and_code(
             ScErrorType::Context,
             ScErrorCode::InvalidAction
@@ -36,8 +36,8 @@ fn updating_balances() {
 
     let admin = Address::generate(&env);
 
-    let governance_client = deploy_nqg_contract(&env, &admin);
-    let nqg_token_client = deploy_contract(&env, &governance_client.address, &admin);
+    let governance_client = deploy_scf_contract(&env, &admin);
+    let scf_token_client = deploy_contract(&env, &governance_client.address, &admin);
 
     let address = Address::generate(&env);
     let mut result = Map::new(&env);
@@ -52,9 +52,9 @@ fn updating_balances() {
     governance_client.calculate_voting_powers();
 
     env.budget().reset_default();
-    nqg_token_client.update_balance(&address);
+    scf_token_client.update_balance(&address);
 
-    assert_eq!(nqg_token_client.balance(&address), 10_i128.pow(DECIMALS));
+    assert_eq!(scf_token_client.balance(&address), 10_i128.pow(DECIMALS));
 }
 
 #[test]
