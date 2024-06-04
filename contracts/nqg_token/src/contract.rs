@@ -3,8 +3,11 @@ use soroban_sdk::token::Interface;
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, I256};
 
 use crate::balance::{extend_balance, read_balance, write_balance};
-use crate::storage::{read_governance_contract_address, write_governance_contract_address};
+use crate::storage::{
+    read_governance_contract_address, read_total_supply, write_governance_contract_address,
+};
 use crate::types::{DataKey, GovernorWrapperError};
+use crate::votes::Votes;
 
 pub const DECIMALS: u32 = 9;
 const NQG_DECIMALS: u32 = 18;
@@ -75,6 +78,37 @@ fn voting_power_for_user(env: &Env, address: &Address) -> Result<I256, GovernorW
 fn nqg_score_to_balance(env: &Env, value: &I256) -> I256 {
     let decimal_shift = NQG_DECIMALS - DECIMALS;
     value.div(&I256::from_i32(env, 10).pow(decimal_shift))
+}
+
+#[contractimpl]
+impl Votes for NQGToken {
+    fn total_supply(e: Env) -> i128 {
+        read_total_supply(&e)
+    }
+
+    fn set_vote_sequence(e: Env, sequence: u32) {}
+
+    fn get_past_total_supply(e: Env, sequence: u32) -> i128 {
+        // TODO handle past data
+        read_total_supply(&e)
+    }
+
+    fn get_votes(e: Env, account: Address) -> i128 {
+        Self::balance(e, account)
+    }
+
+    fn get_past_votes(e: Env, user: Address, sequence: u32) -> i128 {
+        // TODO handle past data
+        Self::balance(e, user)
+    }
+
+    fn get_delegate(e: Env, account: Address) -> Address {
+        account
+    }
+
+    fn delegate(e: Env, account: Address, delegatee: Address) {
+        account.require_auth()
+    }
 }
 
 #[contractimpl]

@@ -6,6 +6,7 @@ pub enum DataKey {
     Admin,
     GovernanceAddress,
     Balance(Address),
+    TotalSupply,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
