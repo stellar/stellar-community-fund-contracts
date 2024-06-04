@@ -51,10 +51,19 @@ impl NQGToken {
         let old_balance = read_balance(&env, &address);
         let new_balance = old_balance.new_balance(voting_power_i128, current_ledger);
 
+        let balance_change = new_balance.current - new_balance.previous;
+
         let old_total_supply = read_total_supply(&env);
+
+        let new_total_supply_value = old_total_supply.current + balance_change;
+        let new_total_supply_value = if new_total_supply_value >= 0 {
+            new_total_supply_value
+        } else {
+            0
+        };
         let new_total_supply = old_total_supply
             .clone()
-            .new_total_supply(old_total_supply.current + voting_power_i128, current_ledger);
+            .new_total_supply(new_total_supply_value, current_ledger);
 
         write_total_supply(&env, new_total_supply);
         write_balance(&env, &address, new_balance);
