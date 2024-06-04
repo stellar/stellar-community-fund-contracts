@@ -84,7 +84,10 @@ pub fn update_balance(
     address: &Address,
     new_balance: i128,
 ) {
-    let mut result = Map::new(env);
+    let mut result = governance_client.get_neuron_result(
+        &soroban_sdk::String::from_str(env, "0"),
+        &soroban_sdk::String::from_str(env, "0"),
+    );
     result.set(address.to_string(), I256::from_i128(env, new_balance));
 
     governance_client.set_neuron_result(

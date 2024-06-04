@@ -99,3 +99,65 @@ fn total_supply() {
     );
     assert_eq!(client.total_supply(), 10 * 10_i128.pow(9));
 }
+
+#[test]
+fn total_supply_multiple_users() {
+    let env = Env::default();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+        address,
+    } = deploy_and_setup(&env, &admin);
+    let address2 = Address::generate(&env);
+    env.mock_all_auths();
+
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        20 * 10_i128.pow(18),
+    );
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address2,
+        30 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 50 * 10_i128.pow(9));
+
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        10 * 10_i128.pow(18),
+    );
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address2,
+        20 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 30 * 10_i128.pow(9));
+
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        100 * 10_i128.pow(18),
+    );
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address2,
+        20 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 120 * 10_i128.pow(9));
+}
