@@ -159,4 +159,52 @@ fn total_supply_multiple_users() {
         20 * 10_i128.pow(18),
     );
     assert_eq!(client.total_supply(), 120 * 10_i128.pow(9));
+
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        -100 * 10_i128.pow(18),
+    );
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address2,
+        20 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 20 * 10_i128.pow(9));
+
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        100 * 10_i128.pow(18),
+    );
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address2,
+        -20 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 100 * 10_i128.pow(9));
+    
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        -100 * 10_i128.pow(18),
+    );
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address2,
+        -20 * 10_i128.pow(18),
+    );
+    assert_eq!(client.total_supply(), 0);
 }
