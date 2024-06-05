@@ -2,7 +2,7 @@ use crate::Vote;
 use anyhow::{anyhow, bail, Result};
 use std::collections::HashMap;
 
-const QUORUM_SIZE: u32 = 5;
+const QUORUM_SIZE: u32 = 3;
 const QUORUM_ABSOLUTE_PARTICIPATION_THRESHOLD: f64 = 1.0 / 2.0;
 const QUORUM_RELATIVE_PARTICIPATION_THRESHOLD: f64 = 2.0 / 3.0;
 
