@@ -246,11 +246,10 @@ mod tests {
             base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
         );
 
-        let base_value = I256::from_i128(&env, 1_123_456_789_123_456_789);
-        let scf_value = base_value.mul(&I256::from_i32(&env, 10).pow(NQG_DECIMALS));
+        let scf_value = I256::from_i128(&env, 123_456_789_112_233_445);
         assert_eq!(
             scf_score_to_balance(&env, &scf_value),
-            base_value.mul(&I256::from_i32(&env, 10).pow(DECIMALS))
+            I256::from_i128(&env, 123_456_789)
         );
     }
 }
