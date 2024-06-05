@@ -4,7 +4,7 @@ use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
 use soroban_sdk::{Address, Env, Error, Map, String, I256};
 
 use crate::e2e::common::contract_utils::{
-    deploy_and_setup, deploy_contract, deploy_scf_contract, Deployment,
+    deploy_and_setup, deploy_contract, deploy_scf_contract, update_balance, Deployment,
 };
 
 #[test]
@@ -55,6 +55,29 @@ fn updating_balances() {
     scf_token_client.update_balance(&address);
 
     assert_eq!(scf_token_client.balance(&address), 10_i128.pow(DECIMALS));
+}
+
+#[test]
+fn negative_nqg_score() {
+    let env = Env::default();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+        address,
+    } = deploy_and_setup(&env, &admin);
+
+    env.mock_all_auths();
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        -10 * 10_i128.pow(18),
+    );
+
+    assert_eq!(client.balance(&address), 0);
 }
 
 #[test]

@@ -139,11 +139,22 @@ fuzz_target!(|input: Input| {
             );
         });
 
-        assert_eq!(client.get_votes(&address), input.balance1 * 10_i128.pow(9));
-        assert_eq!(client.get_votes(&address2), input.balance2 * 10_i128.pow(9));
+        let balance1 = if input.balance1 >= 0 {
+            input.balance1
+        } else {
+            0
+        };
+        let balance2 = if input.balance2 >= 0 {
+            input.balance2
+        } else {
+            0
+        };
+
+        assert_eq!(client.get_votes(&address), balance1 * 10_i128.pow(9));
+        assert_eq!(client.get_votes(&address2), balance2 * 10_i128.pow(9));
         assert_eq!(
             client.total_supply(),
-            (input.balance1 + input.balance2) * 10_i128.pow(9)
+            (balance1 + balance2) * 10_i128.pow(9)
         );
     }
 });

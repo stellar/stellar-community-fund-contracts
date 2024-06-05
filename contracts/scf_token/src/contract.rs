@@ -91,9 +91,14 @@ fn voting_power_for_user(env: &Env, address: &Address) -> Result<I256, GovernorW
     let governance_address = read_governance_contract_address(env);
     let governance_client = governance::Client::new(env, &governance_address);
     let voting_powers = governance_client.get_voting_powers();
-    voting_powers
+    let voting_powers = voting_powers
         .get(address.to_string())
-        .ok_or(GovernorWrapperError::VotingPowerMissingForUser)
+        .ok_or(GovernorWrapperError::VotingPowerMissingForUser)?;
+    Ok(if voting_powers >= I256::from_i32(&env, 0) {
+        voting_powers
+    } else {
+        I256::from_i32(&env, 0)
+    })
 }
 
 fn scf_score_to_balance(env: &Env, value: &I256) -> I256 {
