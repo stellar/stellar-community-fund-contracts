@@ -9,8 +9,18 @@ pub enum DataKey {
     TotalSupply,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum GovernorWrapperError {
     VotingPowerMissingForUser = 1,
+    ContractAlreadyInitialized = 2,
+    VotingPowerAlreadyUpdatedForUser = 3,
+    ActionNotSupported = 4,
+}
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+pub enum VotesError {
+    ActionNotSupported = 100,
+    SequenceGreaterThanCurrent = 101,
 }

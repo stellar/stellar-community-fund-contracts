@@ -1,13 +1,15 @@
 use crate::admin::{read_admin, write_admin, Admin};
 use soroban_sdk::token::Interface;
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, I256};
+use soroban_sdk::{
+    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN, Env, String, I256,
+};
 
 use crate::balance::{extend_balance, read_balance, write_balance};
 use crate::storage::{
     read_governance_contract_address, read_total_supply, write_governance_contract_address,
     write_total_supply,
 };
-use crate::types::{DataKey, GovernorWrapperError};
+use crate::types::{DataKey, GovernorWrapperError, VotesError};
 use crate::votes::Votes;
 
 pub const DECIMALS: u32 = 9;
@@ -26,9 +28,10 @@ pub struct SCFToken;
 #[allow(clippy::needless_pass_by_value)]
 impl SCFToken {
     pub fn initialize(env: Env, admin: Address, governance_address: Address) {
-        assert!(
+        assert_with_error!(
+            env,
             !env.storage().instance().has(&DataKey::Admin),
-            "Contract already initialized"
+            GovernorWrapperError::ContractAlreadyInitialized
         );
 
         write_admin(&env, &admin);
@@ -47,9 +50,10 @@ impl SCFToken {
 
         let old_balance = read_balance(&env, &address);
 
-        assert!(
+        assert_with_error!(
+            env,
             old_balance.updated_round < current_round,
-            "VotingPower already updated for this round"
+            GovernorWrapperError::VotingPowerAlreadyUpdatedForUser
         );
 
         let voting_power = voting_power_for_user(&env, &governance_client, &address)?;
@@ -128,9 +132,10 @@ impl Votes for SCFToken {
     fn set_vote_sequence(e: Env, sequence: u32) {}
 
     fn get_past_total_supply(e: Env, sequence: u32) -> i128 {
-        assert!(
+        assert_with_error!(
+            e,
             sequence < e.ledger().sequence(),
-            "Provided sequence must be lower than current ledger sequence"
+            VotesError::SequenceGreaterThanCurrent
         );
 
         let total_supply = read_total_supply(&e);
@@ -149,9 +154,10 @@ impl Votes for SCFToken {
     }
 
     fn get_past_votes(e: Env, user: Address, sequence: u32) -> i128 {
-        assert!(
+        assert_with_error!(
+            e,
             sequence < e.ledger().sequence(),
-            "Provided sequence must be lower than current ledger sequence"
+            VotesError::SequenceGreaterThanCurrent
         );
 
         let balance = read_balance(&e, &user);
@@ -166,11 +172,11 @@ impl Votes for SCFToken {
     }
 
     fn get_delegate(e: Env, account: Address) -> Address {
-        panic!("Delegation is not supported")
+        panic_with_error!(e, VotesError::ActionNotSupported)
     }
 
     fn delegate(e: Env, account: Address, delegatee: Address) {
-        panic!("Delegation is not supported")
+        panic_with_error!(e, VotesError::ActionNotSupported)
     }
 }
 
@@ -188,11 +194,11 @@ impl Admin for SCFToken {
 #[contractimpl]
 impl Interface for SCFToken {
     fn allowance(env: Env, from: Address, spender: Address) -> i128 {
-        panic!("Transfers are not supported")
+        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
     }
 
     fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
-        panic!("Transfers are not supported")
+        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
     }
 
     fn balance(env: Env, id: Address) -> i128 {
@@ -200,19 +206,19 @@ impl Interface for SCFToken {
     }
 
     fn transfer(env: Env, from: Address, to: Address, amount: i128) {
-        panic!("Transfers are not supported")
+        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
     }
 
     fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
-        panic!("Transfers are not supported")
+        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
     }
 
     fn burn(env: Env, from: Address, amount: i128) {
-        panic!("Burning is not supported")
+        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
     }
 
     fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
-        panic!("Burning is not supported")
+        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
     }
 
     fn decimals(env: Env) -> u32 {

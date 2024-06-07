@@ -1,6 +1,5 @@
 use scf_token::{DataKey, SCFToken, SCFTokenClient, DECIMALS};
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
 use soroban_sdk::{Address, Env, Error, Map, String, I256};
 
 use crate::e2e::common::contract_utils::{
@@ -23,10 +22,7 @@ fn initializing_contract() {
     // Try initializing again
     assert_eq!(
         scf_token_client.try_initialize(&admin, &governance_client.address),
-        Err(Ok(Error::from_type_and_code(
-            ScErrorType::Context,
-            ScErrorCode::InvalidAction
-        )))
+        Err(Ok(Error::from_contract_error(2)))
     );
 }
 

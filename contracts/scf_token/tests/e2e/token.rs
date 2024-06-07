@@ -1,7 +1,6 @@
 use crate::e2e::common::contract_utils::{deploy_and_setup, update_balance, Deployment};
 use scf_token::DECIMALS;
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
 use soroban_sdk::{Address, Env, Error, String};
 
 #[test]
@@ -22,10 +21,7 @@ fn allowance() {
 
     assert_eq!(
         client.try_allowance(&address, &Address::generate(&env)),
-        Err(Ok(Error::from_type_and_code(
-            ScErrorType::Context,
-            ScErrorCode::InvalidAction
-        )))
+        Err(Ok(Error::from_contract_error(4)))
     );
 }
 
@@ -52,10 +48,7 @@ fn approve() {
             &1,
             &(&env.ledger().sequence() + 100)
         ),
-        Err(Ok(Error::from_type_and_code(
-            ScErrorType::Context,
-            ScErrorCode::InvalidAction
-        )))
+        Err(Ok(Error::from_contract_error(4)))
     );
 }
 
@@ -96,10 +89,7 @@ fn transfer() {
 
     assert_eq!(
         client.try_transfer(&address, &Address::generate(&env), &1,),
-        Err(Ok(Error::from_type_and_code(
-            ScErrorType::Context,
-            ScErrorCode::InvalidAction
-        )))
+        Err(Ok(Error::from_contract_error(4)))
     );
 }
 
@@ -121,10 +111,7 @@ fn transfer_from() {
 
     assert_eq!(
         client.try_transfer_from(&address, &address, &Address::generate(&env), &1,),
-        Err(Ok(Error::from_type_and_code(
-            ScErrorType::Context,
-            ScErrorCode::InvalidAction
-        )))
+        Err(Ok(Error::from_contract_error(4)))
     );
 }
 
@@ -146,10 +133,7 @@ fn burn() {
 
     assert_eq!(
         client.try_burn(&address, &1,),
-        Err(Ok(Error::from_type_and_code(
-            ScErrorType::Context,
-            ScErrorCode::InvalidAction
-        )))
+        Err(Ok(Error::from_contract_error(4)))
     );
 }
 
@@ -171,10 +155,7 @@ fn burn_from() {
 
     assert_eq!(
         client.try_burn_from(&address, &address, &1,),
-        Err(Ok(Error::from_type_and_code(
-            ScErrorType::Context,
-            ScErrorCode::InvalidAction
-        )))
+        Err(Ok(Error::from_contract_error(4)))
     );
 }
 
