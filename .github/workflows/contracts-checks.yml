@@ -12,6 +12,8 @@ jobs:
         working-directory: ./contracts
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -22,7 +24,7 @@ jobs:
 
       - name: Install soroban cli
         run: |
-          cargo install --locked --version 20.2.0 soroban-cli
+          cargo install soroban-cli@21.0.0-rc.1 --features opt
 
       - name: Build contracts
         run: |
@@ -30,7 +32,7 @@ jobs:
 
       - name: Run tests
         run: |
-          cargo test
+          cargo test --all-features
 
       - name: Formatting check
         run: |
