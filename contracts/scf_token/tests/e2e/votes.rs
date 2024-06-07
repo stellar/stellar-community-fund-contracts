@@ -191,7 +191,7 @@ fn total_supply_multiple_users() {
         -20 * 10_i128.pow(18),
     );
     assert_eq!(client.total_supply(), 100 * 10_i128.pow(9));
-    
+
     update_balance(
         &env,
         &client,
