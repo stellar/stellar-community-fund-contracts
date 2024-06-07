@@ -11,7 +11,7 @@ pub enum DataKey {
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub enum GovernorWrapperError {
+pub enum ContractError {
     VotingPowerMissingForUser = 1,
     ContractAlreadyInitialized = 2,
     VotingPowerAlreadyUpdatedForUser = 3,

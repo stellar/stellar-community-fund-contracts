@@ -9,7 +9,7 @@ use crate::storage::{
     read_governance_contract_address, read_total_supply, write_governance_contract_address,
     write_total_supply,
 };
-use crate::types::{DataKey, GovernorWrapperError, VotesError};
+use crate::types::{ContractError, DataKey, VotesError};
 use crate::votes::Votes;
 
 pub const DECIMALS: u32 = 9;
@@ -31,14 +31,14 @@ impl SCFToken {
         assert_with_error!(
             env,
             !env.storage().instance().has(&DataKey::Admin),
-            GovernorWrapperError::ContractAlreadyInitialized
+            ContractError::ContractAlreadyInitialized
         );
 
         write_admin(&env, &admin);
         write_governance_contract_address(&env, &governance_address);
     }
 
-    pub fn update_balance(env: Env, address: Address) -> Result<(), GovernorWrapperError> {
+    pub fn update_balance(env: Env, address: Address) -> Result<(), ContractError> {
         let admin = read_admin(&env);
         admin.require_auth();
 
@@ -53,7 +53,7 @@ impl SCFToken {
         assert_with_error!(
             env,
             old_balance.updated_round < current_round,
-            GovernorWrapperError::VotingPowerAlreadyUpdatedForUser
+            ContractError::VotingPowerAlreadyUpdatedForUser
         );
 
         let voting_power = voting_power_for_user(&env, &governance_client, &address)?;
@@ -105,11 +105,11 @@ fn voting_power_for_user(
     env: &Env,
     governance_client: &governance::Client,
     address: &Address,
-) -> Result<I256, GovernorWrapperError> {
+) -> Result<I256, ContractError> {
     let voting_powers = governance_client.get_voting_powers();
     let voting_powers = voting_powers
         .get(address.to_string())
-        .ok_or(GovernorWrapperError::VotingPowerMissingForUser)?;
+        .ok_or(ContractError::VotingPowerMissingForUser)?;
     Ok(if voting_powers >= I256::from_i32(env, 0) {
         voting_powers
     } else {
@@ -194,11 +194,11 @@ impl Admin for SCFToken {
 #[contractimpl]
 impl Interface for SCFToken {
     fn allowance(env: Env, from: Address, spender: Address) -> i128 {
-        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
+        panic_with_error!(env, ContractError::ActionNotSupported);
     }
 
     fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
-        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
+        panic_with_error!(env, ContractError::ActionNotSupported);
     }
 
     fn balance(env: Env, id: Address) -> i128 {
@@ -206,19 +206,19 @@ impl Interface for SCFToken {
     }
 
     fn transfer(env: Env, from: Address, to: Address, amount: i128) {
-        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
+        panic_with_error!(env, ContractError::ActionNotSupported);
     }
 
     fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
-        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
+        panic_with_error!(env, ContractError::ActionNotSupported);
     }
 
     fn burn(env: Env, from: Address, amount: i128) {
-        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
+        panic_with_error!(env, ContractError::ActionNotSupported);
     }
 
     fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
-        panic_with_error!(env, GovernorWrapperError::ActionNotSupported);
+        panic_with_error!(env, ContractError::ActionNotSupported);
     }
 
     fn decimals(env: Env) -> u32 {
