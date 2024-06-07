@@ -134,6 +134,9 @@ impl Votes for SCFToken {
         );
 
         let total_supply = read_total_supply(&e);
+        // It should be safe to store only one checkpoint for total_supply as NQG balances are
+        // updated roughly every month. This is assumed to be a much longer period that the voting
+        // period and delay will be for the related governor contract.
         if total_supply.updated > sequence {
             total_supply.previous
         } else {
@@ -152,6 +155,9 @@ impl Votes for SCFToken {
         );
 
         let balance = read_balance(&e, &user);
+        // It should be safe to store only one checkpoint for balance as NQG balances are
+        // updated roughly every month. This is assumed to be a much longer period that the voting
+        // period and delay will be for the related governor contract.
         if balance.updated_ledger > sequence {
             balance.previous
         } else {
