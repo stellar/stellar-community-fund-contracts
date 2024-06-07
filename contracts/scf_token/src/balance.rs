@@ -10,15 +10,17 @@ const BALANCE_BUMP_THRESHOLD: u32 = 45 * DAY_IN_LEDGERS;
 pub(crate) struct Balance {
     pub current: i128,
     pub previous: i128,
-    pub updated: u32,
+    pub updated_ledger: u32,
+    pub updated_round: u32,
 }
 
 impl Balance {
-    pub(crate) fn new_balance(self, value: i128, updated: u32) -> Self {
+    pub(crate) fn new_balance(self, value: i128, ledger: u32, round: u32) -> Self {
         Self {
             current: value,
             previous: self.current,
-            updated,
+            updated_ledger: ledger,
+            updated_round: round,
         }
     }
 }
@@ -30,7 +32,8 @@ pub(crate) fn read_balance(env: &Env, address: &Address) -> Balance {
         .unwrap_or(Balance {
             current: 0,
             previous: 0,
-            updated: 0,
+            updated_ledger: 0,
+            updated_round: 0,
         })
 }
 

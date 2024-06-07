@@ -1,18 +1,24 @@
-use crate::e2e::common::contract_utils::{deploy_and_setup, jump, update_balance, Deployment};
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::{Address, Env, Map, String, I256};
+use soroban_sdk::{Address, Env};
+
+use crate::e2e::common::contract_utils::{deploy_and_setup, jump, update_balance, Deployment};
 
 #[test]
 fn checkpoints() {
     let mut env = Env::default();
+    env.budget().reset_unlimited();
 
     let admin = Address::generate(&env);
+
     let Deployment {
         client,
         governance_client,
-        address,
+        ..
     } = deploy_and_setup(&env, &admin);
     env.mock_all_auths();
+
+    let address = Address::generate(&env);
+    update_balance(&env, &client, &governance_client, &address, 10_i128.pow(18));
 
     // Store current balances
     let balance = client.balance(&address);
@@ -20,17 +26,14 @@ fn checkpoints() {
     // Update the balance in future ledgers
     jump(&mut env, 100);
 
-    let mut result: Map<String, I256> = Map::new(&env);
-    result.set(address.to_string(), I256::from_i128(&env, 20_i128.pow(20)));
-
-    governance_client.set_neuron_result(
-        &String::from_str(&env, "0"),
-        &String::from_str(&env, "0"),
-        &result,
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
+    update_balance(
+        &env,
+        &client,
+        &governance_client,
+        &address,
+        2 * 10_i128.pow(18),
     );
-    governance_client.calculate_voting_powers();
-
-    client.update_balance(&address);
 
     jump(&mut env, 1);
 
@@ -47,7 +50,7 @@ fn checkpoints() {
         balance
     );
     assert_eq!(balance, 1_000_000_000);
-    assert_eq!(new_balance, 104_857_600_000_000_000);
+    assert_eq!(new_balance, 2_000_000_000);
 
     // Verify history is preserved for total supply
     assert_eq!(client.total_supply(), new_balance);
@@ -64,14 +67,16 @@ fn checkpoints() {
 #[test]
 fn total_supply() {
     let env = Env::default();
+    env.budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let Deployment {
         client,
         governance_client,
-        address,
     } = deploy_and_setup(&env, &admin);
     env.mock_all_auths();
+
+    let address = Address::generate(&env);
 
     update_balance(
         &env,
@@ -81,6 +86,7 @@ fn total_supply() {
         20 * 10_i128.pow(18),
     );
     assert_eq!(client.total_supply(), 20 * 10_i128.pow(9));
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
     update_balance(
         &env,
         &client,
@@ -89,6 +95,7 @@ fn total_supply() {
         30 * 10_i128.pow(18),
     );
     assert_eq!(client.total_supply(), 30 * 10_i128.pow(9));
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
     update_balance(
         &env,
         &client,
@@ -100,15 +107,17 @@ fn total_supply() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn total_supply_multiple_users() {
     let env = Env::default();
+    env.budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let Deployment {
         client,
         governance_client,
-        address,
     } = deploy_and_setup(&env, &admin);
+    let address = Address::generate(&env);
     let address2 = Address::generate(&env);
     env.mock_all_auths();
 
@@ -128,6 +137,7 @@ fn total_supply_multiple_users() {
     );
     assert_eq!(client.total_supply(), 50 * 10_i128.pow(9));
 
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
     update_balance(
         &env,
         &client,
@@ -144,6 +154,7 @@ fn total_supply_multiple_users() {
     );
     assert_eq!(client.total_supply(), 30 * 10_i128.pow(9));
 
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
     update_balance(
         &env,
         &client,
@@ -160,6 +171,7 @@ fn total_supply_multiple_users() {
     );
     assert_eq!(client.total_supply(), 120 * 10_i128.pow(9));
 
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
     update_balance(
         &env,
         &client,
@@ -176,6 +188,7 @@ fn total_supply_multiple_users() {
     );
     assert_eq!(client.total_supply(), 20 * 10_i128.pow(9));
 
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
     update_balance(
         &env,
         &client,
@@ -192,6 +205,7 @@ fn total_supply_multiple_users() {
     );
     assert_eq!(client.total_supply(), 100 * 10_i128.pow(9));
 
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
     update_balance(
         &env,
         &client,

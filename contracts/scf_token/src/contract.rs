@@ -39,17 +39,27 @@ impl SCFToken {
         let admin = read_admin(&env);
         admin.require_auth();
 
-        let voting_power = voting_power_for_user(&env, &address)?;
+        let governance_address = read_governance_contract_address(&env);
+        let governance_client = governance::Client::new(&env, &governance_address);
+
+        let current_ledger = env.ledger().sequence();
+        let current_round = governance_client.get_current_round();
+
+        let old_balance = read_balance(&env, &address);
+
+        assert!(
+            old_balance.updated_round < current_round,
+            "VotingPower already updated for this round"
+        );
+
+        let voting_power = voting_power_for_user(&env, &governance_client, &address)?;
 
         let voting_power_whole = scf_score_to_balance(&env, &voting_power);
         let voting_power_i128: i128 = voting_power_whole
             .to_i128()
             .expect("Failed to convert voting power to i128");
 
-        let current_ledger = env.ledger().sequence();
-
-        let old_balance = read_balance(&env, &address);
-        let new_balance = old_balance.new_balance(voting_power_i128, current_ledger);
+        let new_balance = old_balance.new_balance(voting_power_i128, current_ledger, current_round);
 
         let balance_change = new_balance.current - new_balance.previous;
 
@@ -87,9 +97,11 @@ impl SCFToken {
     }
 }
 
-fn voting_power_for_user(env: &Env, address: &Address) -> Result<I256, GovernorWrapperError> {
-    let governance_address = read_governance_contract_address(env);
-    let governance_client = governance::Client::new(env, &governance_address);
+fn voting_power_for_user(
+    env: &Env,
+    governance_client: &governance::Client,
+    address: &Address,
+) -> Result<I256, GovernorWrapperError> {
     let voting_powers = governance_client.get_voting_powers();
     let voting_powers = voting_powers
         .get(address.to_string())
@@ -140,7 +152,7 @@ impl Votes for SCFToken {
         );
 
         let balance = read_balance(&e, &user);
-        if balance.updated > sequence {
+        if balance.updated_ledger > sequence {
             balance.previous
         } else {
             balance.current

@@ -1,9 +1,9 @@
 use crate::e2e::common::contract_utils::governance::LayerAggregator;
 use scf_token::{SCFToken, SCFTokenClient};
-use soroban_sdk::testutils::{Address as AddressTrait, Ledger, LedgerInfo};
+use soroban_sdk::testutils::{Ledger, LedgerInfo};
 use soroban_sdk::{Address, Env, Map, I256};
 
-mod governance {
+pub mod governance {
     use soroban_sdk::contractimport;
 
     contractimport!(file = "../target/wasm32-unknown-unknown/release/governance.wasm");
@@ -43,7 +43,6 @@ pub fn deploy_scf_contract<'a>(env: &Env, admin: &Address) -> governance::Client
 pub struct Deployment<'a> {
     pub client: SCFTokenClient<'a>,
     pub governance_client: governance::Client<'a>,
-    pub address: Address,
 }
 
 pub fn deploy_and_setup<'a>(env: &Env, admin: &Address) -> Deployment<'a> {
@@ -52,42 +51,31 @@ pub fn deploy_and_setup<'a>(env: &Env, admin: &Address) -> Deployment<'a> {
     let governance_client = deploy_scf_contract(env, admin);
     let client = deploy_contract(env, &governance_client.address, admin);
 
-    let address = Address::generate(env);
-
-    let mut result = Map::new(env);
-    result.set(address.to_string(), I256::from_i128(env, 10_i128.pow(18)));
-
-    governance_client.set_neuron_result(
-        &soroban_sdk::String::from_str(env, "0"),
-        &soroban_sdk::String::from_str(env, "0"),
-        &result,
-    );
-
-    governance_client.calculate_voting_powers();
-
-    env.budget().reset_default();
-    client.update_balance(&address);
-
     env.set_auths(&[]);
 
     Deployment {
         client,
         governance_client,
-        address,
     }
 }
 
-pub fn update_balance(
+pub fn set_nqg_results(
     env: &Env,
-    client: &SCFTokenClient,
     governance_client: &governance::Client,
     address: &Address,
     new_balance: i128,
 ) {
-    let mut result = governance_client.get_neuron_result(
-        &soroban_sdk::String::from_str(env, "0"),
-        &soroban_sdk::String::from_str(env, "0"),
-    );
+    let mut result = governance_client
+        .try_get_neuron_result(
+            &soroban_sdk::String::from_str(env, "0"),
+            &soroban_sdk::String::from_str(env, "0"),
+        )
+        .unwrap_or_else(|_| {
+            let mut map = Map::new(env);
+            map.set(address.to_string(), I256::from_i32(env, 0));
+            Ok(map)
+        })
+        .unwrap();
     result.set(address.to_string(), I256::from_i128(env, new_balance));
 
     governance_client.set_neuron_result(
@@ -97,8 +85,17 @@ pub fn update_balance(
     );
 
     governance_client.calculate_voting_powers();
+}
 
-    env.budget().reset_default();
+pub fn update_balance(
+    env: &Env,
+    client: &SCFTokenClient,
+    governance_client: &governance::Client,
+    address: &Address,
+    new_balance: i128,
+) {
+    set_nqg_results(env, governance_client, address, new_balance);
+
     client.update_balance(address);
 }
 
@@ -117,4 +114,8 @@ pub fn jump(env: &mut Env, ledgers: u32) {
         min_persistent_entry_ttl: 10 * 17280,
         max_entry_ttl: 365 * 17280,
     });
+}
+
+pub fn bump_round(governance_client: &governance::Client) {
+    governance_client.set_current_round(&(governance_client.get_current_round() + 1));
 }

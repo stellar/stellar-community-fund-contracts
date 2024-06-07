@@ -4,7 +4,8 @@ use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
 use soroban_sdk::{Address, Env, Error, Map, String, I256};
 
 use crate::e2e::common::contract_utils::{
-    deploy_and_setup, deploy_contract, deploy_scf_contract, update_balance, Deployment,
+    bump_round, deploy_and_setup, deploy_contract, deploy_scf_contract, set_nqg_results,
+    update_balance, Deployment,
 };
 
 #[test]
@@ -58,6 +59,31 @@ fn updating_balances() {
 }
 
 #[test]
+fn updating_balance_is_allowed_only_once_per_round() {
+    let env = Env::default();
+    env.budget().reset_unlimited();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+
+    let address = Address::generate(&env);
+
+    set_nqg_results(&env, &governance_client, &address, 10_i128.pow(18));
+
+    client.update_balance(&address);
+    assert!(client.try_update_balance(&address).is_err());
+
+    bump_round(&governance_client);
+    set_nqg_results(&env, &governance_client, &address, 10_i128.pow(18));
+
+    client.update_balance(&address);
+}
+
+#[test]
 fn negative_nqg_score() {
     let env = Env::default();
 
@@ -65,8 +91,9 @@ fn negative_nqg_score() {
     let Deployment {
         client,
         governance_client,
-        address,
     } = deploy_and_setup(&env, &admin);
+
+    let address = Address::generate(&env);
 
     env.mock_all_auths();
     update_balance(
