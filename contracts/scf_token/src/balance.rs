@@ -5,7 +5,7 @@ const DAY_IN_LEDGERS: u32 = 17280;
 const BALANCE_BUMP_VALUE: u32 = 90 * DAY_IN_LEDGERS;
 const BALANCE_BUMP_THRESHOLD: u32 = 45 * DAY_IN_LEDGERS;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 #[contracttype]
 pub(crate) struct Balance {
     pub current: i128,
@@ -27,7 +27,11 @@ pub(crate) fn read_balance(env: &Env, address: &Address) -> Balance {
     env.storage()
         .persistent()
         .get(&DataKey::Balance(address.clone()))
-        .unwrap_or_default()
+        .unwrap_or(Balance {
+            current: 0,
+            previous: 0,
+            updated: 0,
+        })
 }
 
 pub(crate) fn write_balance(env: &Env, address: &Address, balance: &Balance) {

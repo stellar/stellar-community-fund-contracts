@@ -1,7 +1,7 @@
 use crate::types::DataKey;
 use soroban_sdk::{contracttype, Address, Env};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 #[contracttype]
 pub(crate) struct TotalSupply {
     pub current: i128,
@@ -23,7 +23,11 @@ pub(crate) fn read_total_supply(env: &Env) -> TotalSupply {
     env.storage()
         .instance()
         .get(&DataKey::TotalSupply)
-        .unwrap_or_default()
+        .unwrap_or(TotalSupply {
+            current: 0,
+            previous: 0,
+            updated: 0,
+        })
 }
 
 pub(crate) fn write_total_supply(env: &Env, value: &TotalSupply) {
