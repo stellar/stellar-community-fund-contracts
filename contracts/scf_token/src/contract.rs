@@ -94,10 +94,10 @@ fn voting_power_for_user(env: &Env, address: &Address) -> Result<I256, GovernorW
     let voting_powers = voting_powers
         .get(address.to_string())
         .ok_or(GovernorWrapperError::VotingPowerMissingForUser)?;
-    Ok(if voting_powers >= I256::from_i32(&env, 0) {
+    Ok(if voting_powers >= I256::from_i32(env, 0) {
         voting_powers
     } else {
-        I256::from_i32(&env, 0)
+        I256::from_i32(env, 0)
     })
 }
 
