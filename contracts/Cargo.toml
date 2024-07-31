@@ -3,8 +3,8 @@ resolver = "2"
 members = ["governance"]
 
 [workspace.dependencies]
-soroban-sdk = "20.4.0"
-soroban-fixed-point-math = "~1.0.0"
+soroban-sdk = "21.4.0"
+soroban-fixed-point-math = "1.1.1"
 
 [profile.release]
 opt-level = "z"
