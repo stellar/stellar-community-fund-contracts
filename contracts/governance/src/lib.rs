@@ -391,7 +391,7 @@ fn weigh_neuron_result(env: &Env, weight: &I256, result: Map<String, I256>) -> M
     for (key, value) in result {
         scaled.set(
             key,
-            value.fixed_mul_floor(env, weight.clone(), I256::from_i128(env, DECIMALS)),
+            value.fixed_mul_floor(env, weight, &I256::from_i128(env, DECIMALS)),
         );
     }
 

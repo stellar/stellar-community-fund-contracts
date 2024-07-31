@@ -73,7 +73,7 @@ pub(crate) fn aggregate_result(
             LayerAggregator::Sum => res.iter().reduce(|acc, e| acc.add(&e)),
             LayerAggregator::Product => res
                 .iter()
-                .reduce(|acc, e| acc.fixed_mul_floor(env, e, decimals.clone())),
+                .reduce(|acc, e| acc.fixed_mul_floor(env, &e, &decimals)),
         }
         .unwrap_or_else(|| I256::from_i128(env, 0));
         aggregated_result.set(user, res);
