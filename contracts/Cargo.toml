@@ -3,7 +3,7 @@ resolver = "2"
 members = ["governance"]
 
 [workspace.dependencies]
-soroban-sdk = "21.4.0"
+soroban-sdk = "21.0.1-preview.3"
 soroban-fixed-point-math = "1.1.1"
 
 [profile.release]
