@@ -24,7 +24,7 @@ use crate::storage::{
     write_submissions, write_voting_powers, LayerKeyData, NeuronKeyData, NeuronResultKeyData,
     SubmissionVotesKeyData, SubmissionsKeyData, VotingPowersKeyData,
 };
-use crate::types::{Vote, VotingSystemError, ABSTAIN_VOTING_POWER};
+use crate::types::{Submission, Vote, VotingSystemError, ABSTAIN_VOTING_POWER};
 
 mod admin;
 mod neural_governance;
@@ -95,7 +95,7 @@ impl VotingSystem {
     }
 
     /// Set multiple submissions.
-    pub fn set_submissions(env: Env, new_submissions: Vec<String>) {
+    pub fn set_submissions(env: Env, new_submissions: Vec<Submission>) {
         require_admin(&env);
 
         let mut submissions = Vec::new(&env);
@@ -111,7 +111,7 @@ impl VotingSystem {
     }
 
     /// Get submissions for the active round.
-    pub fn get_submissions(env: &Env) -> Vec<String> {
+    pub fn get_submissions(env: &Env) -> Vec<Submission> {
         read_submissions(env, Self::get_current_round(env))
     }
 
@@ -123,7 +123,10 @@ impl VotingSystem {
     ) -> Result<(), VotingSystemError> {
         require_admin(env);
 
-        if !read_submissions(env, Self::get_current_round(env)).contains(submission_id.clone()) {
+        if !read_submissions(env, Self::get_current_round(env))
+            .iter()
+            .any(|sub| sub.id == submission_id)
+        {
             return Err(VotingSystemError::SubmissionDoesNotExist);
         }
 

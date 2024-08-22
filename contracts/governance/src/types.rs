@@ -1,6 +1,29 @@
-use soroban_sdk::{contracterror, contracttype};
+use soroban_sdk::{contracterror, contracttype, String};
 
 pub const ABSTAIN_VOTING_POWER: i32 = 0;
+
+#[contracttype]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum SubmissionCategory {
+    Application,
+    FinancialProtocols,
+    InfrastructureAndServices,
+    DeveloperTools,
+}
+
+#[contracttype]
+#[non_exhaustive]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Submission {
+    pub id: String,
+    pub category: SubmissionCategory,
+}
+
+impl Submission {
+    pub fn new(id: String, category: SubmissionCategory) -> Self {
+        Self { id, category }
+    }
+}
 
 #[contracttype]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

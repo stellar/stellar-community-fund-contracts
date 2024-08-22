@@ -1,6 +1,6 @@
 use soroban_sdk::{vec, Env, Map, String, Vec, I256};
 
-use governance::types::{Vote, VotingSystemError};
+use governance::types::{Submission, SubmissionCategory, Vote, VotingSystemError};
 use governance::{LayerAggregator, DECIMALS};
 
 use crate::e2e::common::contract_utils::deploy_contract;
@@ -29,7 +29,11 @@ fn voting_data_upload() {
     let submission1 = String::from_str(&env, "submission1");
     let submission2 = String::from_str(&env, "submission2");
 
-    contract_client.set_submissions(&vec![&env, submission1.clone(), submission2.clone()]);
+    contract_client.set_submissions(&vec![
+        &env,
+        Submission::new(submission1.clone(), SubmissionCategory::Application),
+        Submission::new(submission2.clone(), SubmissionCategory::Application),
+    ]);
 
     let mut votes_submission1 = Map::new(&env);
     votes_submission1.set(user1.clone(), Vote::Yes);
@@ -45,7 +49,11 @@ fn voting_data_upload() {
     contract_client.set_votes_for_submission(&submission1, &votes_submission1);
     contract_client.set_votes_for_submission(&submission2, &votes_submission2);
 
-    contract_client.set_submissions(&vec![&env, submission1.clone(), submission2.clone()]);
+    contract_client.set_submissions(&vec![
+        &env,
+        Submission::new(submission1.clone(), SubmissionCategory::Application),
+        Submission::new(submission2.clone(), SubmissionCategory::Application),
+    ]);
 
     let mut neuron_result = Map::new(&env);
     neuron_result.set(user1.clone(), I256::from_i128(&env, 100 * DECIMALS));
@@ -115,13 +123,16 @@ fn adding_duplicate_submissions() {
 
     contract_client.set_submissions(&vec![
         &env,
-        String::from_str(&env, "a"),
-        String::from_str(&env, "a"),
+        Submission::new(String::from_str(&env, "a"), SubmissionCategory::Application),
+        Submission::new(String::from_str(&env, "a"), SubmissionCategory::Application),
     ]);
 
     let submissions = contract_client.get_submissions();
     let mut expected = Vec::new(&env);
-    expected.push_back(String::from_str(&env, "a"));
+    expected.push_back(Submission::new(
+        String::from_str(&env, "a"),
+        SubmissionCategory::Application,
+    ));
 
     assert_eq!(submissions, expected);
 }
@@ -167,7 +178,10 @@ fn set_bump_round_flow() {
     );
 
     // Set votes and results for round 25
-    contract_client.set_submissions(&vec![&env, submission.clone()]);
+    contract_client.set_submissions(&vec![
+        &env,
+        Submission::new(submission.clone(), SubmissionCategory::Application),
+    ]);
 
     let mut votes25 = Map::new(&env);
     votes25.set(user1.clone(), Vote::Yes);
@@ -193,7 +207,8 @@ fn set_bump_round_flow() {
     // Verify submission is active
     assert!(contract_client
         .get_submissions()
-        .contains(submission.clone()));
+        .iter()
+        .any(|sub| sub.id == submission));
 
     // Bump the round
     contract_client.set_current_round(&26);
@@ -216,7 +231,10 @@ fn set_bump_round_flow() {
 
     // Set votes and results for round 26
     let new_submission = String::from_str(&env, "sub2");
-    contract_client.set_submissions(&vec![&env, new_submission.clone()]);
+    contract_client.set_submissions(&vec![
+        &env,
+        Submission::new(new_submission.clone(), SubmissionCategory::Application),
+    ]);
 
     let mut votes26 = Map::new(&env);
     votes26.set(user1.clone(), Vote::No);
@@ -242,10 +260,12 @@ fn set_bump_round_flow() {
     // Verify new submission is active and old is not
     assert!(contract_client
         .get_submissions()
-        .contains(new_submission.clone()));
+        .iter()
+        .any(|sub| sub.id == new_submission));
     assert!(!contract_client
         .get_submissions()
-        .contains(submission.clone()));
+        .iter()
+        .any(|sub| sub.id == submission));
 
     // Verify historical results are still accessible
     assert_eq!(
