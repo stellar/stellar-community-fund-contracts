@@ -1,29 +1,74 @@
-use crate::Vote;
+use crate::{Submission, SubmissionCategory, Vote};
 use anyhow::{anyhow, bail, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 const QUORUM_SIZE: u32 = 5;
 const QUORUM_ABSOLUTE_PARTICIPATION_THRESHOLD: f64 = 1.0 / 2.0;
 const QUORUM_RELATIVE_PARTICIPATION_THRESHOLD: f64 = 2.0 / 3.0;
 
+#[non_exhaustive]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub struct DelegateesForUser {
+    application: Vec<String>,
+    financial_protocols: Vec<String>,
+    infrastructure_and_services: Vec<String>,
+    developer_tools: Vec<String>,
+}
+
+impl DelegateesForUser {
+    #[must_use]
+    pub fn new(
+        application: Vec<String>,
+        financial_protocols: Vec<String>,
+        infrastructure_and_services: Vec<String>,
+        developer_tools: Vec<String>,
+    ) -> Self {
+        Self {
+            application,
+            financial_protocols,
+            infrastructure_and_services,
+            developer_tools,
+        }
+    }
+}
+
 #[allow(clippy::implicit_hasher)]
 pub fn normalize_votes(
-    votes: HashMap<String, HashMap<String, Vote>>,
-    delegatees_for_user: &HashMap<String, Vec<String>>,
-) -> Result<HashMap<String, HashMap<String, Vote>>> {
+    votes: HashMap<Submission, HashMap<String, Vote>>,
+    delegatees_for_user: &HashMap<String, DelegateesForUser>,
+) -> Result<HashMap<Submission, HashMap<String, Vote>>> {
     votes
         .into_iter()
         .map(|(submission, submission_votes)| {
-            let submission_votes =
-                normalize_votes_for_submission(&submission_votes, delegatees_for_user)?;
+            let submission_votes = normalize_votes_for_submission(
+                &submission,
+                &submission_votes,
+                delegatees_for_user,
+            )?;
             Ok((submission, submission_votes))
         })
         .collect::<Result<_>>()
 }
 
+fn delegatees_for_category<'a>(
+    submission_category: &SubmissionCategory,
+    delegatees_for_user: &'a DelegateesForUser,
+) -> &'a Vec<String> {
+    match submission_category {
+        SubmissionCategory::Application => &delegatees_for_user.application,
+        SubmissionCategory::FinancialProtocols => &delegatees_for_user.financial_protocols,
+        SubmissionCategory::InfrastructureAndServices => {
+            &delegatees_for_user.infrastructure_and_services
+        }
+        SubmissionCategory::DeveloperTools => &delegatees_for_user.developer_tools,
+    }
+}
+
 fn normalize_votes_for_submission(
+    submission: &Submission,
     submission_votes: &HashMap<String, Vote>,
-    delegatees_for_user: &HashMap<String, Vec<String>>,
+    delegatees_for_user: &HashMap<String, DelegateesForUser>,
 ) -> Result<HashMap<String, Vote>> {
     submission_votes
         .clone()
@@ -33,6 +78,7 @@ fn normalize_votes_for_submission(
                 let delegatees = delegatees_for_user
                     .get(&user)
                     .ok_or_else(|| anyhow!("Delegatees missing for user {user}"))?;
+                let delegatees = delegatees_for_category(&submission.category, delegatees);
                 let normalized_vote = calculate_quorum_consensus(delegatees, submission_votes)?;
                 Ok((user, normalized_vote))
             } else {
@@ -133,17 +179,26 @@ mod tests {
 
         delegates_for_user.insert(
             user1.clone(),
-            vec![
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-            ],
+            DelegateesForUser::new(
+                vec![
+                    user2.clone(),
+                    user3.clone(),
+                    user4.clone(),
+                    user5.clone(),
+                    user6.clone(),
+                ],
+                vec![],
+                vec![],
+                vec![],
+            ),
         );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(
+            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &submission_votes,
+            &delegates_for_user,
+        )
+        .unwrap();
 
         assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Yes);
         assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Yes);
@@ -174,17 +229,26 @@ mod tests {
 
         delegates_for_user.insert(
             user1.clone(),
-            vec![
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-            ],
+            DelegateesForUser::new(
+                vec![
+                    user2.clone(),
+                    user3.clone(),
+                    user4.clone(),
+                    user5.clone(),
+                    user6.clone(),
+                ],
+                vec![],
+                vec![],
+                vec![],
+            ),
         );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(
+            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &submission_votes,
+            &delegates_for_user,
+        )
+        .unwrap();
 
         assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::No);
         assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::No);
@@ -218,17 +282,26 @@ mod tests {
 
         delegates_for_user.insert(
             user1.clone(),
-            vec![
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-            ],
+            DelegateesForUser::new(
+                vec![
+                    user2.clone(),
+                    user3.clone(),
+                    user4.clone(),
+                    user5.clone(),
+                    user6.clone(),
+                ],
+                vec![],
+                vec![],
+                vec![],
+            ),
         );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(
+            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &submission_votes,
+            &delegates_for_user,
+        )
+        .unwrap();
 
         assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Abstain);
         assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Yes);
@@ -262,17 +335,26 @@ mod tests {
 
         delegates_for_user.insert(
             user1.clone(),
-            vec![
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-            ],
+            DelegateesForUser::new(
+                vec![
+                    user2.clone(),
+                    user3.clone(),
+                    user4.clone(),
+                    user5.clone(),
+                    user6.clone(),
+                ],
+                vec![],
+                vec![],
+                vec![],
+            ),
         );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(
+            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &submission_votes,
+            &delegates_for_user,
+        )
+        .unwrap();
 
         assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Yes);
         assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Abstain);
@@ -298,10 +380,17 @@ mod tests {
         submission_votes.insert(user2.clone(), Vote::Yes);
         submission_votes.insert(user3.clone(), Vote::Yes);
 
-        delegates_for_user.insert(user1.clone(), vec![user2.clone(), user3.clone()]);
+        delegates_for_user.insert(
+            user1.clone(),
+            DelegateesForUser::new(vec![user2.clone(), user3.clone()], vec![], vec![], vec![]),
+        );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(
+            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &submission_votes,
+            &delegates_for_user,
+        )
+        .unwrap();
 
         assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Abstain);
         assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Yes);
@@ -330,10 +419,17 @@ mod tests {
         submission_votes.insert(user5.clone(), Vote::Yes);
         submission_votes.insert(user6.clone(), Vote::No);
 
-        delegates_for_user.insert(user1.clone(), vec![user2.clone(), user3.clone()]);
+        delegates_for_user.insert(
+            user1.clone(),
+            DelegateesForUser::new(vec![user2.clone(), user3.clone()], vec![], vec![], vec![]),
+        );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(
+            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &submission_votes,
+            &delegates_for_user,
+        )
+        .unwrap();
 
         assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Abstain);
         assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Yes);
@@ -341,5 +437,111 @@ mod tests {
         assert_eq!(normalized_votes.get(&user4).unwrap(), &Vote::Yes);
         assert_eq!(normalized_votes.get(&user5).unwrap(), &Vote::Yes);
         assert_eq!(normalized_votes.get(&user6).unwrap(), &Vote::No);
+    }
+
+    #[test]
+    fn resolve_delegates_from_multiple_categories() {
+        let mut submission1_votes = HashMap::new();
+        let mut submission2_votes = HashMap::new();
+        let mut delegates_for_user = HashMap::new();
+
+        let user1 = String::from("user1");
+        let user2 = String::from("user2");
+        let user3 = String::from("user3");
+        let user4 = String::from("user4");
+        let user5 = String::from("user5");
+        let user6 = String::from("user6");
+        let user7 = String::from("user7");
+        let user8 = String::from("user8");
+        let user9 = String::from("user9");
+        let user10 = String::from("user10");
+
+        submission1_votes.insert(user1.clone(), Vote::Delegate);
+        submission1_votes.insert(user2.clone(), Vote::Yes);
+        submission1_votes.insert(user3.clone(), Vote::Yes);
+        submission1_votes.insert(user4.clone(), Vote::Yes);
+        submission1_votes.insert(user5.clone(), Vote::Yes);
+        submission1_votes.insert(user6.clone(), Vote::Yes);
+
+        submission2_votes.insert(user1.clone(), Vote::Delegate);
+        submission2_votes.insert(user7.clone(), Vote::No);
+        submission2_votes.insert(user8.clone(), Vote::No);
+        submission2_votes.insert(user9.clone(), Vote::No);
+        submission2_votes.insert(user10.clone(), Vote::No);
+
+        delegates_for_user.insert(
+            user1.clone(),
+            DelegateesForUser::new(
+                vec![
+                    user2.clone(),
+                    user3.clone(),
+                    user4.clone(),
+                    user5.clone(),
+                    user6.clone(),
+                ],
+                vec![user7.clone(), user8.clone(), user9.clone(), user10.clone()],
+                vec![],
+                vec![],
+            ),
+        );
+
+        let normalized_votes_for_submission1 = normalize_votes_for_submission(
+            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &submission1_votes,
+            &delegates_for_user,
+        )
+        .unwrap();
+        let normalized_votes_for_submission2 = normalize_votes_for_submission(
+            &Submission::new("sub2".to_string(), SubmissionCategory::FinancialProtocols),
+            &submission2_votes,
+            &delegates_for_user,
+        )
+        .unwrap();
+
+        assert_eq!(
+            normalized_votes_for_submission1.get(&user1).unwrap(),
+            &Vote::Yes
+        );
+        assert_eq!(
+            normalized_votes_for_submission1.get(&user2).unwrap(),
+            &Vote::Yes
+        );
+        assert_eq!(
+            normalized_votes_for_submission1.get(&user3).unwrap(),
+            &Vote::Yes
+        );
+        assert_eq!(
+            normalized_votes_for_submission1.get(&user4).unwrap(),
+            &Vote::Yes
+        );
+        assert_eq!(
+            normalized_votes_for_submission1.get(&user5).unwrap(),
+            &Vote::Yes
+        );
+        assert_eq!(
+            normalized_votes_for_submission1.get(&user6).unwrap(),
+            &Vote::Yes
+        );
+
+        assert_eq!(
+            normalized_votes_for_submission2.get(&user1).unwrap(),
+            &Vote::No
+        );
+        assert_eq!(
+            normalized_votes_for_submission2.get(&user7).unwrap(),
+            &Vote::No
+        );
+        assert_eq!(
+            normalized_votes_for_submission2.get(&user8).unwrap(),
+            &Vote::No
+        );
+        assert_eq!(
+            normalized_votes_for_submission2.get(&user9).unwrap(),
+            &Vote::No
+        );
+        assert_eq!(
+            normalized_votes_for_submission2.get(&user10).unwrap(),
+            &Vote::No
+        );
     }
 }
