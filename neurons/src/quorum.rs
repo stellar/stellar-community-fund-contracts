@@ -2,7 +2,7 @@ use crate::Vote;
 use anyhow::{anyhow, bail, Result};
 use std::collections::HashMap;
 
-const QUORUM_SIZE: u32 = 3;
+const QUORUM_SIZE: u32 = 5;
 const QUORUM_ABSOLUTE_PARTICIPATION_THRESHOLD: f64 = 1.0 / 2.0;
 const QUORUM_RELATIVE_PARTICIPATION_THRESHOLD: f64 = 2.0 / 3.0;
 
@@ -102,4 +102,244 @@ fn calculate_quorum_consensus(
             Vote::Abstain
         },
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_delegate_yes() {
+        let mut submission_votes = HashMap::new();
+        let mut delegates_for_user = HashMap::new();
+
+        let user1 = String::from("user1");
+        let user2 = String::from("user2");
+        let user3 = String::from("user3");
+        let user4 = String::from("user4");
+        let user5 = String::from("user5");
+        let user6 = String::from("user6");
+        // let user7 = String::from("user7");
+        // let user8 = String::from("user8");
+        // let user9 = String::from("user9");
+        // let user10 = String::from("user10");
+
+        submission_votes.insert(user1.clone(), Vote::Delegate);
+        submission_votes.insert(user2.clone(), Vote::Yes);
+        submission_votes.insert(user3.clone(), Vote::Yes);
+        submission_votes.insert(user4.clone(), Vote::Yes);
+        submission_votes.insert(user5.clone(), Vote::Yes);
+        submission_votes.insert(user6.clone(), Vote::Yes);
+
+        delegates_for_user.insert(
+            user1.clone(),
+            vec![
+                user2.clone(),
+                user3.clone(),
+                user4.clone(),
+                user5.clone(),
+                user6.clone(),
+            ],
+        );
+
+        let normalized_votes =
+            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+
+        assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user3).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user4).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user5).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user6).unwrap(), &Vote::Yes);
+    }
+
+    #[test]
+    fn resolve_delegate_no() {
+        let mut submission_votes = HashMap::new();
+        let mut delegates_for_user = HashMap::new();
+
+        let user1 = String::from("user1");
+        let user2 = String::from("user2");
+        let user3 = String::from("user3");
+        let user4 = String::from("user4");
+        let user5 = String::from("user5");
+        let user6 = String::from("user6");
+
+        submission_votes.insert(user1.clone(), Vote::Delegate);
+        submission_votes.insert(user2.clone(), Vote::No);
+        submission_votes.insert(user3.clone(), Vote::No);
+        submission_votes.insert(user4.clone(), Vote::No);
+        submission_votes.insert(user5.clone(), Vote::No);
+        submission_votes.insert(user6.clone(), Vote::No);
+
+        delegates_for_user.insert(
+            user1.clone(),
+            vec![
+                user2.clone(),
+                user3.clone(),
+                user4.clone(),
+                user5.clone(),
+                user6.clone(),
+            ],
+        );
+
+        let normalized_votes =
+            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+
+        assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes.get(&user3).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes.get(&user4).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes.get(&user5).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes.get(&user6).unwrap(), &Vote::No);
+    }
+
+    #[test]
+    fn resolve_delegate_abstain() {
+        let mut submission_votes = HashMap::new();
+        let mut delegates_for_user = HashMap::new();
+
+        let user1 = String::from("user1");
+        let user2 = String::from("user2");
+        let user3 = String::from("user3");
+        let user4 = String::from("user4");
+        let user5 = String::from("user5");
+        let user6 = String::from("user6");
+
+        // Agreement = 3 - 2 = 1
+        // Relative agreement = 1 / 5
+        // Absolute agreement = 1 / 5
+        submission_votes.insert(user1.clone(), Vote::Delegate);
+        submission_votes.insert(user2.clone(), Vote::Yes);
+        submission_votes.insert(user3.clone(), Vote::Yes);
+        submission_votes.insert(user4.clone(), Vote::Yes);
+        submission_votes.insert(user5.clone(), Vote::No);
+        submission_votes.insert(user6.clone(), Vote::No);
+
+        delegates_for_user.insert(
+            user1.clone(),
+            vec![
+                user2.clone(),
+                user3.clone(),
+                user4.clone(),
+                user5.clone(),
+                user6.clone(),
+            ],
+        );
+
+        let normalized_votes =
+            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+
+        assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Abstain);
+        assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user3).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user4).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user5).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes.get(&user6).unwrap(), &Vote::No);
+    }
+
+    #[test]
+    fn non_voting_delegates_are_ignored() {
+        let mut submission_votes = HashMap::new();
+        let mut delegates_for_user = HashMap::new();
+
+        let user1 = String::from("user1");
+        let user2 = String::from("user2");
+        let user3 = String::from("user3");
+        let user4 = String::from("user4");
+        let user5 = String::from("user5");
+        let user6 = String::from("user6");
+
+        // Agreement = 3
+        // Relative agreement = 3 / 3
+        // Absolute agreement = 3 / 5
+        submission_votes.insert(user1.clone(), Vote::Delegate);
+        submission_votes.insert(user2.clone(), Vote::Abstain);
+        submission_votes.insert(user3.clone(), Vote::Abstain);
+        submission_votes.insert(user4.clone(), Vote::Yes);
+        submission_votes.insert(user5.clone(), Vote::Yes);
+        submission_votes.insert(user6.clone(), Vote::Yes);
+
+        delegates_for_user.insert(
+            user1.clone(),
+            vec![
+                user2.clone(),
+                user3.clone(),
+                user4.clone(),
+                user5.clone(),
+                user6.clone(),
+            ],
+        );
+
+        let normalized_votes =
+            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+
+        assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Abstain);
+        assert_eq!(normalized_votes.get(&user3).unwrap(), &Vote::Abstain);
+        assert_eq!(normalized_votes.get(&user4).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user5).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user6).unwrap(), &Vote::Yes);
+    }
+
+    #[test]
+    fn relative_threshold_not_passed() {
+        let mut submission_votes = HashMap::new();
+        let mut delegates_for_user = HashMap::new();
+
+        let user1 = String::from("user1");
+        let user2 = String::from("user2");
+        let user3 = String::from("user3");
+
+        // Agreement = 2
+        // Relative agreement = 2 / 2
+        // Absolute agreement = 2 / 5
+        submission_votes.insert(user1.clone(), Vote::Delegate);
+        submission_votes.insert(user2.clone(), Vote::Yes);
+        submission_votes.insert(user3.clone(), Vote::Yes);
+
+        delegates_for_user.insert(user1.clone(), vec![user2.clone(), user3.clone()]);
+
+        let normalized_votes =
+            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+
+        assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Abstain);
+        assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user3).unwrap(), &Vote::Yes);
+    }
+
+    #[test]
+    fn absolute_threshold_not_passed() {
+        let mut submission_votes = HashMap::new();
+        let mut delegates_for_user = HashMap::new();
+
+        let user1 = String::from("user1");
+        let user2 = String::from("user2");
+        let user3 = String::from("user3");
+        let user4 = String::from("user4");
+        let user5 = String::from("user5");
+        let user6 = String::from("user6");
+
+        // Agreement = 4 - 1 = 3
+        // Relative agreement = 3 / 5
+        // Absolute agreement = 3 / 5
+        submission_votes.insert(user1.clone(), Vote::Delegate);
+        submission_votes.insert(user2.clone(), Vote::Yes);
+        submission_votes.insert(user3.clone(), Vote::Yes);
+        submission_votes.insert(user4.clone(), Vote::Yes);
+        submission_votes.insert(user5.clone(), Vote::Yes);
+        submission_votes.insert(user6.clone(), Vote::No);
+
+        delegates_for_user.insert(user1.clone(), vec![user2.clone(), user3.clone()]);
+
+        let normalized_votes =
+            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+
+        assert_eq!(normalized_votes.get(&user1).unwrap(), &Vote::Abstain);
+        assert_eq!(normalized_votes.get(&user2).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user3).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user4).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user5).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes.get(&user6).unwrap(), &Vote::No);
+    }
 }
