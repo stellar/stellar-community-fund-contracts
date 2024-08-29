@@ -123,8 +123,14 @@ fn adding_duplicate_submissions() {
 
     contract_client.set_submissions(&vec![
         &env,
-        Submission::new(String::from_str(&env, "a"), SubmissionCategory::Applications),
-        Submission::new(String::from_str(&env, "a"), SubmissionCategory::Applications),
+        Submission::new(
+            String::from_str(&env, "a"),
+            SubmissionCategory::Applications,
+        ),
+        Submission::new(
+            String::from_str(&env, "a"),
+            SubmissionCategory::Applications,
+        ),
     ]);
 
     let submissions = contract_client.get_submissions();

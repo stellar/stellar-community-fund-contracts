@@ -10,7 +10,7 @@ const QUORUM_RELATIVE_PARTICIPATION_THRESHOLD: f64 = 2.0 / 3.0;
 #[non_exhaustive]
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct DelegateesForUser {
-    applications    : Vec<String>,
+    applications: Vec<String>,
     financial_protocols: Vec<String>,
     infrastructure_and_services: Vec<String>,
     developer_tools: Vec<String>,
