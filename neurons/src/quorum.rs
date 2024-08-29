@@ -33,20 +33,22 @@ impl DelegateesForUser {
     }
 }
 
-#[allow(clippy::implicit_hasher)]
+#[allow(clippy::implicit_hasher, clippy::missing_panics_doc)]
 pub fn normalize_votes(
-    votes: HashMap<Submission, HashMap<String, Vote>>,
+    votes: HashMap<String, HashMap<String, Vote>>,
+    submissions: &[Submission],
     delegatees_for_user: &HashMap<String, DelegateesForUser>,
-) -> Result<HashMap<Submission, HashMap<String, Vote>>> {
+) -> Result<HashMap<String, HashMap<String, Vote>>> {
     votes
         .into_iter()
-        .map(|(submission, submission_votes)| {
-            let submission_votes = normalize_votes_for_submission(
-                &submission,
-                &submission_votes,
-                delegatees_for_user,
-            )?;
-            Ok((submission, submission_votes))
+        .map(|(submission_name, submission_votes)| {
+            let submission = submissions
+                .iter()
+                .find(|sub| sub.name == submission_name)
+                .expect("Missing details for submission");
+            let submission_votes =
+                normalize_votes_for_submission(submission, &submission_votes, delegatees_for_user)?;
+            Ok((submission_name, submission_votes))
         })
         .collect::<Result<_>>()
 }

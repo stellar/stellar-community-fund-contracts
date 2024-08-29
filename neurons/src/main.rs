@@ -57,12 +57,16 @@ fn main() {
     let users: Vec<String> = serde_json::from_str(users_raw.as_str()).unwrap();
 
     let votes_raw = fs::read_to_string("data/votes.json").unwrap();
-    let votes: HashMap<Submission, HashMap<String, Vote>> =
+    let votes: HashMap<String, HashMap<String, Vote>> =
         serde_json::from_str(votes_raw.as_str()).unwrap();
+
+    let submissions_raw = fs::read_to_string("data/submissions.json").unwrap();
+    let submissions: Vec<Submission> = serde_json::from_str(submissions_raw.as_str()).unwrap();
+
     let delegatees_for_user_raw = fs::read_to_string("data/delegatees_for_user.json").unwrap();
     let delegatees_for_user: HashMap<String, DelegateesForUser> =
         serde_json::from_str(delegatees_for_user_raw.as_str()).unwrap();
-    let normalized_votes = normalize_votes(votes, &delegatees_for_user).unwrap();
+    let normalized_votes = normalize_votes(votes, &submissions, &delegatees_for_user).unwrap();
     write_result(
         "result/normalized_votes.json",
         &to_sorted_map(normalized_votes),
