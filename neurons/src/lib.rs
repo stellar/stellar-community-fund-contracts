@@ -5,7 +5,7 @@ pub mod quorum;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub enum SubmissionCategory {
-    Application,
+    Applications,
     FinancialProtocols,
     InfrastructureAndServices,
     DeveloperTools,

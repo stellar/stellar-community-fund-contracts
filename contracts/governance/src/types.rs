@@ -5,7 +5,7 @@ pub const ABSTAIN_VOTING_POWER: i32 = 0;
 #[contracttype]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SubmissionCategory {
-    Application,
+    Applications,
     FinancialProtocols,
     InfrastructureAndServices,
     DeveloperTools,

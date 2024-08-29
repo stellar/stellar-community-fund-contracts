@@ -10,7 +10,7 @@ const QUORUM_RELATIVE_PARTICIPATION_THRESHOLD: f64 = 2.0 / 3.0;
 #[non_exhaustive]
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct DelegateesForUser {
-    application: Vec<String>,
+    applications    : Vec<String>,
     financial_protocols: Vec<String>,
     infrastructure_and_services: Vec<String>,
     developer_tools: Vec<String>,
@@ -25,7 +25,7 @@ impl DelegateesForUser {
         developer_tools: Vec<String>,
     ) -> Self {
         Self {
-            application,
+            applications: application,
             financial_protocols,
             infrastructure_and_services,
             developer_tools,
@@ -56,7 +56,7 @@ fn delegatees_for_category<'a>(
     delegatees_for_user: &'a DelegateesForUser,
 ) -> &'a Vec<String> {
     match submission_category {
-        SubmissionCategory::Application => &delegatees_for_user.application,
+        SubmissionCategory::Applications => &delegatees_for_user.applications,
         SubmissionCategory::FinancialProtocols => &delegatees_for_user.financial_protocols,
         SubmissionCategory::InfrastructureAndServices => {
             &delegatees_for_user.infrastructure_and_services
@@ -194,7 +194,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
             &submission_votes,
             &delegates_for_user,
         )
@@ -244,7 +244,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
             &submission_votes,
             &delegates_for_user,
         )
@@ -297,7 +297,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
             &submission_votes,
             &delegates_for_user,
         )
@@ -350,7 +350,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
             &submission_votes,
             &delegates_for_user,
         )
@@ -386,7 +386,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
             &submission_votes,
             &delegates_for_user,
         )
@@ -425,7 +425,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
             &submission_votes,
             &delegates_for_user,
         )
@@ -486,7 +486,7 @@ mod tests {
         );
 
         let normalized_votes_for_submission1 = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Application),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
             &submission1_votes,
             &delegates_for_user,
         )

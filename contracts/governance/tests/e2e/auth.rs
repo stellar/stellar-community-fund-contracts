@@ -34,7 +34,7 @@ fn auth() {
     let submission_name = String::from_str(&env, "abc");
     contract_client.set_submissions(&vec![
         &env,
-        Submission::new(submission_name.clone(), SubmissionCategory::Application),
+        Submission::new(submission_name.clone(), SubmissionCategory::Applications),
     ]);
 
     dbg!(&env.auths());
@@ -89,7 +89,7 @@ fn transfer_admin() {
     }]);
     let result = contract_client.try_set_submissions(&vec![
         &env,
-        Submission::new(submission_name.clone(), SubmissionCategory::Application),
+        Submission::new(submission_name.clone(), SubmissionCategory::Applications),
     ]);
     assert!(result.is_err());
 
@@ -105,7 +105,7 @@ fn transfer_admin() {
     }]);
     contract_client.set_submissions(&vec![
         &env,
-        Submission::new(submission_name.clone(), SubmissionCategory::Application),
+        Submission::new(submission_name.clone(), SubmissionCategory::Applications),
     ]);
 }
 
