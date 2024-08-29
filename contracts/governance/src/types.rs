@@ -8,7 +8,7 @@ pub enum SubmissionCategory {
     Applications,
     FinancialProtocols,
     InfrastructureAndServices,
-    DeveloperTools,
+    DeveloperTooling,
 }
 
 #[contracttype]

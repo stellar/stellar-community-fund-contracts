@@ -13,22 +13,22 @@ pub struct DelegateesForUser {
     applications: Vec<String>,
     financial_protocols: Vec<String>,
     infrastructure_and_services: Vec<String>,
-    developer_tools: Vec<String>,
+    developer_tooling: Vec<String>,
 }
 
 impl DelegateesForUser {
     #[must_use]
     pub fn new(
-        application: Vec<String>,
+        applications: Vec<String>,
         financial_protocols: Vec<String>,
         infrastructure_and_services: Vec<String>,
-        developer_tools: Vec<String>,
+        developer_tooling: Vec<String>,
     ) -> Self {
         Self {
-            applications: application,
+            applications,
             financial_protocols,
             infrastructure_and_services,
-            developer_tools,
+            developer_tooling,
         }
     }
 }
@@ -63,7 +63,7 @@ fn delegatees_for_category<'a>(
         SubmissionCategory::InfrastructureAndServices => {
             &delegatees_for_user.infrastructure_and_services
         }
-        SubmissionCategory::DeveloperTools => &delegatees_for_user.developer_tools,
+        SubmissionCategory::DeveloperTooling => &delegatees_for_user.developer_tooling,
     }
 }
 
