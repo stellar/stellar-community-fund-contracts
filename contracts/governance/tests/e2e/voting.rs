@@ -31,8 +31,8 @@ fn voting_data_upload() {
 
     contract_client.set_submissions(&vec![
         &env,
-        Submission::new(submission1.clone(), SubmissionCategory::Applications),
-        Submission::new(submission2.clone(), SubmissionCategory::Applications),
+        (submission1.clone(), SubmissionCategory::Applications),
+        (submission2.clone(), SubmissionCategory::Applications),
     ]);
 
     let mut votes_submission1 = Map::new(&env);
@@ -51,8 +51,8 @@ fn voting_data_upload() {
 
     contract_client.set_submissions(&vec![
         &env,
-        Submission::new(submission1.clone(), SubmissionCategory::Applications),
-        Submission::new(submission2.clone(), SubmissionCategory::Applications),
+        (submission1.clone(), SubmissionCategory::Applications),
+        (submission2.clone(), SubmissionCategory::Applications),
     ]);
 
     let mut neuron_result = Map::new(&env);
@@ -123,11 +123,11 @@ fn adding_duplicate_submissions() {
 
     contract_client.set_submissions(&vec![
         &env,
-        Submission::new(
+        (
             String::from_str(&env, "a"),
             SubmissionCategory::Applications,
         ),
-        Submission::new(
+        (
             String::from_str(&env, "a"),
             SubmissionCategory::Applications,
         ),
@@ -186,7 +186,7 @@ fn set_bump_round_flow() {
     // Set votes and results for round 25
     contract_client.set_submissions(&vec![
         &env,
-        Submission::new(submission.clone(), SubmissionCategory::Applications),
+        (submission.clone(), SubmissionCategory::Applications),
     ]);
 
     let mut votes25 = Map::new(&env);
@@ -239,7 +239,7 @@ fn set_bump_round_flow() {
     let new_submission = String::from_str(&env, "sub2");
     contract_client.set_submissions(&vec![
         &env,
-        Submission::new(new_submission.clone(), SubmissionCategory::Applications),
+        (new_submission.clone(), SubmissionCategory::Applications),
     ]);
 
     let mut votes26 = Map::new(&env);
