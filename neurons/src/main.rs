@@ -3,8 +3,8 @@ use neurons::neurons::assigned_reputation::AssignedReputationNeuron;
 use neurons::neurons::prior_voting_history::PriorVotingHistoryNeuron;
 use neurons::neurons::trust_graph::TrustGraphNeuron;
 use neurons::neurons::Neuron;
-use neurons::quorum::normalize_votes;
-use neurons::Vote;
+use neurons::quorum::{normalize_votes, DelegateesForUser};
+use neurons::{Submission, Vote};
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
@@ -59,10 +59,14 @@ fn main() {
     let votes_raw = fs::read_to_string("data/votes.json").unwrap();
     let votes: HashMap<String, HashMap<String, Vote>> =
         serde_json::from_str(votes_raw.as_str()).unwrap();
+
+    let submissions_raw = fs::read_to_string("data/submissions.json").unwrap();
+    let submissions: Vec<Submission> = serde_json::from_str(submissions_raw.as_str()).unwrap();
+
     let delegatees_for_user_raw = fs::read_to_string("data/delegatees_for_user.json").unwrap();
-    let delegatees_for_user: HashMap<String, Vec<String>> =
+    let delegatees_for_user: HashMap<String, DelegateesForUser> =
         serde_json::from_str(delegatees_for_user_raw.as_str()).unwrap();
-    let normalized_votes = normalize_votes(votes, &delegatees_for_user).unwrap();
+    let normalized_votes = normalize_votes(votes, &submissions, &delegatees_for_user).unwrap();
     write_result(
         "result/normalized_votes.json",
         &to_sorted_map(normalized_votes),

@@ -7,7 +7,7 @@ use alloc::string::ToString;
 
 use soroban_fixed_point_math::SorobanFixedPoint;
 use soroban_sdk::{
-    contract, contractimpl, contracttype, Address, BytesN, Env, Map, String, Vec, I256,
+    contract, contractimpl, contracttype, vec, Address, BytesN, Env, Map, String, Vec, I256,
 };
 
 use admin::{is_set_admin, require_admin};
@@ -24,7 +24,7 @@ use crate::storage::{
     write_submissions, write_voting_powers, LayerKeyData, NeuronKeyData, NeuronResultKeyData,
     SubmissionVotesKeyData, SubmissionsKeyData, VotingPowersKeyData,
 };
-use crate::types::{Vote, VotingSystemError, ABSTAIN_VOTING_POWER};
+use crate::types::{Submission, SubmissionCategory, Vote, VotingSystemError, ABSTAIN_VOTING_POWER};
 
 mod admin;
 mod neural_governance;
@@ -95,7 +95,12 @@ impl VotingSystem {
     }
 
     /// Set multiple submissions.
-    pub fn set_submissions(env: Env, new_submissions: Vec<String>) {
+    pub fn set_submissions(env: Env, new_submissions_raw: Vec<(String, SubmissionCategory)>) {
+        let mut new_submissions = vec![&env];
+        for (id, category) in new_submissions_raw {
+            new_submissions.push_back(Submission::new(id, category));
+        }
+
         require_admin(&env);
 
         let mut submissions = Vec::new(&env);
@@ -111,7 +116,7 @@ impl VotingSystem {
     }
 
     /// Get submissions for the active round.
-    pub fn get_submissions(env: &Env) -> Vec<String> {
+    pub fn get_submissions(env: &Env) -> Vec<Submission> {
         read_submissions(env, Self::get_current_round(env))
     }
 
@@ -123,7 +128,10 @@ impl VotingSystem {
     ) -> Result<(), VotingSystemError> {
         require_admin(env);
 
-        if !read_submissions(env, Self::get_current_round(env)).contains(submission_id.clone()) {
+        if !read_submissions(env, Self::get_current_round(env))
+            .iter()
+            .any(|sub| sub.id == submission_id)
+        {
             return Err(VotingSystemError::SubmissionDoesNotExist);
         }
 
