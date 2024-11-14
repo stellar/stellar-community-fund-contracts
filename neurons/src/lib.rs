@@ -14,14 +14,14 @@ pub enum SubmissionCategory {
 #[non_exhaustive]
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct Submission {
-    id: String,
-    category: SubmissionCategory,
+    pub name: String,
+    pub category: SubmissionCategory,
 }
 
 impl Submission {
     #[must_use]
     pub fn new(name: String, category: SubmissionCategory) -> Self {
-        Self { id: name, category }
+        Self { name, category }
     }
 }
 

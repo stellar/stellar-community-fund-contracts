@@ -5,7 +5,7 @@ use crate::storage::key_data::{
     get_layer_key, get_neuron_key, get_neuron_result_key, get_submission_votes_key,
     get_submissions_key, get_voting_powers_key,
 };
-use crate::types::{Submission, Vote, VotingSystemError};
+use crate::types::{Vote, VotingSystemError};
 use crate::{ContractResult, DataKey};
 
 pub use crate::storage::key_data::{
@@ -101,7 +101,7 @@ pub(crate) fn write_submission_votes(
     env.storage().persistent().set(&key, votes);
 }
 
-pub(crate) fn read_submissions(env: &Env, round: u32) -> Vec<Submission> {
+pub(crate) fn read_submissions(env: &Env, round: u32) -> Vec<(String, String)> {
     let key = get_submissions_key(round);
     env.storage()
         .persistent()
@@ -109,7 +109,7 @@ pub(crate) fn read_submissions(env: &Env, round: u32) -> Vec<Submission> {
         .unwrap_or_else(|| Vec::new(env))
 }
 
-pub(crate) fn write_submissions(env: &Env, round: u32, submissions: &Vec<Submission>) {
+pub(crate) fn write_submissions(env: &Env, round: u32, submissions: &Vec<(String, String)>) {
     let key = get_submissions_key(round);
     env.storage().persistent().set(&key, submissions);
 }
