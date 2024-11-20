@@ -135,7 +135,10 @@ fn adding_duplicate_submissions() {
 
     let submissions = contract_client.get_submissions();
     let mut expected = Vec::new(&env);
-    expected.push_back((String::from_str(&env, "a"), String::from_str(&env, "Applications")));
+    expected.push_back((
+        String::from_str(&env, "a"),
+        String::from_str(&env, "Applications"),
+    ));
 
     assert_eq!(submissions, expected);
 }
@@ -236,7 +239,10 @@ fn set_bump_round_flow() {
     let new_submission = String::from_str(&env, "sub2");
     contract_client.set_submissions(&vec![
         &env,
-        (new_submission.clone(), String::from_str(&env, "Applications")),
+        (
+            new_submission.clone(),
+            String::from_str(&env, "Applications"),
+        ),
     ]);
 
     let mut votes26 = Map::new(&env);
