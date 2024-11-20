@@ -1,5 +1,4 @@
 use crate::e2e::common::contract_utils::deploy_contract_without_initialization;
-use governance::types::SubmissionCategory;
 use soroban_sdk::testutils::{
     Address as AddressTrait, AuthorizedFunction, AuthorizedInvocation, MockAuth, MockAuthInvoke,
 };
@@ -34,7 +33,7 @@ fn auth() {
     let submission_name = String::from_str(&env, "abc");
     contract_client.set_submissions(&vec![
         &env,
-        (submission_name.clone(), SubmissionCategory::Applications),
+        (submission_name.clone(), String::from_str(&env, "Applications")),
     ]);
 
     dbg!(&env.auths());
@@ -89,7 +88,7 @@ fn transfer_admin() {
     }]);
     let result = contract_client.try_set_submissions(&vec![
         &env,
-        (submission_name.clone(), SubmissionCategory::Applications),
+        (submission_name.clone(), String::from_str(&env, "Applications")),
     ]);
     assert!(result.is_err());
 
@@ -105,7 +104,7 @@ fn transfer_admin() {
     }]);
     contract_client.set_submissions(&vec![
         &env,
-        (submission_name.clone(), SubmissionCategory::Applications),
+        (submission_name.clone(), String::from_str(&env, "Applications")),
     ]);
 }
 
