@@ -31,8 +31,8 @@ fn voting_data_upload() {
 
     contract_client.set_submissions(&vec![
         &env,
-        (submission1.clone(), SubmissionCategory::Applications),
-        (submission2.clone(), SubmissionCategory::Applications),
+        (submission1.clone(), String::from_str(&env, "Applications")),
+        (submission2.clone(), String::from_str(&env, "Applications")),
     ]);
 
     let mut votes_submission1 = Map::new(&env);
@@ -51,8 +51,8 @@ fn voting_data_upload() {
 
     contract_client.set_submissions(&vec![
         &env,
-        (submission1.clone(), SubmissionCategory::Applications),
-        (submission2.clone(), SubmissionCategory::Applications),
+        (submission1.clone(), String::from_str(&env, "Applications")),
+        (submission2.clone(), String::from_str(&env, "Applications")),
     ]);
 
     let mut neuron_result = Map::new(&env);
@@ -125,19 +125,19 @@ fn adding_duplicate_submissions() {
         &env,
         (
             String::from_str(&env, "a"),
-            SubmissionCategory::Applications,
+            String::from_str(&env, "Applications"),
         ),
         (
             String::from_str(&env, "a"),
-            SubmissionCategory::Applications,
+            String::from_str(&env, "Applications"),
         ),
     ]);
 
     let submissions = contract_client.get_submissions();
     let mut expected = Vec::new(&env);
-    expected.push_back(Submission::new(
+    expected.push_back((
         String::from_str(&env, "a"),
-        SubmissionCategory::Applications,
+        String::from_str(&env, "Applications"),
     ));
 
     assert_eq!(submissions, expected);
@@ -186,7 +186,7 @@ fn set_bump_round_flow() {
     // Set votes and results for round 25
     contract_client.set_submissions(&vec![
         &env,
-        (submission.clone(), SubmissionCategory::Applications),
+        (submission.clone(), String::from_str(&env, "Applications")),
     ]);
 
     let mut votes25 = Map::new(&env);
@@ -214,7 +214,7 @@ fn set_bump_round_flow() {
     assert!(contract_client
         .get_submissions()
         .iter()
-        .any(|sub| sub.id == submission));
+        .any(|(name, _category)| name == submission));
 
     // Bump the round
     contract_client.set_current_round(&26);
@@ -239,7 +239,10 @@ fn set_bump_round_flow() {
     let new_submission = String::from_str(&env, "sub2");
     contract_client.set_submissions(&vec![
         &env,
-        (new_submission.clone(), SubmissionCategory::Applications),
+        (
+            new_submission.clone(),
+            String::from_str(&env, "Applications"),
+        ),
     ]);
 
     let mut votes26 = Map::new(&env);
@@ -267,11 +270,11 @@ fn set_bump_round_flow() {
     assert!(contract_client
         .get_submissions()
         .iter()
-        .any(|sub| sub.id == new_submission));
+        .any(|(name, _category)| name == new_submission));
     assert!(!contract_client
         .get_submissions()
         .iter()
-        .any(|sub| sub.id == submission));
+        .any(|(name, _category)| name == submission));
 
     // Verify historical results are still accessible
     assert_eq!(
