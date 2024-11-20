@@ -34,11 +34,11 @@ mod tests {
             &env,
             (
                 String::from_str(&env, "TrustGraph"),
-                I256::from_i128(&env, 1000000000000000000),
+                I256::from_i128(&env, 1_000_000_000_000_000_000),
             ),
             (
                 String::from_str(&env, "AssignedReputation"),
-                I256::from_i128(&env, 1000000000000000000),
+                I256::from_i128(&env, 1_000_000_000_000_000_000),
             ),
         ];
         contract_client.add_layer(&neurons_sum, &LayerAggregator::Sum);
@@ -47,7 +47,7 @@ mod tests {
             &env,
             (
                 String::from_str(&env, "PriorVotingHistory"),
-                I256::from_i128(&env, 1000000000000000000),
+                I256::from_i128(&env, 1_000_000_000_000_000_000),
             ),
         ];
         contract_client.add_layer(&neurons_product, &LayerAggregator::Product);
