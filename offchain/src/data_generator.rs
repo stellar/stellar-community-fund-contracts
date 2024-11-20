@@ -1,137 +1,114 @@
+use governance::types::Vote;
 use neurons::Submission;
 use serde_json::{Map, Value};
+use soroban_sdk::{
+    map, vec, Env, Map as SorobanMap, String as SorobanString, Vec as SorobanVec, I256,
+};
 use std::fs;
 
-fn normalized_votes() {
-    println!("-- normalized votes neuron results --");
-    let normalized_votes_json = fs::read_to_string("result/normalized_votes.json").unwrap();
-    let normalized_votes: Map<String, Value> =
-        serde_json::from_str(normalized_votes_json.as_str()).unwrap();
-    let normalized_votes_mapped: Vec<(String, Vec<(String, String)>)> = normalized_votes
-        .iter()
-        .map(|(sumbmission_id, votes)| {
-            let mapped_votes: Vec<(String, String)> = match votes.as_object() {
-                Some(votes) => votes
-                    .iter()
-                    .map(|(public_key, vote_str)| {
-                        let vv = match vote_str.as_str().unwrap() {
-                            "Abstain" => "Vote::Abstain",
-                            "Yes" => "Vote::Yes",
-                            "No" => "Vote::No",
-                            _ => "error",
-                        };
-                        (public_key.to_string(), vv.to_string())
-                    })
-                    .collect(),
-                None => vec![],
-            };
-            (sumbmission_id.to_string(), mapped_votes)
-        })
-        .collect();
-    for (submission_id, votes) in normalized_votes_mapped {
-        let votes_map_string: Vec<String> = votes
-            .iter()
-            .map(|(public_key, vote)| {
-                format!(
-                    "(String::from_str(&env, {:#?}), {})",
-                    public_key.to_string(),
-                    vote
-                )
-            })
-            .collect();
-        println!(
-            "(String::from_str(&env, {:?}), map![&env, {:#?}])",
-            submission_id, votes_map_string
-        );
+fn vote_from_str(s: &str) -> Vote {
+    match s {
+        "Abstain" => Vote::Abstain,
+        "Yes" => Vote::Yes,
+        "No" => Vote::No,
+        _ => panic!("invalid vote"),
     }
 }
-fn submissions() {
-    println!("-- submissions --");
-    let submissions_raw = fs::read_to_string("data/submissions.json").unwrap();
+fn parse_i256(env: &Env, value: &Value) -> I256 {
+    // TODO fix this parsing, now there is possible data loss
+    I256::from_i128(
+        &env,
+        value.as_str().unwrap().to_string().parse::<i128>().unwrap(),
+    )
+}
+pub fn submissions(env: &Env) -> SorobanVec<(SorobanString, SorobanString)> {
+    let submissions_raw = fs::read_to_string("../neurons/data/submissions.json").unwrap();
     let submissions: Vec<Submission> = serde_json::from_str(submissions_raw.as_str()).unwrap();
-    let mapped: Vec<(String, String)> = submissions
-        .iter()
-        .map(|s| match s.category {
-            neurons::SubmissionCategory::Applications => {
-                (s.name.clone(), "Applications".to_string())
-            }
-            neurons::SubmissionCategory::FinancialProtocols => {
-                (s.name.clone(), "FinancialProtocols".to_string())
-            }
-            neurons::SubmissionCategory::InfrastructureAndServices => {
-                (s.name.clone(), "InfrastructureAndServices".to_string())
-            }
-            neurons::SubmissionCategory::DeveloperTooling => {
-                (s.name.clone(), "DeveloperTooling".to_string())
-            }
-        })
-        .collect();
-    for (name, category) in mapped {
-        println!(
-            "(String::from_str(&env,{:?}), String::from_str(&env,{:?})),",
-            name, category
-        );
-    }
+    let mut submissions_soroban: SorobanVec<(SorobanString, SorobanString)> = vec![&env];
+    submissions.iter().for_each(|s| {
+        submissions_soroban.push_back(match s.category {
+            neurons::SubmissionCategory::Applications => (
+                SorobanString::from_str(&env, &s.name),
+                SorobanString::from_str(&env, "Applications"),
+            ),
+            neurons::SubmissionCategory::FinancialProtocols => (
+                SorobanString::from_str(&env, &s.name),
+                SorobanString::from_str(&env, "FinancialProtocols"),
+            ),
+            neurons::SubmissionCategory::InfrastructureAndServices => (
+                SorobanString::from_str(&env, &s.name),
+                SorobanString::from_str(&env, "InfrastructureAndServices"),
+            ),
+            neurons::SubmissionCategory::DeveloperTooling => (
+                SorobanString::from_str(&env, &s.name),
+                SorobanString::from_str(&env, "DeveloperTooling"),
+            ),
+        });
+    });
+    submissions_soroban
 }
-fn trust() {
-    println!("-- trust graph neuron results --");
-    let trust_graph_neuron_raw = fs::read_to_string("result/trust_graph_neuron.json").unwrap();
-    let trust_graph_neuron: Map<String, Value> =
-        serde_json::from_str(trust_graph_neuron_raw.as_str()).unwrap();
-    let trust_graph_mapped: Vec<(String, i128)> = trust_graph_neuron
+pub fn normalized_votes(env: &Env) -> SorobanMap<SorobanString, SorobanMap<SorobanString, Vote>> {
+    let normalized_votes_raw =
+        fs::read_to_string("../neurons/result/normalized_votes.json").unwrap();
+    let normalized_votes_serde: Map<String, Value> =
+        serde_json::from_str(normalized_votes_raw.as_str()).unwrap();
+    let mut normalized_votes_soroban: SorobanMap<SorobanString, SorobanMap<SorobanString, Vote>> =
+        map![&env];
+    normalized_votes_serde
         .iter()
-        .map(|(public_key, value)| {
-            let n = value.as_str().unwrap().to_string();
-            let int = n.parse::<i128>().unwrap();
-            (public_key.to_string(), int)
-        })
-        .collect();
-    for (public_key, value) in trust_graph_mapped {
-        println!(
-            "(String::from_str(&env,{:?}), I256::from_i128(&env,{})),",
-            public_key, value
-        );
-    }
+        .for_each(|(sumbmission_id, votes)| {
+            let mut mapped_votes: SorobanMap<SorobanString, Vote> = map![&env];
+            votes
+                .as_object()
+                .unwrap()
+                .iter()
+                .for_each(|(public_key, vote_str)| {
+                    let vote = vote_from_str(vote_str.as_str().unwrap());
+                    mapped_votes.set(SorobanString::from_str(&env, public_key), vote);
+                });
+            normalized_votes_soroban
+                .set(SorobanString::from_str(&env, sumbmission_id), mapped_votes);
+        });
+    normalized_votes_soroban
 }
-fn reputation() {
-    println!("-- assigned reputation neuron results --");
-    let assigned_reputation_neuron_raw =
-        fs::read_to_string("result/assigned_reputation_neuron.json").unwrap();
-    let assigned_reputation_neuron: Map<String, Value> =
-        serde_json::from_str(assigned_reputation_neuron_raw.as_str()).unwrap();
-    let assigned_reputation_neuron_mapped: Vec<(String, i128)> = assigned_reputation_neuron
-        .iter()
-        .map(|(public_key, value)| {
-            let n = value.as_str().unwrap().to_string();
-            let int = n.parse::<i128>().unwrap();
-            (public_key.to_string(), int)
-        })
-        .collect();
-    for (public_key, value) in assigned_reputation_neuron_mapped {
-        println!(
-            "(String::from_str(&env,{:?}), I256::from_i128(&env,{})),",
-            public_key, value
-        );
-    }
+pub fn trust(env: &Env) -> SorobanMap<SorobanString, I256> {
+    let trust_raw = fs::read_to_string("../neurons/result/trust_graph_neuron.json").unwrap();
+    let trust_serde: Map<String, Value> = serde_json::from_str(trust_raw.as_str()).unwrap();
+    let mut trust_soroban: SorobanMap<SorobanString, I256> = map![&env];
+    trust_serde.iter().for_each(|(public_key, value)| {
+        trust_soroban.set(
+            SorobanString::from_str(&env, public_key),
+            parse_i256(&env, value),
+        )
+    });
+    trust_soroban
 }
-fn voting_history() {
-    println!("-- prior voting history neuron results --");
-    let prior_voting_history_neuron_raw =
-        fs::read_to_string("result/prior_voting_history_neuron.json").unwrap();
-    let prior_voting_history_neuron: Map<String, Value> =
-        serde_json::from_str(prior_voting_history_neuron_raw.as_str()).unwrap();
-    let prior_voting_history_neuron_mapped: Vec<(String, i128)> = prior_voting_history_neuron
-        .iter()
-        .map(|(public_key, value)| {
-            let n = value.as_str().unwrap().to_string();
-            let int = n.parse::<i128>().unwrap();
-            (public_key.to_string(), int)
-        })
-        .collect();
-    for (public_key, value) in prior_voting_history_neuron_mapped {
-        println!(
-            "(String::from_str(&env,{:?}), I256::from_i128(&env,{})),",
-            public_key, value
-        );
-    }
+pub fn reputation(env: &Env) -> SorobanMap<SorobanString, I256> {
+    let reputation_raw =
+        fs::read_to_string("../neurons/result/assigned_reputation_neuron.json").unwrap();
+    let reputation_serde: Map<String, Value> =
+        serde_json::from_str(reputation_raw.as_str()).unwrap();
+    let mut reputation_soroban: SorobanMap<SorobanString, I256> = map![&env];
+    reputation_serde.iter().for_each(|(public_key, value)| {
+        reputation_soroban.set(
+            SorobanString::from_str(&env, public_key),
+            parse_i256(&env, value),
+        )
+    });
+
+    reputation_soroban
+}
+pub fn voting_history(env: &Env) -> SorobanMap<SorobanString, I256> {
+    let voting_history_raw =
+        fs::read_to_string("../neurons/result/prior_voting_history_neuron.json").unwrap();
+    let voting_history_serde: Map<String, Value> =
+        serde_json::from_str(voting_history_raw.as_str()).unwrap();
+    let mut voting_history_soroban: SorobanMap<SorobanString, I256> = map![&env];
+    voting_history_serde.iter().for_each(|(public_key, value)| {
+        voting_history_soroban.set(
+            SorobanString::from_str(&env, public_key),
+            parse_i256(&env, value),
+        )
+    });
+    voting_history_soroban
 }
