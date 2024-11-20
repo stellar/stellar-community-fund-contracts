@@ -1,10 +1,9 @@
+use crate::e2e::common::contract_utils::deploy_contract_without_initialization;
 use soroban_sdk::testutils::{
     Address as AddressTrait, AuthorizedFunction, AuthorizedInvocation, MockAuth, MockAuthInvoke,
 };
 use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
 use soroban_sdk::{vec, Address, Env, Error, IntoVal, String, Symbol};
-
-use crate::e2e::common::contract_utils::deploy_contract_without_initialization;
 
 #[test]
 fn uninitialized_contract_is_not_callable() {
@@ -32,7 +31,13 @@ fn auth() {
     contract_client.initialize(&admin, &25);
 
     let submission_name = String::from_str(&env, "abc");
-    contract_client.set_submissions(&vec![&env, submission_name.clone()]);
+    contract_client.set_submissions(&vec![
+        &env,
+        (
+            submission_name.clone(),
+            String::from_str(&env, "Applications"),
+        ),
+    ]);
 
     dbg!(&env.auths());
 
@@ -84,7 +89,13 @@ fn transfer_admin() {
             sub_invokes: &[],
         },
     }]);
-    let result = contract_client.try_set_submissions(&vec![&env, submission_name.clone()]);
+    let result = contract_client.try_set_submissions(&vec![
+        &env,
+        (
+            submission_name.clone(),
+            String::from_str(&env, "Applications"),
+        ),
+    ]);
     assert!(result.is_err());
 
     // Verify new admin can modify state
@@ -97,7 +108,13 @@ fn transfer_admin() {
             sub_invokes: &[],
         },
     }]);
-    contract_client.set_submissions(&vec![&env, submission_name]);
+    contract_client.set_submissions(&vec![
+        &env,
+        (
+            submission_name.clone(),
+            String::from_str(&env, "Applications"),
+        ),
+    ]);
 }
 
 #[test]

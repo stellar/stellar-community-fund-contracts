@@ -101,7 +101,7 @@ pub(crate) fn write_submission_votes(
     env.storage().persistent().set(&key, votes);
 }
 
-pub(crate) fn read_submissions(env: &Env, round: u32) -> Vec<String> {
+pub(crate) fn read_submissions(env: &Env, round: u32) -> Vec<(String, String)> {
     let key = get_submissions_key(round);
     env.storage()
         .persistent()
@@ -109,7 +109,7 @@ pub(crate) fn read_submissions(env: &Env, round: u32) -> Vec<String> {
         .unwrap_or_else(|| Vec::new(env))
 }
 
-pub(crate) fn write_submissions(env: &Env, round: u32, submissions: &Vec<String>) {
+pub(crate) fn write_submissions(env: &Env, round: u32, submissions: &Vec<(String, String)>) {
     let key = get_submissions_key(round);
     env.storage().persistent().set(&key, submissions);
 }
