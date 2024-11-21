@@ -1,9 +1,13 @@
+use std::fs;
+
 use governance::{types::Vote, LayerAggregator, VotingSystem, VotingSystemClient};
-use soroban_sdk::log;
+use serde_json::{json, Value};
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{
-    vec, Address, Env, Map as SorobanMap, String as SorobanString, Vec as SorobanVec, I256,
+    vec as SorobanVecMacro, Address, Env, Map as SorobanMap, String as SorobanString,
+    Vec as SorobanVec, I256,
 };
+const ROUND: &'_ u32 = &31;
 
 pub fn deploy_contract_without_initialization(env: &Env) -> VotingSystemClient {
     let contract_id = env.register_contract(None, VotingSystem);
@@ -17,13 +21,13 @@ pub fn deploy_contract(env: &Env) -> VotingSystemClient {
 
     env.mock_all_auths();
     let admin = Address::generate(env);
-    contract_client.initialize(&admin, &31);
+    contract_client.initialize(&admin, &ROUND);
 
     contract_client
 }
 
 pub fn setup_layers(env: &Env, contract_client: &VotingSystemClient<'_>) {
-    let neurons_sum = vec![
+    let neurons_sum = SorobanVecMacro![
         &env,
         (
             SorobanString::from_str(&env, "TrustGraph"),
@@ -36,7 +40,7 @@ pub fn setup_layers(env: &Env, contract_client: &VotingSystemClient<'_>) {
     ];
     contract_client.add_layer(&neurons_sum, &LayerAggregator::Sum);
 
-    let neurons_product = vec![
+    let neurons_product = SorobanVecMacro![
         &env,
         (
             SorobanString::from_str(&env, "PriorVotingHistory"),
@@ -89,9 +93,16 @@ pub fn manual_tally(
 
     contract_client.calculate_voting_powers();
 
-    // tally
+    // tally &  write result to file
+    let mut results: Vec<Value> = vec![];
     for (submission_id, _votes) in normalized_votes {
-        let result = contract_client.tally_submission(&submission_id);
-        log!(&env, "result", submission_id, result);
+        let submission_id_string = submission_id.to_string();
+        let result: i128 = match contract_client.tally_submission(&submission_id).to_i128() {
+            Some(result) => result,
+            None => panic!("i256 result of [{submission_id_string}] overflow i128"),
+        };
+        results.push(json!({"submission": submission_id_string, "result": result.to_string()}));
     }
+    let serialized = serde_json::to_string(&results).unwrap();
+    fs::write(format!("voting_result.json"), serialized).unwrap();
 }

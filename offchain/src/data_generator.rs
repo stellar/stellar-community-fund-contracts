@@ -14,8 +14,7 @@ fn vote_from_str(s: &str) -> Vote {
         _ => panic!("invalid vote"),
     }
 }
-fn parse_i256(env: &Env, value: &Value) -> I256 {
-    // TODO fix this parsing, now there is possible data loss
+fn i256_from_json_value(env: &Env, value: &Value) -> I256 {
     I256::from_i128(
         &env,
         value.as_str().unwrap().to_string().parse::<i128>().unwrap(),
@@ -78,8 +77,8 @@ pub fn trust(env: &Env) -> SorobanMap<SorobanString, I256> {
     trust_serde.iter().for_each(|(public_key, value)| {
         trust_soroban.set(
             SorobanString::from_str(&env, public_key),
-            parse_i256(&env, value),
-        )
+            i256_from_json_value(&env, value),
+        );
     });
     trust_soroban
 }
@@ -92,8 +91,8 @@ pub fn reputation(env: &Env) -> SorobanMap<SorobanString, I256> {
     reputation_serde.iter().for_each(|(public_key, value)| {
         reputation_soroban.set(
             SorobanString::from_str(&env, public_key),
-            parse_i256(&env, value),
-        )
+            i256_from_json_value(&env, value),
+        );
     });
 
     reputation_soroban
@@ -107,8 +106,8 @@ pub fn voting_history(env: &Env) -> SorobanMap<SorobanString, I256> {
     voting_history_serde.iter().for_each(|(public_key, value)| {
         voting_history_soroban.set(
             SorobanString::from_str(&env, public_key),
-            parse_i256(&env, value),
-        )
+            i256_from_json_value(&env, value),
+        );
     });
     voting_history_soroban
 }
