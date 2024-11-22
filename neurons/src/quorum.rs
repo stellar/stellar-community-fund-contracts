@@ -45,7 +45,10 @@ pub fn normalize_votes(
             let submission = submissions
                 .iter()
                 .find(|sub| sub.name == submission_name)
-                .expect("Missing details for submission");
+                .expect(&format!(
+                    "Missing details for submission: {}",
+                    submission_name
+                ));
             let submission_votes =
                 normalize_votes_for_submission(submission, &submission_votes, delegatees_for_user)?;
             Ok((submission_name, submission_votes))
