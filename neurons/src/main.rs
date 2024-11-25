@@ -8,7 +8,6 @@ use neurons::{Submission, Vote};
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
-
 pub const DECIMALS: i64 = 1_000_000_000_000_000_000;
 
 fn write_result<T>(file_name: &str, data: &T)
