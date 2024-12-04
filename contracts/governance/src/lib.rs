@@ -7,7 +7,7 @@ use alloc::string::ToString;
 
 use soroban_fixed_point_math::SorobanFixedPoint;
 use soroban_sdk::{
-    contract, contractimpl, contracttype, Address, BytesN, Env, Map, String, Vec, I256,
+    contract, contractimpl, contracttype, vec, Address, BytesN, Env, Map, String, Vec, I256,
 };
 
 use admin::{is_set_admin, require_admin};
@@ -95,7 +95,12 @@ impl VotingSystem {
     }
 
     /// Set multiple submissions.
-    pub fn set_submissions(env: Env, new_submissions: Vec<String>) {
+    pub fn set_submissions(env: Env, new_submissions_raw: Vec<(String, String)>) {
+        let mut new_submissions = vec![&env];
+        for (name, category) in new_submissions_raw {
+            new_submissions.push_back((name, category));
+        }
+
         require_admin(&env);
 
         let mut submissions = Vec::new(&env);
@@ -111,7 +116,7 @@ impl VotingSystem {
     }
 
     /// Get submissions for the active round.
-    pub fn get_submissions(env: &Env) -> Vec<String> {
+    pub fn get_submissions(env: &Env) -> Vec<(String, String)> {
         read_submissions(env, Self::get_current_round(env))
     }
 
@@ -123,10 +128,14 @@ impl VotingSystem {
     ) -> Result<(), VotingSystemError> {
         require_admin(env);
 
-        if !read_submissions(env, Self::get_current_round(env)).contains(submission_id.clone()) {
+        if !read_submissions(env, Self::get_current_round(env))
+            .iter()
+            .any(|(name, _category)| name == submission_id)
+        {
             return Err(VotingSystemError::SubmissionDoesNotExist);
         }
 
+        // this causes timeout god knows why
         write_submission_votes(env, &submission_id, Self::get_current_round(env), &votes);
         Ok(())
     }
@@ -391,7 +400,7 @@ fn weigh_neuron_result(env: &Env, weight: &I256, result: Map<String, I256>) -> M
     for (key, value) in result {
         scaled.set(
             key,
-            value.fixed_mul_floor(env, weight.clone(), I256::from_i128(env, DECIMALS)),
+            value.fixed_mul_floor(env, weight, &I256::from_i128(env, DECIMALS)),
         );
     }
 
