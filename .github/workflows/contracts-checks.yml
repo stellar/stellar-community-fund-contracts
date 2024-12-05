@@ -24,7 +24,7 @@ jobs:
 
       - name: Install soroban cli
         run: |
-          cargo install --locked --version 21.2.0 soroban-cli
+          cargo install stellar-cli@22.0.0-rc.1
 
       - name: Build contracts
         run: |
