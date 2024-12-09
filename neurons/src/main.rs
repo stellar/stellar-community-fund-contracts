@@ -2,6 +2,7 @@ use camino::Utf8Path;
 use neurons::neurons::assigned_reputation::AssignedReputationNeuron;
 use neurons::neurons::prior_voting_history::PriorVotingHistoryNeuron;
 use neurons::neurons::trust_graph::TrustGraphNeuron;
+use neurons::neurons::trust_graph_log::TrustGraphNeuronLog;
 use neurons::neurons::Neuron;
 use neurons::quorum::{normalize_votes, DelegateesForUser};
 use neurons::{Submission, Vote};
@@ -32,6 +33,7 @@ fn to_fixed_point_decimal(val: f64) -> i128 {
 
 fn calculate_neuron_results(users: &[String], neurons: Vec<Box<dyn Neuron>>) {
     for neuron in neurons {
+        println!("running {}", neuron.name());
         let result = neuron.calculate_result(users);
         let result: HashMap<String, String> = result
             .into_iter()
@@ -51,6 +53,7 @@ fn main() {
 
     let path = Utf8Path::new("data/trusted_for_user.json");
     let trust_graph_neuron = TrustGraphNeuron::try_from_file(path).unwrap();
+    let trust_graph_neuron_log = TrustGraphNeuronLog::try_from_file(path).unwrap();
 
     let users_raw = fs::read_to_string("data/voters.json").unwrap();
     let users: Vec<String> = serde_json::from_str(users_raw.as_str()).unwrap();
@@ -77,6 +80,7 @@ fn main() {
             Box::new(prior_voting_history_neuron),
             Box::new(assigned_reputation_neuron),
             Box::new(trust_graph_neuron),
+            Box::new(trust_graph_neuron_log),
         ],
     );
 }
