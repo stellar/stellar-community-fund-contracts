@@ -39,10 +39,6 @@ impl SCFToken {
         write_admin(&env, &admin);
         // write_governance_contract_address(&env, &governance_address);
     }
-    
-    pub fn hello(env: Env) -> Result<I256, ContractError> {
-        Ok(I256::from_i32(&env, 2137))
-    }
 
     pub fn update_balance(env: Env, address: Address) -> Result<(), ContractError> {
         let admin = read_admin(&env);
@@ -92,7 +88,7 @@ impl SCFToken {
         Ok(())
     }
 
-    pub fn update_balance_manual(env: Env, address: Address, value: I256, current_round: u32) -> Result<I256, ContractError> {
+    pub fn update_balance_manual(env: Env, address: Address, value: I256, current_round: u32) -> Result<(), ContractError> {
         let admin = read_admin(&env);
         admin.require_auth();
     
@@ -132,9 +128,7 @@ impl SCFToken {
         write_total_supply(&env, &new_total_supply);
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
-        let x: I256 = I256::from_i128(&env, new_total_supply_value);
-
-        Ok(x)
+        Ok(())
     }
 
     pub fn set_governance_contract_address(env: Env, governance_address: Address) {
@@ -150,20 +144,6 @@ impl SCFToken {
 
         env.deployer().update_current_contract_wasm(wasm_hash);
     }
-}
-
-pub fn set_governance_contract_address(env: Env, governance_address: Address) {
-    let admin = read_admin(&env);
-    admin.require_auth();
-
-    write_governance_contract_address(&env, &governance_address);
-}
-
-pub fn upgrade(env: Env, wasm_hash: BytesN<32>) {
-    let admin = read_admin(&env);
-    admin.require_auth();
-
-    env.deployer().update_current_contract_wasm(wasm_hash);
 }
 
 fn voting_power_for_user(
@@ -291,7 +271,7 @@ impl Interface for SCFToken {
     }
 
     fn name(env: Env) -> String {
-        String::from_str(&env, "SCF Token")
+        String::from_str(&env, "SCF")
     }
 
     fn symbol(env: Env) -> String {
