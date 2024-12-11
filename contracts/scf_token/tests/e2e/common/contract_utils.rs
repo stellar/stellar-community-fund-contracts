@@ -17,8 +17,7 @@ pub fn deploy_contract<'a>(
     let scf_token_address = env.register_contract(None, SCFToken);
     let scf_token_client = SCFTokenClient::new(env, &scf_token_address);
 
-    // scf_token_client.initialize(admin, governance_address);
-    scf_token_client.initialize(admin);
+    scf_token_client.initialize(admin, governance_address);
 
     scf_token_client
 }
