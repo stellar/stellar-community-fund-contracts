@@ -1,4 +1,4 @@
 .idea
 target
-
+.DS_store
 **/test_snapshots/**

@@ -38,6 +38,16 @@ impl SCFToken {
         write_governance_contract_address(&env, &governance_address);
     }
 
+    pub fn initialize_manual(env: Env, admin: Address) {
+        assert_with_error!(
+            env,
+            !env.storage().instance().has(&DataKey::Admin),
+            ContractError::ContractAlreadyInitialized
+        );
+
+        write_admin(&env, &admin);
+    }
+
     pub fn update_balance(env: Env, address: Address) -> Result<(), ContractError> {
         let admin = read_admin(&env);
         admin.require_auth();
