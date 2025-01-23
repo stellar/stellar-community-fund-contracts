@@ -7,6 +7,7 @@ use std::io::BufReader;
 #[derive(Clone, Debug)]
 pub struct TrustGraphNeuron {
     trusted_for_user: HashMap<String, Vec<String>>,
+    round: u32,
 }
 
 impl TrustGraphNeuron {
@@ -14,8 +15,11 @@ impl TrustGraphNeuron {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
 
-        let trusted_for_user = serde_json::from_reader(reader)?;
-        Ok(Self { trusted_for_user })
+        let trusted_for_user: HashMap<String, Vec<String>> = serde_json::from_reader(reader)?;
+        Ok(Self { trusted_for_user, round:0 })
+    }
+    pub fn from_data(trusted_for_user: HashMap<String, Vec<String>>, round: u32) -> Self {
+        Self { trusted_for_user, round }
     }
 }
 
@@ -26,6 +30,8 @@ fn calculate_page_rank(
     iterations: u32,
     damping_factor: f64,
 ) -> HashMap<String, f64> {
+    let damping_factor = 0.85;
+    let iterations = 1000;
     let mut page_ranks: HashMap<String, f64> = HashMap::new();
     for node in nodes {
         page_ranks.insert(node.clone(), 1.0 / nodes.len() as f64);
@@ -63,7 +69,7 @@ fn min_max_normalize_result(result: HashMap<String, f64>) -> HashMap<String, f64
 
 impl Neuron for TrustGraphNeuron {
     fn name(&self) -> String {
-        "trust_graph_neuron".to_string()
+        format!("trust_graph_neuron_{}", self.round)
     }
 
     fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
@@ -118,7 +124,7 @@ mod tests {
         trusted_for_user.insert("D".to_string(), vec!["A".to_string()]);
         trusted_for_user.insert("E".to_string(), vec![]);
 
-        let trust_graph_neuron = TrustGraphNeuron { trusted_for_user };
+        let trust_graph_neuron = TrustGraphNeuron { trusted_for_user, round: 0 };
         let result = trust_graph_neuron.calculate_result(
             &["A", "B", "C", "D", "E"]
                 .into_iter()
