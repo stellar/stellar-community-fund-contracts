@@ -1,8 +1,7 @@
 use crate::neurons::Neuron;
-use camino::Utf8Path;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Write};
+use std::io::BufReader;
 
 #[derive(Clone, Debug)]
 pub struct TrustHistoryNeuron {
@@ -16,14 +15,23 @@ impl TrustHistoryNeuron {
         Self { start, end }
     }
 }
-pub const DECIMALS: i64 = 1_000_000_000_000_000_000;
 
-fn to_fixed_point_decimal(val: f64) -> i128 {
-    (val * DECIMALS as f64) as i128
+fn generalised_logistic_function(
+    a: f64,
+    k: f64,
+    c: f64,
+    q: f64,
+    b: f64,
+    nu: f64,
+    x_off: f64,
+    x: f64,
+) -> f64 {
+    a + (k - a) / (f64::powf(c + q * f64::exp(-b * (x - x_off)), 1.0 / nu))
 }
+
 impl Neuron for TrustHistoryNeuron {
     fn name(&self) -> String {
-        format!("trust_graph_neuron_log_{}_{}", self.start, self.end)
+        format!("trust_graph_neuron_log")
     }
 
     fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
@@ -48,9 +56,9 @@ impl Neuron for TrustHistoryNeuron {
                 }
             });
         }
+        let mut result = HashMap::new();
 
         // calculate diff in % of every user beetween last and current round
-        let mut users_trust_recent_diff_percent: HashMap<String, Option<f64>> = HashMap::new();
         users_trust_history.iter().for_each(|(user, trust_vec)|{
             let length = trust_vec.len();
             let current_trust = trust_vec[length-1];
@@ -58,25 +66,29 @@ impl Neuron for TrustHistoryNeuron {
             let diff_percent = (current_trust/previous_trust) * 100.0;
             // NaN - previous == 0 && current == 0
             // inf - previous == 0 && current != 0
-            if diff_percent.is_nan() || diff_percent.is_infinite() {
-                users_trust_recent_diff_percent.insert(user.to_string(), None);
+
+            if diff_percent.is_nan() {
+                result.insert(user.into(), 0.0);
+                println!("{} current: {:?} previous: {:?} diff: {:?} outcome: 0.0 - NaN", user, current_trust, previous_trust, diff_percent);
+
+            } else if diff_percent.is_infinite() {
+                result.insert(user.into(), current_trust);
+                println!("{} current: {:?} previous: {:?} diff: {:?} outcome: current_trust = {current_trust} - Inf", user, current_trust, previous_trust, diff_percent);
+
             } else {
-                users_trust_recent_diff_percent.insert(user.to_string(), Some(diff_percent));
+                let log_fn_out = generalised_logistic_function(30.0, 100.0, 1.0, 1.0, 0.2, 3.0, 70.0, diff_percent);
+                let outcome = (log_fn_out*current_trust)/100.0;
+                println!("{} current: {:?} previous: {:?} diff: {:?} log_fn_out: {:?} outcome: {:?} - OK", user, current_trust, previous_trust, diff_percent, log_fn_out, outcome);
+                result.insert(user.into(), outcome);
+
             }
         });
-        // println!("{:#?}", users_trust_recent_diff_percent);
-        
-        // do the calculation using logistic trust curve for every users diff,
-        // take multiply current trust by outcome of above (current trust * % logistic negative bonus)
-
-        let mut result = HashMap::new();
-        for user in users {
-            result.insert(user.into(), 0.0);
-        }
 
         result
 
     }
+
+    
 }
 // export data to json
 // let json = serde_json::to_string(&users_trust_history).unwrap();

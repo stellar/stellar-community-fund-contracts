@@ -30,8 +30,6 @@ fn calculate_page_rank(
     iterations: u32,
     damping_factor: f64,
 ) -> HashMap<String, f64> {
-    let damping_factor = 0.85;
-    let iterations = 1000;
     let mut page_ranks: HashMap<String, f64> = HashMap::new();
     for node in nodes {
         page_ranks.insert(node.clone(), 1.0 / nodes.len() as f64);

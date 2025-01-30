@@ -3,7 +3,7 @@ use neurons::neurons::assigned_reputation::AssignedReputationNeuron;
 use neurons::neurons::prior_voting_history::PriorVotingHistoryNeuron;
 use neurons::neurons::trust_graph::TrustGraphNeuron;
 use neurons::neurons::trust_history::TrustHistoryNeuron;
-use neurons::neurons::{trust_history, Neuron};
+use neurons::neurons::Neuron;
 use neurons::quorum::{normalize_votes, DelegateesForUser};
 use neurons::{Submission, Vote};
 use serde::Serialize;
@@ -73,7 +73,7 @@ fn main() {
     trust_data.iter().for_each(|(round,trusted_for_user)|{
         trust_graph_neurons.push(TrustGraphNeuron::from_data(trusted_for_user.clone(), *round));
     });
-    let trust_graph_log: TrustHistoryNeuron = TrustHistoryNeuron::new((27,32));// todo make this automatic from loop above
+    let trust_graph_log: TrustHistoryNeuron = TrustHistoryNeuron::new((27,33));// todo make this automatic from loop above
 
     // -- old for comparasion
     let path = Utf8Path::new("data/trusted_for_user.json");
@@ -87,7 +87,6 @@ fn main() {
     for trust_neuron in trust_graph_neurons {
         neurons.push(Box::new(trust_neuron));
     }
-    neurons.push(Box::new(trust_graph_log));
     
     calculate_trust_neuron_results(
         &users,
@@ -96,9 +95,9 @@ fn main() {
 
     calculate_neuron_results(
         &users,
-        vec![Box::new(trust_graph_neuron), Box::new(prior_voting_history_neuron),Box::new(assigned_reputation_neuron)]
+        vec![Box::new(trust_graph_neuron), Box::new(prior_voting_history_neuron),Box::new(assigned_reputation_neuron), Box::new(trust_graph_log)]
     );
-    // do_normalize_votes();
+    do_normalize_votes();
 
 }
 
