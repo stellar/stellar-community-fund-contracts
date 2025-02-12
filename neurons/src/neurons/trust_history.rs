@@ -87,10 +87,4 @@ impl Neuron for TrustHistoryNeuron {
         result
 
     }
-
-    
 }
-// export data to json
-// let json = serde_json::to_string(&users_trust_history).unwrap();
-// let mut file = File::create("result/users_trust_history.json").unwrap();
-// file.write_all(json.as_bytes()).unwrap();

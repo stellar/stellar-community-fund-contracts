@@ -78,7 +78,7 @@ fn main() {
     // -- old for comparasion
     let path = Utf8Path::new("data/trusted_for_user.json");
     let trust_graph_neuron = TrustGraphNeuron::try_from_file(path).unwrap();
-    // ^ remove
+    // ^ remove later
 
     let users_raw = fs::read_to_string("data/voters.json").unwrap();
     let users: Vec<String> = serde_json::from_str(users_raw.as_str()).unwrap();
