@@ -1,7 +1,7 @@
 use std::fs;
 
 use governance::{types::Vote, LayerAggregator, VotingSystem, VotingSystemClient};
-use serde_json::{json, Value};
+use serde_json::{Map, Number, Value};
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{
     vec as SorobanVecMacro, Address, Env, Map as SorobanMap, String as SorobanString,
@@ -93,16 +93,32 @@ pub fn manual_tally(
 
     contract_client.calculate_voting_powers();
 
-    // tally &  write result to file
-    let mut results: Vec<Value> = vec![];
+    // tally & write result to file
+    let mut results_map: Map<String, Value> = Map::new();
     for (submission_id, _votes) in normalized_votes {
         let submission_id_string = submission_id.to_string();
         let result: i128 = match contract_client.tally_submission(&submission_id).to_i128() {
             Some(result) => result,
             None => panic!("i256 result of [{submission_id_string}] overflow i128"),
         };
-        results.push(json!({"submission": submission_id_string, "result": result.to_string()}));
+        results_map.insert(submission_id_string, Value::String(result.to_string()));
     }
-    let serialized = serde_json::to_string(&results).unwrap();
-    fs::write(format!("voting_result.json"), serialized).unwrap();
+    let serialized = serde_json::to_string(&results_map).unwrap();
+    fs::write(format!("result/voting_result.json"), serialized).unwrap();
+
+    // save voting powers to file
+    let mut powers_map: Map<String, Value> = Map::new();
+    for (public_key, voting_power) in contract_client.get_voting_powers() {
+        let public_key_string = public_key.to_string();
+        let power = match voting_power.to_i128() {
+            Some(power) => match Number::from_i128(power) {
+                Some(number) => number,
+                None => panic!("i256 to Number fail [{public_key_string}]"),
+            },
+            None => panic!("i256 voting power of [{public_key_string}] overflow i128"),
+        };
+        powers_map.insert(public_key_string, Value::Number(power));
+    }
+    let serialized = serde_json::to_string(&powers_map).unwrap();
+    fs::write(format!("result/voting_powers.json"), serialized).unwrap();
 }

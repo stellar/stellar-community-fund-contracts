@@ -14,7 +14,6 @@ pub struct PriorVotingHistoryNeuron {
 }
 
 impl PriorVotingHistoryNeuron {
-    // FIXME this design is not scalable, what if there are multiple files required
     pub fn try_from_file(path: &Utf8Path) -> Result<Self> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
