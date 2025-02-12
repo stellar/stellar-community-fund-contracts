@@ -180,7 +180,7 @@ fn name() {
 
     let Deployment { client, .. } = deploy_and_setup(&env, &admin);
 
-    assert_eq!(client.name(), String::from_str(&env, "SCF Token"));
+    assert_eq!(client.name(), String::from_str(&env, "SCF"));
 }
 
 #[test]
