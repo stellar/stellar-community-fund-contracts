@@ -230,7 +230,7 @@ impl Votes for SCFToken {
     }
 
     fn get_delegate(e: Env, account: Address) -> Address {
-        panic_with_error!(e, VotesError::ActionNotSupported)
+        account
     }
 
     fn delegate(e: Env, account: Address, delegatee: Address) {
