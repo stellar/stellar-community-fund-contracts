@@ -94,20 +94,20 @@ pub fn manual_tally(
     contract_client.calculate_voting_powers();
 
     // tally & write result to file
-    let mut results_map:Map<String, Value> = Map::new();
+    let mut results_map: Map<String, Value> = Map::new();
     for (submission_id, _votes) in normalized_votes {
         let submission_id_string = submission_id.to_string();
         let result: i128 = match contract_client.tally_submission(&submission_id).to_i128() {
             Some(result) => result,
             None => panic!("i256 result of [{submission_id_string}] overflow i128"),
         };
-        results_map.insert(submission_id_string,Value::String(result.to_string()));
+        results_map.insert(submission_id_string, Value::String(result.to_string()));
     }
     let serialized = serde_json::to_string(&results_map).unwrap();
     fs::write(format!("result/voting_result.json"), serialized).unwrap();
 
     // save voting powers to file
-    let mut powers_map:Map<String, Value> = Map::new();
+    let mut powers_map: Map<String, Value> = Map::new();
     for (public_key, voting_power) in contract_client.get_voting_powers() {
         let public_key_string = public_key.to_string();
         let power = match voting_power.to_i128() {

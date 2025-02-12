@@ -16,10 +16,16 @@ impl TrustGraphNeuron {
         let reader = BufReader::new(file);
 
         let trusted_for_user: HashMap<String, Vec<String>> = serde_json::from_reader(reader)?;
-        Ok(Self { trusted_for_user, round:0 })
+        Ok(Self {
+            trusted_for_user,
+            round: 0,
+        })
     }
     pub fn from_data(trusted_for_user: HashMap<String, Vec<String>>, round: u32) -> Self {
-        Self { trusted_for_user, round }
+        Self {
+            trusted_for_user,
+            round,
+        }
     }
 }
 
@@ -122,7 +128,10 @@ mod tests {
         trusted_for_user.insert("D".to_string(), vec!["A".to_string()]);
         trusted_for_user.insert("E".to_string(), vec![]);
 
-        let trust_graph_neuron = TrustGraphNeuron { trusted_for_user, round: 0 };
+        let trust_graph_neuron = TrustGraphNeuron {
+            trusted_for_user,
+            round: 0,
+        };
         let result = trust_graph_neuron.calculate_result(
             &["A", "B", "C", "D", "E"]
                 .into_iter()

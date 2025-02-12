@@ -6,7 +6,7 @@ use std::io::BufReader;
 #[derive(Clone, Debug)]
 pub struct TrustHistoryNeuron {
     start: usize,
-    end: usize
+    end: usize,
 }
 
 impl TrustHistoryNeuron {
@@ -34,10 +34,10 @@ impl Neuron for TrustHistoryNeuron {
         format!("trust_graph_neuron_log")
     }
 
-    fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
+    fn calculate_result(&self, _users: &[String]) -> HashMap<String, f64> {
         let mut users_trust_history: HashMap<String, Vec<f64>> = HashMap::new();
 
-        for i in self.start..self.end+1 {
+        for i in self.start..self.end + 1 {
             let path = format!("result/trust_graph_neuron_{}.json", i);
             let file = File::open(path).unwrap();
             let reader = BufReader::new(file);
@@ -49,7 +49,7 @@ impl Neuron for TrustHistoryNeuron {
                 match users_trust_history.get_mut(user) {
                     Some(trust_vec) => {
                         trust_vec.push(*trust);
-                    },
+                    }
                     None => {
                         let _ = users_trust_history.insert(user.to_string(), vec![*trust]);
                     }
@@ -85,6 +85,5 @@ impl Neuron for TrustHistoryNeuron {
         });
 
         result
-
     }
 }
