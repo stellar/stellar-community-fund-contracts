@@ -3,6 +3,7 @@ use std::collections::HashMap;
 pub mod assigned_reputation;
 pub mod prior_voting_history;
 pub mod trust_graph;
+pub mod trust_history;
 
 pub trait Neuron {
     fn name(&self) -> String;
