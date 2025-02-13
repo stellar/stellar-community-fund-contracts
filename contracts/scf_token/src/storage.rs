@@ -1,5 +1,5 @@
 use crate::types::DataKey;
-use soroban_sdk::{contracttype, Address, Env};
+use soroban_sdk::{contracttype, vec, Address, Env, Vec};
 
 #[derive(Clone, Debug)]
 #[contracttype]
@@ -18,7 +18,15 @@ impl TotalSupply {
         }
     }
 }
-
+pub(crate) fn write_all_balances(env: &Env, balances: &Vec<i128>) {
+    env.storage().instance().set(&DataKey::Balances, balances);
+}
+pub(crate) fn read_all_balances(env: &Env) -> Vec<i128> {
+    env.storage()
+        .instance()
+        .get(&DataKey::Balances)
+        .unwrap_or(vec![&env])
+}
 pub(crate) fn read_total_supply(env: &Env) -> TotalSupply {
     env.storage()
         .instance()

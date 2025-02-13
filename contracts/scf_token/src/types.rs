@@ -7,6 +7,7 @@ pub enum DataKey {
     GovernanceAddress,
     Balance(Address),
     TotalSupply,
+    Balances,
 }
 
 #[contracterror]
@@ -16,6 +17,7 @@ pub enum ContractError {
     ContractAlreadyInitialized = 2,
     VotingPowerAlreadyUpdatedForUser = 3,
     ActionNotSupported = 4,
+    OutOfBounds = 5,
 }
 
 #[contracterror]

@@ -1,13 +1,14 @@
 use crate::admin::{read_admin, write_admin, Admin};
 use soroban_sdk::token::Interface;
 use soroban_sdk::{
-    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN, Env, String, I256,
+    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN, Env, String, Vec,
+    I256,
 };
 
 use crate::balance::{extend_balance, read_balance, write_balance};
 use crate::storage::{
-    read_governance_contract_address, read_total_supply, write_governance_contract_address,
-    write_total_supply,
+    read_all_balances, read_governance_contract_address, read_total_supply, write_all_balances,
+    write_governance_contract_address, write_total_supply,
 };
 use crate::types::{ContractError, DataKey, VotesError};
 use crate::votes::Votes;
@@ -93,6 +94,10 @@ impl SCFToken {
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
 
+        let mut balances = read_all_balances(&env);
+        insert_sorted(&mut balances, new_balance.current);
+        write_all_balances(&env, &balances);
+
         Ok(())
     }
 
@@ -141,6 +146,11 @@ impl SCFToken {
         write_total_supply(&env, &new_total_supply);
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
+
+        let mut balances = read_all_balances(&env);
+        insert_sorted(&mut balances, new_balance.current);
+        write_all_balances(&env, &balances);
+
         Ok(())
     }
 
@@ -157,6 +167,23 @@ impl SCFToken {
 
         env.deployer().update_current_contract_wasm(wasm_hash);
     }
+
+    pub fn nth_top_balance(env: Env, n: u32) -> Result<i128, ContractError> {
+        let admin = read_admin(&env);
+        admin.require_auth();
+
+        let balances: Vec<i128> = read_all_balances(&env);
+        match balances.get(balances.len() - n) {
+            Some(bal) => Ok(bal),
+            None => Err(ContractError::OutOfBounds),
+        }
+    }
+}
+fn insert_sorted(vec: &mut Vec<i128>, value: i128) {
+    match vec.iter().position(|x| x > value) {
+        Some(pos) => vec.insert(pos as u32, value),
+        None => vec.push_back(value),
+    };
 }
 
 fn voting_power_for_user(
