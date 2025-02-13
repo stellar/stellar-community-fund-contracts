@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["governance", "scf_token"]
+members = ["governance", "scf_token", "governor"]
 
 [workspace.dependencies]
 soroban-sdk = "21.7.7"

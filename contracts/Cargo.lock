@@ -1079,6 +1079,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "soroban-governor"
+version = "1.1.1"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "soroban-ledger-snapshot"
 version = "21.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
