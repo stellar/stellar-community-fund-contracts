@@ -67,7 +67,8 @@ impl VoteCount {
         if against_and_for_votes == 0 {
             return false;
         }
-        let vote_requirement_floor = (against_and_for_votes * vote_threshold as i128) / (BPS_SCALAR as i128);
+        let vote_requirement_floor =
+            (against_and_for_votes * vote_threshold as i128) / (BPS_SCALAR as i128);
         self._for > vote_requirement_floor
     }
 

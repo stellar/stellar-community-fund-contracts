@@ -287,3 +287,70 @@ impl Governor for GovernorContract {
         storage::get_proposal_vote_count(&e, proposal_id)
     }
 }
+#[contractimpl]
+impl GovernorContract {
+    // sets proposal threshold to match nth top user (top n users will be able to create proposals)
+    pub fn update_proposal_threshold(env: Env, n: u32) {
+        let council = storage::get_council_address(&env);
+        council.require_auth();
+        let scf_token_client = VotesClient::new(&env, &storage::get_voter_token_address(&env));
+        let target_threshold = scf_token_client.nth_top_balance(&n);
+        let mut settings = storage::get_settings(&env);
+        settings.proposal_threshold = target_threshold;
+        storage::set_settings(&env, &settings);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use soroban_sdk::testutils::Address as AddressTrait;
+    use soroban_sdk::{vec, Address, Env, Vec, I256};
+
+    use crate::constants::ONE_DAY_LEDGERS;
+    use crate::settings::require_valid_settings;
+    use crate::types::GovernorSettings;
+
+    use super::{GovernorContract, GovernorContractClient};
+
+    pub mod scf_token {
+        use soroban_sdk::contractimport;
+        contractimport!(file = "../target/wasm32-unknown-unknown/release/scf_token.wasm");
+    }
+
+    #[test]
+    fn test_update_proposal_threshold() {
+        let env = Env::default();
+        env.budget().reset_unlimited();
+        let admin = Address::generate(&env);
+        env.mock_all_auths();
+
+        let governor_address = env.register_contract(None, GovernorContract);
+        let governor_client = GovernorContractClient::new(&env, &governor_address);
+
+        let scf_token_address = env.register_contract_wasm(None, scf_token::WASM);
+        let scf_token_client = scf_token::Client::new(&env, &scf_token_address);
+
+        scf_token_client.initialize(&admin, &governor_address);
+        let settings = GovernorSettings {
+            proposal_threshold: 1_0000000,
+            vote_delay: ONE_DAY_LEDGERS,
+            vote_period: ONE_DAY_LEDGERS * 5,
+            timelock: ONE_DAY_LEDGERS,
+            grace_period: ONE_DAY_LEDGERS * 7,
+            quorum: 100,
+            counting_type: 2,
+            vote_threshold: 5100,
+        };
+        require_valid_settings(&env, &settings);
+        governor_client.initialize(&scf_token_address, &admin, &settings);
+        
+        let random_balances: Vec<i128> = vec![&env, 7, 1, 15, 20, 6, 18, 10, 13, 16, 14];
+        for b in &random_balances {
+            let nqg: I256 = I256::from_i128(&env, b * 10_i128.pow(18));
+            scf_token_client.update_balance_manual(&Address::generate(&env), &nqg, &30);
+        }
+        governor_client.update_proposal_threshold(&3);
+        let updated_settings = governor_client.settings();
+        assert_eq!(updated_settings.proposal_threshold, 16 * 10_i128.pow(9));
+    }
+}
