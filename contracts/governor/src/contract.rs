@@ -289,12 +289,11 @@ impl Governor for GovernorContract {
 }
 #[contractimpl]
 impl GovernorContract {
-    // sets proposal threshold to match nth top user (top n users will be able to create proposals)
-    pub fn update_proposal_threshold(env: Env, n: u32) {
+    pub fn update_proposal_threshold(env: Env) {
         let council = storage::get_council_address(&env);
         council.require_auth();
         let scf_token_client = VotesClient::new(&env, &storage::get_voter_token_address(&env));
-        let target_threshold = scf_token_client.nth_top_balance(&n);
+        let target_threshold = scf_token_client.optimal_threshold();
         let mut settings = storage::get_settings(&env);
         settings.proposal_threshold = target_threshold;
         storage::set_settings(&env, &settings);
@@ -344,13 +343,13 @@ mod test {
         require_valid_settings(&env, &settings);
         governor_client.initialize(&scf_token_address, &admin, &settings);
         
-        let random_balances: Vec<i128> = vec![&env, 7, 1, 15, 20, 6, 18, 10, 13, 16, 14];
+        let random_balances: Vec<i128> = vec![&env, 1,2,3,4,5,6,7,8,9,10];
         for b in &random_balances {
             let nqg: I256 = I256::from_i128(&env, b * 10_i128.pow(18));
             scf_token_client.update_balance_manual(&Address::generate(&env), &nqg, &30);
         }
-        governor_client.update_proposal_threshold(&3);
+        governor_client.update_proposal_threshold();
         let updated_settings = governor_client.settings();
-        assert_eq!(updated_settings.proposal_threshold, 16 * 10_i128.pow(9));
+        assert_eq!(updated_settings.proposal_threshold, 6 * 10_i128.pow(9));
     }
 }
