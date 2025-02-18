@@ -168,6 +168,7 @@ impl SCFToken {
         env.deployer().update_current_contract_wasm(wasm_hash);
     }
 
+    // TODO this function can be removed along with its tests if 'optimal_threshold' will finally be used
     pub fn nth_top_balance(env: Env, n: u32) -> Result<i128, ContractError> {
         let admin = read_admin(&env);
         admin.require_auth();
@@ -178,7 +179,24 @@ impl SCFToken {
             None => Err(ContractError::OutOfBounds),
         }
     }
+
+    pub fn optimal_threshold(env: Env) -> Result<i128, ContractError> {
+        let admin = read_admin(&env);
+        admin.require_auth();
+
+        let user_base_target_percent: u32 = 10; // what top percentage of users should be able to create proposals 
+        let minimal_user_base_count: u32 = 5; // how many users minimum can create proposals
+
+        let balances: Vec<i128> = read_all_balances(&env);
+        let target_n: u32 = ((balances.len() * user_base_target_percent) / 100).max(minimal_user_base_count);
+
+        match balances.get(balances.len() - target_n) {
+            Some(bal) => Ok(bal),
+            None => Err(ContractError::OutOfBounds),
+        }
+    }
 }
+// TODO add test for this function
 fn insert_sorted(vec: &mut Vec<i128>, value: i128) {
     match vec.iter().position(|x| x > value) {
         Some(pos) => vec.insert(pos as u32, value),
