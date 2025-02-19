@@ -6,7 +6,7 @@ use crate::e2e::common::contract_utils::{deploy_and_setup, jump, update_balance,
 #[test]
 fn checkpoints() {
     let mut env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
 
@@ -67,7 +67,7 @@ fn checkpoints() {
 #[test]
 fn total_supply() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let Deployment {
@@ -110,7 +110,7 @@ fn total_supply() {
 #[allow(clippy::too_many_lines)]
 fn total_supply_multiple_users() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let Deployment {

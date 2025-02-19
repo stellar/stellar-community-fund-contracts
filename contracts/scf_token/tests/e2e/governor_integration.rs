@@ -6,7 +6,7 @@ use crate::e2e::common::contract_utils::{deploy_and_setup, update_balance, Deplo
 #[test]
 fn nth_top_balance() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let Deployment {
@@ -32,7 +32,7 @@ fn nth_top_balance() {
 #[test]
 fn proposal_threshold_top_10_percent() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let Deployment {
@@ -59,7 +59,7 @@ fn proposal_threshold_top_10_percent() {
 #[test]
 fn proposal_threshold_fallback_5_users() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let Deployment {

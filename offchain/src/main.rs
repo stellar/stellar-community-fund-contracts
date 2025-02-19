@@ -7,7 +7,7 @@ mod offchain;
 
 fn main() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let submissions: SorobanVec<(SorobanString, SorobanString)> = submissions(&env);
     let normalized_votes: SorobanMap<SorobanString, SorobanMap<SorobanString, Vote>> =

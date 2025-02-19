@@ -14,7 +14,7 @@ pub fn deploy_contract<'a>(
     governance_address: &Address,
     admin: &Address,
 ) -> SCFTokenClient<'a> {
-    let scf_token_address = env.register_contract(None, SCFToken);
+    let scf_token_address = env.register(SCFToken, ());
     let scf_token_client = SCFTokenClient::new(env, &scf_token_address);
 
     scf_token_client.initialize(admin, governance_address);
@@ -23,7 +23,7 @@ pub fn deploy_contract<'a>(
 }
 
 pub fn deploy_scf_contract<'a>(env: &Env, admin: &Address) -> governance::Client<'a> {
-    let governance_address = env.register_contract_wasm(None, governance::WASM);
+    let governance_address = env.register(governance::WASM, ());
     let governance_client = governance::Client::new(env, &governance_address);
 
     governance_client.initialize(admin, &25);

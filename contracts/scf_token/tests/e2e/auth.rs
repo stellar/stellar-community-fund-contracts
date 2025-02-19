@@ -1,4 +1,4 @@
-use soroban_sdk::testutils::{Address as AddressTrait, MockAuth, MockAuthInvoke};
+use soroban_sdk::testutils::{Address as AddressTrait, Ledger, LedgerInfo, MockAuth, MockAuthInvoke};
 use soroban_sdk::{Address, Env, IntoVal};
 
 use crate::e2e::common::contract_utils::{
@@ -34,7 +34,8 @@ fn authorized_bump_round(env: &Env, governance_client: &governance::Client) {
 #[test]
 fn transfer_admin() {
     let mut env = Env::default();
-    env.budget().reset_unlimited();
+   
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let new_admin = Address::generate(&env);

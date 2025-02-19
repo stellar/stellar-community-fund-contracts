@@ -15,7 +15,7 @@ fn initializing_contract() {
     let admin = Address::generate(&env);
 
     let governance_client = deploy_scf_contract(&env, &admin);
-    let scf_token_address = env.register_contract(None, SCFToken);
+    let scf_token_address = env.register( SCFToken, ());
     let scf_token_client = SCFTokenClient::new(&env, &scf_token_address);
 
     scf_token_client.initialize(&admin, &governance_client.address);
@@ -48,7 +48,7 @@ fn updating_balances() {
 
     governance_client.calculate_voting_powers();
 
-    env.budget().reset_default();
+    env.cost_estimate().budget().reset_default();
     scf_token_client.update_balance(&address);
 
     assert_eq!(scf_token_client.balance(&address), 10_i128.pow(DECIMALS));
@@ -57,7 +57,7 @@ fn updating_balances() {
 #[test]
 fn updating_balance_is_allowed_only_once_per_round() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);
     let Deployment {
