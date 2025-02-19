@@ -342,8 +342,8 @@ mod test {
         };
         require_valid_settings(&env, &settings);
         governor_client.initialize(&scf_token_address, &admin, &settings);
-        
-        let random_balances: Vec<i128> = vec![&env, 1,2,3,4,5,6,7,8,9,10];
+
+        let random_balances: Vec<i128> = vec![&env, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         for b in &random_balances {
             let nqg: I256 = I256::from_i128(&env, b * 10_i128.pow(18));
             scf_token_client.update_balance_manual(&Address::generate(&env), &nqg, &30);

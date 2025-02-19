@@ -15,7 +15,7 @@ fn initializing_contract() {
     let admin = Address::generate(&env);
 
     let governance_client = deploy_scf_contract(&env, &admin);
-    let scf_token_address = env.register( SCFToken, ());
+    let scf_token_address = env.register(SCFToken, ());
     let scf_token_client = SCFTokenClient::new(&env, &scf_token_address);
 
     scf_token_client.initialize(&admin, &governance_client.address);

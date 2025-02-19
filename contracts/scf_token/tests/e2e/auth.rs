@@ -34,7 +34,7 @@ fn authorized_bump_round(env: &Env, governance_client: &governance::Client) {
 #[test]
 fn transfer_admin() {
     let mut env = Env::default();
-   
+
     env.cost_estimate().budget().reset_unlimited();
 
     let admin = Address::generate(&env);

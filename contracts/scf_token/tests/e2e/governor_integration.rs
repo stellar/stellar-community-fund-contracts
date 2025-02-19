@@ -68,7 +68,7 @@ fn proposal_threshold_fallback_5_users() {
     } = deploy_and_setup(&env, &admin);
     env.mock_all_auths();
 
-    let random_balances: Vec<i128> = vec![2,4,6,8,10,1,3,5,7,9];
+    let random_balances: Vec<i128> = vec![2, 4, 6, 8, 10, 1, 3, 5, 7, 9];
     for b in &random_balances {
         update_balance(
             &env,

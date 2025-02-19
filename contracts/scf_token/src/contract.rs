@@ -184,11 +184,12 @@ impl SCFToken {
         let admin = read_admin(&env);
         admin.require_auth();
 
-        let user_base_target_percent: u32 = 10; // what top percentage of users should be able to create proposals 
+        let user_base_target_percent: u32 = 10; // what top percentage of users should be able to create proposals
         let minimal_user_base_count: u32 = 5; // how many users minimum can create proposals
 
         let balances: Vec<i128> = read_all_balances(&env);
-        let target_n: u32 = ((balances.len() * user_base_target_percent) / 100).max(minimal_user_base_count);
+        let target_n: u32 =
+            ((balances.len() * user_base_target_percent) / 100).max(minimal_user_base_count);
 
         match balances.get(balances.len() - target_n) {
             Some(bal) => Ok(bal),
