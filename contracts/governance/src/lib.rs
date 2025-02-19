@@ -191,10 +191,6 @@ impl VotingSystem {
 
         Ok(submission_voting_power_plus.sub(&submission_voting_power_minus))
     }
-
-    pub fn get_admin(env: Env) -> Address {
-        get_admin(&env)
-    }
 }
 
 #[contractimpl]

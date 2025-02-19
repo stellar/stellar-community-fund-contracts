@@ -55,7 +55,6 @@ fn transfer_admin() {
     let admin = Address::generate(&env);
     contract_client.initialize(&admin, &25);
 
-    assert_eq!(admin, contract_client.get_admin());
     // Transfer admin
     let new_admin = Address::generate(&env);
     env.mock_auths(&[MockAuth {
@@ -68,49 +67,32 @@ fn transfer_admin() {
         },
     }]);
     contract_client.transfer_admin(&new_admin);
-    assert_eq!(new_admin, contract_client.get_admin());
-
 
     // Verify old admin can no longer modify state
-    // let submission_name = String::from_str(&env, "abc");
-    // env.mock_auths(&[MockAuth {
-    //     address: &admin,
-    //     invoke: &MockAuthInvoke {
-    //         contract: &contract_client.address,
-    //         fn_name: "set_submissions",
-    //         args: (submission_name.clone(),).into_val(&env),
-    //         sub_invokes: &[],
-    //     },
-    // }]);
-    // let result = contract_client.try_set_submissions(&vec![
-    //     &env,
-    //     (
-    //         submission_name.clone(),
-    //         String::from_str(&env, "Applications"),
-    //     ),
-    // ]);
-    // assert!(result.is_err());
+    env.mock_auths(&[MockAuth {
+        address: &admin,
+        invoke: &MockAuthInvoke {
+            contract: &contract_client.address,
+            fn_name: "set_current_round",
+            args: vec![&env, 30_u32.into_val(&env)],
+            sub_invokes: &[],
+        },
+    }]);
+    let result = contract_client.try_set_current_round(&30_u32);
+    assert!(result.is_err());
 
     // Verify new admin can modify state
-    // env.mock_auths(&[MockAuth {
-    //     address: &new_admin,
-    //     invoke: &MockAuthInvoke {
-    //         contract: &contract_client.address,
-    //         fn_name: "set_submissions",
-    //         args: (vec![&env, submission_name.clone()],).into_val(&env),
-    //         sub_invokes: &[],
-    //     },
-    // }]);
-    // env.mock_all_auths();
-    // let result = contract_client.try_set_submissions(&vec![
-    //     &env,
-    //     (
-    //         submission_name.clone(),
-    //         String::from_str(&env, "Applications"),
-    //     ),
-    // ]);
-    // // println!("{:?}", result);
-    // assert!(result.is_ok());
+    env.mock_auths(&[MockAuth {
+        address: &new_admin,
+        invoke: &MockAuthInvoke {
+            contract: &contract_client.address,
+            fn_name: "set_current_round",
+            args: vec![&env, 30_u32.into_val(&env)],
+            sub_invokes: &[],
+        },
+    }]);
+    let result = contract_client.try_set_current_round(&30_u32);
+    assert!(result.is_ok());
 }
 
 #[test]
