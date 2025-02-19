@@ -1,6 +1,6 @@
-#[cfg(feature = "testutils")]
+// #[cfg(feature = "testutils")]
 mod auth;
-#[cfg(feature = "testutils")]
+// #[cfg(feature = "testutils")]
 pub(crate) mod common;
 #[cfg(feature = "testutils")]
 mod governance;
