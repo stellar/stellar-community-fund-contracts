@@ -1,10 +1,9 @@
 use crate::e2e::common::contract_utils::deploy_contract_without_initialization;
-use governance::{VotingSystem, VotingSystemClient};
 use soroban_sdk::testutils::{
     Address as AddressTrait, AuthorizedFunction, AuthorizedInvocation, MockAuth, MockAuthInvoke,
 };
 use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
-use soroban_sdk::{vec, Address, Env, Error, IntoVal, String, Symbol, Val, Vec};
+use soroban_sdk::{vec, Address, Env, Error, IntoVal, Symbol};
 
 #[test]
 fn uninitialized_contract_is_not_callable() {

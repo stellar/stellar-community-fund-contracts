@@ -52,7 +52,7 @@ mod tests {
     fn test_require_valid_settings_is_valid() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,
@@ -70,7 +70,7 @@ mod tests {
     fn test_require_valid_settings_is_valid_at_max() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS * 3,
             vote_period: ONE_DAY_LEDGERS * 7,
             timelock: ONE_DAY_LEDGERS * 7,
@@ -89,7 +89,7 @@ mod tests {
     fn test_require_valid_settings_invalid_vote_period_max() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 7 + 1,
             timelock: ONE_DAY_LEDGERS,
@@ -107,7 +107,7 @@ mod tests {
     fn test_require_valid_settings_invalid_vote_period_min() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_HOUR_LEDGERS - 1,
             timelock: ONE_DAY_LEDGERS,
@@ -125,7 +125,7 @@ mod tests {
     fn test_require_valid_settings_invalid_grace_period_max() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,
@@ -144,7 +144,7 @@ mod tests {
     fn test_require_valid_settings_invalid_grace_period_min() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,
@@ -163,7 +163,7 @@ mod tests {
     fn test_require_valid_settings_invalid_proposal_lifetime() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS * 3 + 1,
             vote_period: ONE_DAY_LEDGERS * 7,
             timelock: ONE_DAY_LEDGERS * 7,
@@ -199,7 +199,7 @@ mod tests {
     fn test_require_valid_settings_invalid_counting_type() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,
@@ -217,7 +217,7 @@ mod tests {
     fn test_require_valid_settings_invalid_quorum_max() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,
@@ -235,7 +235,7 @@ mod tests {
     fn test_require_valid_settings_invalid_quorum_min() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,
@@ -253,7 +253,7 @@ mod tests {
     fn test_require_valid_settings_invalid_vote_threshold_max() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,
@@ -271,7 +271,7 @@ mod tests {
     fn test_require_valid_settings_invalid_vote_threshold_min() {
         let e = Env::default();
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,

@@ -12,6 +12,6 @@ mod upgrade;
 #[cfg(feature = "testutils")]
 mod auth;
 #[cfg(feature = "testutils")]
-mod votes;
-#[cfg(feature = "testutils")]
 mod governor_integration;
+#[cfg(feature = "testutils")]
+mod votes;

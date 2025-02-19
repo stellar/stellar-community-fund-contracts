@@ -319,19 +319,19 @@ mod test {
     #[test]
     fn test_update_proposal_threshold() {
         let env = Env::default();
-        env.budget().reset_unlimited();
+        env.cost_estimate().budget().reset_unlimited();
         let admin = Address::generate(&env);
         env.mock_all_auths();
 
-        let governor_address = env.register_contract(None, GovernorContract);
+        let governor_address = env.register(GovernorContract, ());
         let governor_client = GovernorContractClient::new(&env, &governor_address);
 
-        let scf_token_address = env.register_contract_wasm(None, scf_token::WASM);
+        let scf_token_address = env.register(scf_token::WASM, ());
         let scf_token_client = scf_token::Client::new(&env, &scf_token_address);
 
         scf_token_client.initialize(&admin, &governor_address);
         let settings = GovernorSettings {
-            proposal_threshold: 1_0000000,
+            proposal_threshold: 10_000_000,
             vote_delay: ONE_DAY_LEDGERS,
             vote_period: ONE_DAY_LEDGERS * 5,
             timelock: ONE_DAY_LEDGERS,
