@@ -1,3 +1,0 @@
-[submodule "contracts/governor_wrapper/soroban-governor"]
-	path = contracts/governor_wrapper/soroban-governor
-	url = https://github.com/script3/soroban-governor.git
