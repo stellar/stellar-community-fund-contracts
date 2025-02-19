@@ -10,7 +10,7 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, vec, Address, BytesN, Env, Map, String, Vec, I256,
 };
 
-use admin::{get_admin, is_set_admin, require_admin};
+use admin::{is_set_admin, require_admin};
 
 use crate::admin::set_admin;
 use crate::admin::traits::Admin;
@@ -206,8 +206,6 @@ impl Admin for VotingSystem {
 
         env.deployer().update_current_contract_wasm(wasm_hash);
     }
-
-    
 }
 
 #[contractimpl]

@@ -27,7 +27,7 @@ fn auth() {
     let env = Env::default();
     let contract_client = deploy_contract_without_initialization(&env);
     env.mock_all_auths();
- 
+
     let admin = Address::generate(&env);
     contract_client.initialize(&admin, &25);
     contract_client.set_current_round(&30);
