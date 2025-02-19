@@ -18,6 +18,7 @@ jobs:
         with:
           toolchain: 1.81.0
           targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
         with:
           workspaces: ./contracts
