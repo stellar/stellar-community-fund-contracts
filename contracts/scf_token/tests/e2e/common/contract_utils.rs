@@ -106,7 +106,7 @@ pub fn jump(env: &mut Env, ledgers: u32) {
             .ledger()
             .timestamp()
             .saturating_add(u64::from(ledgers) * 5),
-        protocol_version: 20,
+        protocol_version: 22,
         sequence_number: env.ledger().sequence().saturating_add(ledgers),
         network_id: Default::default(),
         base_reserve: 10,
