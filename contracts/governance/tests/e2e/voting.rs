@@ -10,7 +10,7 @@ use crate::e2e::common::contract_utils::deploy_contract;
 fn voting_data_upload() {
     let env = Env::default();
     let contract_client = deploy_contract(&env);
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let mut raw_neurons: Vec<(String, I256)> = Vec::new(&env);
     raw_neurons.push_back((
@@ -76,10 +76,10 @@ fn voting_data_upload() {
         &neuron_result2,
     );
 
-    env.budget().reset_default();
+    env.cost_estimate().budget().reset_default();
     contract_client.calculate_voting_powers();
     let result = contract_client.tally_submission(&submission1);
-    println!("{}", env.budget());
+    println!("{}", env.cost_estimate().budget());
 
     assert_eq!(
         result,
@@ -89,9 +89,9 @@ fn voting_data_upload() {
         )
     );
 
-    env.budget().reset_default();
+    env.cost_estimate().budget().reset_default();
     let result2 = contract_client.tally_submission(&submission2);
-    println!("{}", env.budget());
+    println!("{}", env.cost_estimate().budget());
 
     assert_eq!(
         result2,
@@ -102,7 +102,7 @@ fn voting_data_upload() {
 #[test]
 fn setting_votes_for_unknown_submission() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let contract_client = deploy_contract(&env);
     assert_eq!(
@@ -117,7 +117,7 @@ fn setting_votes_for_unknown_submission() {
 #[test]
 fn adding_duplicate_submissions() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let contract_client = deploy_contract(&env);
 
@@ -146,7 +146,7 @@ fn adding_duplicate_submissions() {
 #[test]
 fn setting_round() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let contract_client = deploy_contract(&env);
 
@@ -160,7 +160,7 @@ fn setting_round() {
 #[test]
 fn set_bump_round_flow() {
     let env = Env::default();
-    env.budget().reset_unlimited();
+    env.cost_estimate().budget().reset_unlimited();
 
     let contract_client = deploy_contract(&env);
     contract_client.set_current_round(&25);

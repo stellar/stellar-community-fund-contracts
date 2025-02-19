@@ -1,5 +1,5 @@
 [package]
-name = "governance"
+name = "scf_token"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,12 +8,9 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 soroban-sdk = { workspace = true, features = ["alloc"] }
-soroban-fixed-point-math.workspace = true
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils", "alloc"] }
-mocks = { path = "../mocks" }
 
 [features]
 testutils = ["soroban-sdk/testutils", "soroban-sdk/alloc"]
-estimations = []

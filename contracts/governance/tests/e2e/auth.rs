@@ -3,7 +3,7 @@ use soroban_sdk::testutils::{
     Address as AddressTrait, AuthorizedFunction, AuthorizedInvocation, MockAuth, MockAuthInvoke,
 };
 use soroban_sdk::xdr::{ScErrorCode, ScErrorType};
-use soroban_sdk::{vec, Address, Env, Error, IntoVal, String, Symbol};
+use soroban_sdk::{vec, Address, Env, Error, IntoVal, Symbol};
 
 #[test]
 fn uninitialized_contract_is_not_callable() {
@@ -24,23 +24,12 @@ fn uninitialized_contract_is_not_callable() {
 #[test]
 fn auth() {
     let env = Env::default();
-    env.mock_all_auths();
     let contract_client = deploy_contract_without_initialization(&env);
+    env.mock_all_auths();
 
     let admin = Address::generate(&env);
     contract_client.initialize(&admin, &25);
-
-    let submission_name = String::from_str(&env, "abc");
-    contract_client.set_submissions(&vec![
-        &env,
-        (
-            submission_name.clone(),
-            String::from_str(&env, "Applications"),
-        ),
-    ]);
-
-    dbg!(&env.auths());
-
+    contract_client.set_current_round(&30);
     assert_eq!(
         env.auths(),
         std::vec![(
@@ -48,8 +37,8 @@ fn auth() {
             AuthorizedInvocation {
                 function: AuthorizedFunction::Contract((
                     contract_client.address.clone(),
-                    Symbol::new(&env, "set_submissions"),
-                    (vec![&env, submission_name.clone()],).into_val(&env)
+                    Symbol::new(&env, "set_current_round"),
+                    vec![&env, 30_u32.into()]
                 )),
                 sub_invocations: std::vec![],
             }
@@ -72,30 +61,23 @@ fn transfer_admin() {
         invoke: &MockAuthInvoke {
             contract: &contract_client.address,
             fn_name: "transfer_admin",
-            args: (&new_admin,).into_val(&env),
+            args: vec![&env, new_admin.into_val(&env)],
             sub_invokes: &[],
         },
     }]);
     contract_client.transfer_admin(&new_admin);
 
     // Verify old admin can no longer modify state
-    let submission_name = String::from_str(&env, "abc");
     env.mock_auths(&[MockAuth {
         address: &admin,
         invoke: &MockAuthInvoke {
             contract: &contract_client.address,
-            fn_name: "add_submission",
-            args: (submission_name.clone(),).into_val(&env),
+            fn_name: "set_current_round",
+            args: vec![&env, 30_u32.into_val(&env)],
             sub_invokes: &[],
         },
     }]);
-    let result = contract_client.try_set_submissions(&vec![
-        &env,
-        (
-            submission_name.clone(),
-            String::from_str(&env, "Applications"),
-        ),
-    ]);
+    let result = contract_client.try_set_current_round(&30_u32);
     assert!(result.is_err());
 
     // Verify new admin can modify state
@@ -103,18 +85,13 @@ fn transfer_admin() {
         address: &new_admin,
         invoke: &MockAuthInvoke {
             contract: &contract_client.address,
-            fn_name: "set_submissions",
-            args: (vec![&env, submission_name.clone()],).into_val(&env),
+            fn_name: "set_current_round",
+            args: vec![&env, 30_u32.into_val(&env)],
             sub_invokes: &[],
         },
     }]);
-    contract_client.set_submissions(&vec![
-        &env,
-        (
-            submission_name.clone(),
-            String::from_str(&env, "Applications"),
-        ),
-    ]);
+    let result = contract_client.try_set_current_round(&30_u32);
+    assert!(result.is_ok());
 }
 
 #[test]
