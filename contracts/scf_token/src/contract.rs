@@ -168,18 +168,6 @@ impl SCFToken {
         env.deployer().update_current_contract_wasm(wasm_hash);
     }
 
-    // TODO this function can be removed along with its tests if 'optimal_threshold' will finally be used
-    pub fn nth_top_balance(env: Env, n: u32) -> Result<i128, ContractError> {
-        let admin = read_admin(&env);
-        admin.require_auth();
-
-        let balances: Vec<i128> = read_all_balances(&env);
-        match balances.get(balances.len() - n) {
-            Some(bal) => Ok(bal),
-            None => Err(ContractError::OutOfBounds),
-        }
-    }
-
     pub fn optimal_threshold(env: Env) -> Result<i128, ContractError> {
         let admin = read_admin(&env);
         admin.require_auth();
