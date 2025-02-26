@@ -7,7 +7,7 @@ use soroban_sdk::{
 
 use crate::balance::{extend_balance, read_balance, write_balance};
 use crate::storage::{
-    read_all_balances, read_governance_contract_address, read_total_supply, write_all_balances,
+    read_all_addresses, read_governance_contract_address, read_total_supply, write_all_addresses,
     write_governance_contract_address, write_total_supply,
 };
 use crate::types::{ContractError, DataKey, VotesError};
@@ -94,9 +94,9 @@ impl SCFToken {
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
 
-        let mut balances = read_all_balances(&env);
-        insert_sorted(&mut balances, new_balance.current);
-        write_all_balances(&env, &balances);
+        let mut addresses = read_all_addresses(&env);
+        addresses.push_back(address);
+        write_all_addresses(&env, &addresses);
 
         Ok(())
     }
@@ -147,9 +147,9 @@ impl SCFToken {
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
 
-        let mut balances = read_all_balances(&env);
-        insert_sorted(&mut balances, new_balance.current);
-        write_all_balances(&env, &balances);
+        let mut addresses = read_all_addresses(&env);
+        addresses.push_back(address);
+        write_all_addresses(&env, &addresses);
 
         Ok(())
     }
@@ -169,20 +169,27 @@ impl SCFToken {
     }
 
     pub fn optimal_threshold(env: Env) -> Result<i128, ContractError> {
+        // let admin = read_admin(&env);
+        // admin.require_auth();
+
+        // let user_base_target_percent: u32 = 10; // what top percentage of users should be able to create proposals
+        // let minimal_user_base_count: u32 = 5; // how many users minimum can create proposals
+
+        // let balances: Vec<i128> = read_all_balances(&env);
+        // let target_n: u32 =
+        //     ((balances.len() * user_base_target_percent) / 100).max(minimal_user_base_count);
+
+        // match balances.get(balances.len() - target_n) {
+        //     Some(bal) => Ok(bal),
+        //     None => Err(ContractError::OutOfBounds),
+        // }
+        Err(ContractError::OutOfBounds)
+    }
+    pub fn all_addresses(env: Env) -> Vec<Address> {
         let admin = read_admin(&env);
         admin.require_auth();
 
-        let user_base_target_percent: u32 = 10; // what top percentage of users should be able to create proposals
-        let minimal_user_base_count: u32 = 5; // how many users minimum can create proposals
-
-        let balances: Vec<i128> = read_all_balances(&env);
-        let target_n: u32 =
-            ((balances.len() * user_base_target_percent) / 100).max(minimal_user_base_count);
-
-        match balances.get(balances.len() - target_n) {
-            Some(bal) => Ok(bal),
-            None => Err(ContractError::OutOfBounds),
-        }
+        read_all_addresses(&env)
     }
 }
 // TODO add test for this function

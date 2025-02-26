@@ -7,7 +7,7 @@ pub enum DataKey {
     GovernanceAddress,
     Balance(Address),
     TotalSupply,
-    Balances,
+    Addresses,
 }
 
 #[contracterror]
