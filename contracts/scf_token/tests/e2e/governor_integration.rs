@@ -1,7 +1,28 @@
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, Env, I256};
 
 use crate::e2e::common::contract_utils::{deploy_and_setup, update_balance, Deployment};
+
+#[test]
+fn balance_round() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client: _,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+
+    let address = Address::generate(&env);
+    client.update_balance_manual(&address, &I256::from_i128(&env,1 * 10_i128.pow(18)), &30);
+    assert_eq!(client.balance_round(&address), 30);
+    client.update_balance_manual(&address, &I256::from_i128(&env,1 * 10_i128.pow(18)), &31);
+    assert_eq!(client.balance_round(&address), 31);
+    client.update_balance_manual(&address, &I256::from_i128(&env,1 * 10_i128.pow(18)), &33);
+    assert_eq!(client.balance_round(&address), 33);
+}
 
 #[test]
 fn all_addresses() {

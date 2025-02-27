@@ -191,6 +191,9 @@ impl SCFToken {
 
         read_all_addresses(&env)
     }
+    pub fn balance_round(env: Env, address: Address) -> u32 {
+        read_balance(&env, &address).updated_round
+    }
 }
 // TODO add test for this function
 fn insert_sorted(vec: &mut Vec<i128>, value: i128) {
