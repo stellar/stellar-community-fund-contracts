@@ -16,11 +16,11 @@ fn balance_round() {
     env.mock_all_auths();
 
     let address = Address::generate(&env);
-    client.update_balance_manual(&address, &I256::from_i128(&env,1 * 10_i128.pow(18)), &30);
+    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &30);
     assert_eq!(client.balance_round(&address), 30);
-    client.update_balance_manual(&address, &I256::from_i128(&env,1 * 10_i128.pow(18)), &31);
+    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &31);
     assert_eq!(client.balance_round(&address), 31);
-    client.update_balance_manual(&address, &I256::from_i128(&env,1 * 10_i128.pow(18)), &33);
+    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &33);
     assert_eq!(client.balance_round(&address), 33);
 }
 
@@ -110,29 +110,43 @@ fn proposal_threshold_fallback_5_users() {
     assert_eq!(client.optimal_threshold(), 6 * 10_i128.pow(9));
 }
 
-// TODO fix this test, it should assert that contract call fails with OutOfBounds error
-// #[test]
-// #[should_panic]
-// fn proposal_threshold_out_of_bounds() {
-//     let env = Env::default();
-//     env.budget().reset_unlimited();
+#[test]
+#[should_panic(expected = "Error(Contract, #5)")]
+fn proposal_threshold_zero_users() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
 
-//     let admin = Address::generate(&env);
-//     let Deployment {
-//         client,
-//         governance_client,
-//     } = deploy_and_setup(&env, &admin);
-//     env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client: _,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
 
-//     let random_balances: Vec<i128> = vec![2,4,6];
-//     for b in &random_balances {
-//         update_balance(
-//             &env,
-//             &client,
-//             &governance_client,
-//             &Address::generate(&env),
-//             b * 10_i128.pow(18),
-//         );
-//     }
-//     let _ = client.optimal_threshold();
-// }
+    let _ = client.optimal_threshold();
+}
+
+#[test]
+fn proposal_threshold_less_than_5() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+
+    let random_balances: Vec<i128> = vec![1, 2, 4, 6];
+    for b in &random_balances {
+        update_balance(
+            &env,
+            &client,
+            &governance_client,
+            &Address::generate(&env),
+            b * 10_i128.pow(18),
+        );
+    }
+    assert_eq!(client.optimal_threshold(), 1 * 10_i128.pow(9));
+}
