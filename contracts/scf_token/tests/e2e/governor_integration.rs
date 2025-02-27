@@ -1,10 +1,31 @@
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, Env, I256};
 
 use crate::e2e::common::contract_utils::{deploy_and_setup, update_balance, Deployment};
 
 #[test]
-fn nth_top_balance() {
+fn balance_round() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client: _,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+
+    let address = Address::generate(&env);
+    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &30);
+    assert_eq!(client.balance_round(&address), 30);
+    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &31);
+    assert_eq!(client.balance_round(&address), 31);
+    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &33);
+    assert_eq!(client.balance_round(&address), 33);
+}
+
+#[test]
+fn all_addresses() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
 
@@ -15,18 +36,25 @@ fn nth_top_balance() {
     } = deploy_and_setup(&env, &admin);
     env.mock_all_auths();
 
-    let random_balances: Vec<i128> = vec![7, 1, 15, 20, 6, 18, 10, 13, 16, 14];
+    let random_balances: Vec<i128> = (1..=10).collect();
+    let mut addresses: Vec<Address> = vec![];
+
     for b in &random_balances {
+        addresses.push(Address::generate(&env));
         update_balance(
             &env,
             &client,
             &governance_client,
-            &Address::generate(&env),
+            &addresses.last().unwrap(),
             b * 10_i128.pow(18),
         );
     }
+    let fetched_addresses = client.all_addresses();
 
-    assert_eq!(client.nth_top_balance(&3), 16 * 10_i128.pow(9));
+    for a in &addresses {
+        assert!(fetched_addresses.contains(a.clone()))
+    }
+    assert_eq!(addresses.len(), fetched_addresses.len() as usize);
 }
 
 #[test]
@@ -82,29 +110,43 @@ fn proposal_threshold_fallback_5_users() {
     assert_eq!(client.optimal_threshold(), 6 * 10_i128.pow(9));
 }
 
-// TODO fix this test, it should assert that contract call fails with OutOfBounds error
-// #[test]
-// #[should_panic]
-// fn proposal_threshold_out_of_bounds() {
-//     let env = Env::default();
-//     env.budget().reset_unlimited();
+#[test]
+#[should_panic(expected = "Error(Contract, #5)")]
+fn proposal_threshold_zero_users() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
 
-//     let admin = Address::generate(&env);
-//     let Deployment {
-//         client,
-//         governance_client,
-//     } = deploy_and_setup(&env, &admin);
-//     env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client: _,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
 
-//     let random_balances: Vec<i128> = vec![2,4,6];
-//     for b in &random_balances {
-//         update_balance(
-//             &env,
-//             &client,
-//             &governance_client,
-//             &Address::generate(&env),
-//             b * 10_i128.pow(18),
-//         );
-//     }
-//     let _ = client.optimal_threshold();
-// }
+    let _ = client.optimal_threshold();
+}
+
+#[test]
+fn proposal_threshold_less_than_5() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+
+    let random_balances: Vec<i128> = vec![1, 2, 4, 6];
+    for b in &random_balances {
+        update_balance(
+            &env,
+            &client,
+            &governance_client,
+            &Address::generate(&env),
+            b * 10_i128.pow(18),
+        );
+    }
+    assert_eq!(client.optimal_threshold(), 1 * 10_i128.pow(9));
+}

@@ -18,15 +18,18 @@ impl TotalSupply {
         }
     }
 }
-pub(crate) fn write_all_balances(env: &Env, balances: &Vec<i128>) {
-    env.storage().instance().set(&DataKey::Balances, balances);
+
+pub(crate) fn write_all_addresses(env: &Env, addresses: &Vec<Address>) {
+    env.storage().instance().set(&DataKey::Addresses, addresses);
 }
-pub(crate) fn read_all_balances(env: &Env) -> Vec<i128> {
+
+pub(crate) fn read_all_addresses(env: &Env) -> Vec<Address> {
     env.storage()
         .instance()
-        .get(&DataKey::Balances)
+        .get(&DataKey::Addresses)
         .unwrap_or(vec![&env])
 }
+
 pub(crate) fn read_total_supply(env: &Env) -> TotalSupply {
     env.storage()
         .instance()

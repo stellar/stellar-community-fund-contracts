@@ -1,13 +1,13 @@
 use crate::admin::{read_admin, write_admin, Admin};
 use soroban_sdk::token::Interface;
 use soroban_sdk::{
-    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN, Env, String, Vec,
-    I256,
+    assert_with_error, contract, contractimpl, panic_with_error, vec, Address, BytesN, Env, String,
+    Vec, I256,
 };
 
 use crate::balance::{extend_balance, read_balance, write_balance};
 use crate::storage::{
-    read_all_balances, read_governance_contract_address, read_total_supply, write_all_balances,
+    read_all_addresses, read_governance_contract_address, read_total_supply, write_all_addresses,
     write_governance_contract_address, write_total_supply,
 };
 use crate::types::{ContractError, DataKey, VotesError};
@@ -94,9 +94,9 @@ impl SCFToken {
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
 
-        let mut balances = read_all_balances(&env);
-        insert_sorted(&mut balances, new_balance.current);
-        write_all_balances(&env, &balances);
+        let mut addresses = read_all_addresses(&env);
+        addresses.push_back(address);
+        write_all_addresses(&env, &addresses);
 
         Ok(())
     }
@@ -147,9 +147,9 @@ impl SCFToken {
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
 
-        let mut balances = read_all_balances(&env);
-        insert_sorted(&mut balances, new_balance.current);
-        write_all_balances(&env, &balances);
+        let mut addresses = read_all_addresses(&env);
+        addresses.push_back(address);
+        write_all_addresses(&env, &addresses);
 
         Ok(())
     }
@@ -168,36 +168,45 @@ impl SCFToken {
         env.deployer().update_current_contract_wasm(wasm_hash);
     }
 
-    // TODO this function can be removed along with its tests if 'optimal_threshold' will finally be used
-    pub fn nth_top_balance(env: Env, n: u32) -> Result<i128, ContractError> {
-        let admin = read_admin(&env);
-        admin.require_auth();
-
-        let balances: Vec<i128> = read_all_balances(&env);
-        match balances.get(balances.len() - n) {
-            Some(bal) => Ok(bal),
-            None => Err(ContractError::OutOfBounds),
-        }
-    }
-
-    pub fn optimal_threshold(env: Env) -> Result<i128, ContractError> {
+    pub fn optimal_threshold(env: Env) -> i128 {
         let admin = read_admin(&env);
         admin.require_auth();
 
         let user_base_target_percent: u32 = 10; // what top percentage of users should be able to create proposals
         let minimal_user_base_count: u32 = 5; // how many users minimum can create proposals
 
-        let balances: Vec<i128> = read_all_balances(&env);
-        let target_n: u32 =
-            ((balances.len() * user_base_target_percent) / 100).max(minimal_user_base_count);
-
-        match balances.get(balances.len() - target_n) {
-            Some(bal) => Ok(bal),
-            None => Err(ContractError::OutOfBounds),
+        let addresses = read_all_addresses(&env);
+        if addresses.len() == 0 {
+            panic_with_error!(env, ContractError::ZeroUserCount)
         }
+
+        let mut balances_sorted: Vec<i128> = vec![&env];
+        for address in addresses {
+            let balance = read_balance(&env, &address).current;
+            insert_sorted(&mut balances_sorted, balance);
+        }
+
+        let target_n: u32 =
+            ((balances_sorted.len() * user_base_target_percent) / 100).max(minimal_user_base_count);
+
+        if target_n > balances_sorted.len() {
+            return balances_sorted.get(0).unwrap();
+        }
+        balances_sorted
+            .get(balances_sorted.len() - target_n)
+            .unwrap()
+    }
+    pub fn all_addresses(env: Env) -> Vec<Address> {
+        let admin = read_admin(&env);
+        admin.require_auth();
+
+        read_all_addresses(&env)
+    }
+    pub fn balance_round(env: Env, address: Address) -> u32 {
+        read_balance(&env, &address).updated_round
     }
 }
-// TODO add test for this function
+
 fn insert_sorted(vec: &mut Vec<i128>, value: i128) {
     match vec.iter().position(|x| x > value) {
         Some(pos) => vec.insert(pos as u32, value),
