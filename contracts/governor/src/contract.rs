@@ -311,7 +311,6 @@ mod test {
 
     use super::{GovernorContract, GovernorContractClient};
     use crate::constants::ONE_DAY_LEDGERS;
-    use crate::errors::GovernorError;
     use crate::settings::require_valid_settings;
     use crate::types::{GovernorSettings, ProposalAction};
 
@@ -320,16 +319,18 @@ mod test {
         contractimport!(file = "../target/wasm32-unknown-unknown/release/scf_token.wasm");
     }
 
-    fn prepare_test(env: &Env) -> (GovernorContractClient<'_>, scf_token::Client<'_>){
+    fn prepare_test(env: &Env) -> (GovernorContractClient<'_>, scf_token::Client<'_>) {
         env.cost_estimate().budget().reset_unlimited();
         let admin = Address::generate(&env);
         env.mock_all_auths();
 
         let governor_address = env.register(GovernorContract, ());
-        let governor_client: GovernorContractClient<'_> = GovernorContractClient::new(&env, &governor_address);
+        let governor_client: GovernorContractClient<'_> =
+            GovernorContractClient::new(&env, &governor_address);
 
         let scf_token_address = env.register(scf_token::WASM, ());
-        let scf_token_client: scf_token::Client<'_> = scf_token::Client::new(&env, &scf_token_address);
+        let scf_token_client: scf_token::Client<'_> =
+            scf_token::Client::new(&env, &scf_token_address);
 
         scf_token_client.initialize(&admin, &governor_address);
         let settings = GovernorSettings {
@@ -346,7 +347,7 @@ mod test {
         governor_client.initialize(&scf_token_address, &admin, &settings);
         (governor_client, scf_token_client)
     }
-    
+
     #[test]
     fn test_update_proposal_threshold() {
         let env = Env::default();
