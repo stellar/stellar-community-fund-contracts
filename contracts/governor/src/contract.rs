@@ -320,18 +320,16 @@ mod test {
         contractimport!(file = "../target/wasm32-unknown-unknown/release/scf_token.wasm");
     }
 
-    #[test]
-    fn test_update_proposal_threshold() {
-        let env = Env::default();
+    fn prepare_test(env: &Env) -> (GovernorContractClient<'_>, scf_token::Client<'_>){
         env.cost_estimate().budget().reset_unlimited();
         let admin = Address::generate(&env);
         env.mock_all_auths();
 
         let governor_address = env.register(GovernorContract, ());
-        let governor_client = GovernorContractClient::new(&env, &governor_address);
+        let governor_client: GovernorContractClient<'_> = GovernorContractClient::new(&env, &governor_address);
 
         let scf_token_address = env.register(scf_token::WASM, ());
-        let scf_token_client = scf_token::Client::new(&env, &scf_token_address);
+        let scf_token_client: scf_token::Client<'_> = scf_token::Client::new(&env, &scf_token_address);
 
         scf_token_client.initialize(&admin, &governor_address);
         let settings = GovernorSettings {
@@ -346,6 +344,13 @@ mod test {
         };
         require_valid_settings(&env, &settings);
         governor_client.initialize(&scf_token_address, &admin, &settings);
+        (governor_client, scf_token_client)
+    }
+    
+    #[test]
+    fn test_update_proposal_threshold() {
+        let env = Env::default();
+        let (governor_client, scf_token_client) = prepare_test(&env);
 
         let random_balances: Vec<i128> = vec![&env, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         for b in &random_balances {
@@ -361,29 +366,8 @@ mod test {
     #[should_panic(expected = "Error(Contract, #214)")]
     fn disallow_council_proposal() {
         let env = Env::default();
-        env.cost_estimate().budget().reset_unlimited();
-        let admin = Address::generate(&env);
-        env.mock_all_auths();
+        let (governor_client, scf_token_client) = prepare_test(&env);
 
-        let governor_address = env.register(GovernorContract, ());
-        let governor_client = GovernorContractClient::new(&env, &governor_address);
-
-        let scf_token_address = env.register(scf_token::WASM, ());
-        let scf_token_client = scf_token::Client::new(&env, &scf_token_address);
-
-        scf_token_client.initialize(&admin, &governor_address);
-        let settings = GovernorSettings {
-            proposal_threshold: 10_000_000,
-            vote_delay: ONE_DAY_LEDGERS,
-            vote_period: ONE_DAY_LEDGERS * 5,
-            timelock: ONE_DAY_LEDGERS,
-            grace_period: ONE_DAY_LEDGERS * 7,
-            quorum: 100,
-            counting_type: 2,
-            vote_threshold: 5100,
-        };
-        require_valid_settings(&env, &settings);
-        governor_client.initialize(&scf_token_address, &admin, &settings);
         let creator = Address::generate(&env);
         let nqg: I256 = I256::from_i128(&env, 10_i128.pow(18));
         scf_token_client.update_balance_manual(&creator, &nqg, &30);
