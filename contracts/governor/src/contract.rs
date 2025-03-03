@@ -65,6 +65,10 @@ impl Governor for GovernorContract {
                     panic_with_error!(&e, GovernorError::UnauthorizedError);
                 }
             }
+            ProposalAction::Council(_) => {
+                // we don't allow anyone to propose a council change
+                panic_with_error!(&e, GovernorError::ProposalActionNotSupported);
+            }
             _ => {}
         };
         let settings = storage::get_settings(&e);
@@ -303,31 +307,30 @@ impl GovernorContract {
 #[cfg(test)]
 mod test {
     use soroban_sdk::testutils::Address as AddressTrait;
-    use soroban_sdk::{vec, Address, Env, Vec, I256};
-
-    use crate::constants::ONE_DAY_LEDGERS;
-    use crate::settings::require_valid_settings;
-    use crate::types::GovernorSettings;
+    use soroban_sdk::{vec, Address, Env, String, Vec, I256};
 
     use super::{GovernorContract, GovernorContractClient};
+    use crate::constants::ONE_DAY_LEDGERS;
+    use crate::settings::require_valid_settings;
+    use crate::types::{GovernorSettings, ProposalAction};
 
     pub mod scf_token {
         use soroban_sdk::contractimport;
         contractimport!(file = "../target/wasm32-unknown-unknown/release/scf_token.wasm");
     }
 
-    #[test]
-    fn test_update_proposal_threshold() {
-        let env = Env::default();
+    fn prepare_test(env: &Env) -> (GovernorContractClient<'_>, scf_token::Client<'_>) {
         env.cost_estimate().budget().reset_unlimited();
         let admin = Address::generate(&env);
         env.mock_all_auths();
 
         let governor_address = env.register(GovernorContract, ());
-        let governor_client = GovernorContractClient::new(&env, &governor_address);
+        let governor_client: GovernorContractClient<'_> =
+            GovernorContractClient::new(&env, &governor_address);
 
         let scf_token_address = env.register(scf_token::WASM, ());
-        let scf_token_client = scf_token::Client::new(&env, &scf_token_address);
+        let scf_token_client: scf_token::Client<'_> =
+            scf_token::Client::new(&env, &scf_token_address);
 
         scf_token_client.initialize(&admin, &governor_address);
         let settings = GovernorSettings {
@@ -342,6 +345,13 @@ mod test {
         };
         require_valid_settings(&env, &settings);
         governor_client.initialize(&scf_token_address, &admin, &settings);
+        (governor_client, scf_token_client)
+    }
+
+    #[test]
+    fn test_update_proposal_threshold() {
+        let env = Env::default();
+        let (governor_client, scf_token_client) = prepare_test(&env);
 
         let random_balances: Vec<i128> = vec![&env, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         for b in &random_balances {
@@ -351,5 +361,22 @@ mod test {
         governor_client.update_proposal_threshold();
         let updated_settings = governor_client.settings();
         assert_eq!(updated_settings.proposal_threshold, 6 * 10_i128.pow(9));
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #214)")]
+    fn disallow_council_proposal() {
+        let env = Env::default();
+        let (governor_client, scf_token_client) = prepare_test(&env);
+
+        let creator = Address::generate(&env);
+        let nqg: I256 = I256::from_i128(&env, 10_i128.pow(18));
+        scf_token_client.update_balance_manual(&creator, &nqg, &30);
+        governor_client.propose(
+            &creator,
+            &String::from_str(&env, "title"),
+            &String::from_str(&env, "description"),
+            &ProposalAction::Council(Address::generate(&env)),
+        );
     }
 }
