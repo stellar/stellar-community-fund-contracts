@@ -1,4 +1,7 @@
-use crate::types::DataKey;
+use crate::{
+    balance::{BALANCE_BUMP_THRESHOLD, BALANCE_BUMP_VALUE},
+    types::DataKey,
+};
 use soroban_sdk::{contracttype, vec, Address, Env, Vec};
 
 #[derive(Clone, Debug)]
@@ -19,15 +22,26 @@ impl TotalSupply {
     }
 }
 
-pub(crate) fn write_all_addresses(env: &Env, addresses: &Vec<Address>) {
-    env.storage().instance().set(&DataKey::Addresses, addresses);
-}
-
 pub(crate) fn read_all_addresses(env: &Env) -> Vec<Address> {
     env.storage()
-        .instance()
+        .persistent()
         .get(&DataKey::Addresses)
         .unwrap_or(vec![&env])
+}
+
+pub(crate) fn update_all_addresses(env: &Env, new_address: Address) {
+    let mut addresses = read_all_addresses(&env);
+    if !addresses.contains(&new_address) {
+        addresses.push_back(new_address);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Addresses, &addresses);
+    }
+    env.storage().persistent().extend_ttl(
+        &DataKey::Addresses,
+        BALANCE_BUMP_THRESHOLD,
+        BALANCE_BUMP_VALUE,
+    );
 }
 
 pub(crate) fn read_total_supply(env: &Env) -> TotalSupply {

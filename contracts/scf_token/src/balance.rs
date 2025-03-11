@@ -2,8 +2,8 @@ use crate::DataKey;
 use soroban_sdk::{contracttype, Address, Env};
 
 const DAY_IN_LEDGERS: u32 = 17280;
-const BALANCE_BUMP_VALUE: u32 = 90 * DAY_IN_LEDGERS;
-const BALANCE_BUMP_THRESHOLD: u32 = 45 * DAY_IN_LEDGERS;
+pub const BALANCE_BUMP_VALUE: u32 = 90 * DAY_IN_LEDGERS;
+pub const BALANCE_BUMP_THRESHOLD: u32 = 45 * DAY_IN_LEDGERS;
 
 #[derive(Clone, Debug)]
 #[contracttype]

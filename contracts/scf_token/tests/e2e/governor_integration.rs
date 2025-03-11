@@ -32,25 +32,30 @@ fn all_addresses() {
     let admin = Address::generate(&env);
     let Deployment {
         client,
-        governance_client,
+        governance_client: _,
     } = deploy_and_setup(&env, &admin);
     env.mock_all_auths();
 
-    let random_balances: Vec<i128> = (1..=10).collect();
     let mut addresses: Vec<Address> = vec![];
-
-    for b in &random_balances {
+    for _ in 1..=10 {
         addresses.push(Address::generate(&env));
-        update_balance(
-            &env,
-            &client,
-            &governance_client,
-            &addresses.last().unwrap(),
-            b * 10_i128.pow(18),
+        client.update_balance_manual(
+            addresses.last().unwrap(),
+            &I256::from_i128(&env, 10_i128.pow(18)),
+            &33,
         );
     }
+    for addr in &addresses {
+        client.update_balance_manual(addr, &I256::from_i128(&env, 10_i128.pow(18)), &34);
+    }
+    // check for duplicates
     let fetched_addresses = client.all_addresses();
-
+    let mut dedup: Vec<Address> = vec![];
+    for addr in &fetched_addresses {
+        assert!(!dedup.contains(&addr));
+        dedup.push(addr);
+    }
+    // check if all required addresses where returned
     for a in &addresses {
         assert!(fetched_addresses.contains(a.clone()))
     }
