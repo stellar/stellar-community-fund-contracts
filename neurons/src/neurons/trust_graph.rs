@@ -1,8 +1,5 @@
 use crate::neurons::Neuron;
-use camino::Utf8Path;
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::BufReader;
 
 #[derive(Clone, Debug)]
 pub struct TrustGraphNeuron {
@@ -11,16 +8,6 @@ pub struct TrustGraphNeuron {
 }
 
 impl TrustGraphNeuron {
-    pub fn try_from_file(path: &Utf8Path) -> anyhow::Result<Self> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-
-        let trusted_for_user: HashMap<String, Vec<String>> = serde_json::from_reader(reader)?;
-        Ok(Self {
-            trusted_for_user,
-            round: 0,
-        })
-    }
     pub fn from_data(trusted_for_user: HashMap<String, Vec<String>>, round: u32) -> Self {
         Self {
             trusted_for_user,
