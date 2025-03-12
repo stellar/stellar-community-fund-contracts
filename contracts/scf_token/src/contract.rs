@@ -7,7 +7,7 @@ use soroban_sdk::{
 
 use crate::balance::{extend_balance, read_balance, write_balance};
 use crate::storage::{
-    read_all_addresses, read_governance_contract_address, read_total_supply, write_all_addresses,
+    read_all_addresses, read_governance_contract_address, read_total_supply, update_all_addresses,
     write_governance_contract_address, write_total_supply,
 };
 use crate::types::{ContractError, DataKey, VotesError};
@@ -94,9 +94,7 @@ impl SCFToken {
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
 
-        let mut addresses = read_all_addresses(&env);
-        addresses.push_back(address);
-        write_all_addresses(&env, &addresses);
+        update_all_addresses(&env, address);
 
         Ok(())
     }
@@ -147,9 +145,7 @@ impl SCFToken {
         write_balance(&env, &address, &new_balance);
         extend_balance(&env, &address);
 
-        let mut addresses = read_all_addresses(&env);
-        addresses.push_back(address);
-        write_all_addresses(&env, &addresses);
+        update_all_addresses(&env, address);
 
         Ok(())
     }
@@ -196,6 +192,7 @@ impl SCFToken {
             .get(balances_sorted.len() - target_n)
             .unwrap()
     }
+
     pub fn all_addresses(env: Env) -> Vec<Address> {
         let admin = read_admin(&env);
         admin.require_auth();
