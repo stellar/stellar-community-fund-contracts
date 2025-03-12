@@ -88,7 +88,7 @@ fn main() {
     });
     let trust_history_neuron: TrustHistoryNeuron = TrustHistoryNeuron::new(current_round as usize);
 
-    let users_raw = fs::read_to_string("data/voters.json").unwrap();
+    let users_raw = fs::read_to_string("data/voters_and_pilots.json").unwrap();
     let users: Vec<String> = serde_json::from_str(users_raw.as_str()).unwrap();
 
     let mut neurons: Vec<Box<dyn Neuron>> = vec![];
