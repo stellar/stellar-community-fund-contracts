@@ -60,7 +60,15 @@ fn load_trust_data(path: &Utf8Path) -> anyhow::Result<HashMap<u32, HashMap<Strin
 
     Ok(trust_data)
 }
+fn remove_temp_files(current_round: u32) {
+    for i in current_round - 1..=current_round {
+        let path = format!("result/trust_graph_neuron_{i}.json");
+        println!("remove {path}");
+        fs::remove_file(&path).unwrap();
+    }
+}
 fn main() {
+    let current_round = 33;
     let path = Utf8Path::new("data/previous_rounds_for_users.json");
     let prior_voting_history_neuron = PriorVotingHistoryNeuron::try_from_file(path).unwrap();
 
@@ -71,17 +79,14 @@ fn main() {
     let trust_data = load_trust_data(path).unwrap();
     let mut trust_graph_neurons: Vec<TrustGraphNeuron> = vec![];
     trust_data.iter().for_each(|(round, trusted_for_user)| {
-        trust_graph_neurons.push(TrustGraphNeuron::from_data(
-            trusted_for_user.clone(),
-            *round,
-        ));
+        if *round == current_round || *round == current_round - 1 {
+            trust_graph_neurons.push(TrustGraphNeuron::from_data(
+                trusted_for_user.clone(),
+                *round,
+            ));
+        }
     });
-    let trust_graph_log: TrustHistoryNeuron = TrustHistoryNeuron::new((27, 33)); // todo make this automatic from loop above
-
-    // -- old for comparasion
-    let path = Utf8Path::new("data/trusted_for_user.json");
-    let trust_graph_neuron = TrustGraphNeuron::try_from_file(path).unwrap();
-    // ^ remove later
+    let trust_history_neuron: TrustHistoryNeuron = TrustHistoryNeuron::new(current_round as usize);
 
     let users_raw = fs::read_to_string("data/voters.json").unwrap();
     let users: Vec<String> = serde_json::from_str(users_raw.as_str()).unwrap();
@@ -96,13 +101,14 @@ fn main() {
     calculate_neuron_results(
         &users,
         vec![
-            Box::new(trust_graph_neuron),
             Box::new(prior_voting_history_neuron),
             Box::new(assigned_reputation_neuron),
-            Box::new(trust_graph_log),
+            Box::new(trust_history_neuron),
         ],
     );
     do_normalize_votes();
+
+    remove_temp_files(current_round);
 }
 
 fn do_normalize_votes() {
