@@ -325,13 +325,21 @@ mod test {
         contractimport!(file = "../target/wasm32-unknown-unknown/release/governance.wasm");
     }
 
-    fn prepare_test(env: &Env, round: u32) -> (GovernorContractClient<'_>, governance::Client<'_>, scf_token::Client<'_>) {
+    fn prepare_test(
+        env: &Env,
+        round: u32,
+    ) -> (
+        GovernorContractClient<'_>,
+        governance::Client<'_>,
+        scf_token::Client<'_>,
+    ) {
         env.cost_estimate().budget().reset_unlimited();
         let admin = Address::generate(&env);
         env.mock_all_auths();
 
         let governance_address = env.register(governance::WASM, ());
-        let governance_client: governance::Client<'_> = governance::Client::new(&env, &governance_address);
+        let governance_client: governance::Client<'_> =
+            governance::Client::new(&env, &governance_address);
         governance_client.initialize(&admin, &round);
         let neurons = soroban_sdk::vec![
             &env,
@@ -365,7 +373,7 @@ mod test {
         governor_client.initialize(&scf_token_address, &admin, &settings);
         (governor_client, governance_client, scf_token_client)
     }
-    
+
     fn set_nqg_results(
         env: &Env,
         governance_client: &governance::Client,
@@ -384,13 +392,13 @@ mod test {
             })
             .unwrap();
         result.set(address.to_string(), I256::from_i128(env, new_balance));
-    
+
         governance_client.set_neuron_result(
             &soroban_sdk::String::from_str(env, "0"),
             &soroban_sdk::String::from_str(env, "0"),
             &result,
         );
-    
+
         governance_client.calculate_voting_powers();
     }
 
