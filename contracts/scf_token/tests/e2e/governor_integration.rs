@@ -1,7 +1,9 @@
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::{Address, Env, I256};
+use soroban_sdk::{Address, Env};
 
-use crate::e2e::common::contract_utils::{deploy_and_setup, update_balance, Deployment};
+use crate::e2e::common::contract_utils::{
+    deploy_and_setup, set_nqg_results, update_balance, Deployment,
+};
 
 #[test]
 fn balance_round() {
@@ -11,16 +13,25 @@ fn balance_round() {
     let admin = Address::generate(&env);
     let Deployment {
         client,
-        governance_client: _,
+        governance_client,
     } = deploy_and_setup(&env, &admin);
     env.mock_all_auths();
 
     let address = Address::generate(&env);
-    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &30);
+
+    governance_client.set_current_round(&30);
+    set_nqg_results(&env, &governance_client, &address, 1 * 10_i128.pow(18));
+    client.update_balance(&address);
     assert_eq!(client.balance_round(&address), 30);
-    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &31);
+
+    governance_client.set_current_round(&31);
+    set_nqg_results(&env, &governance_client, &address, 2 * 10_i128.pow(18));
+    client.update_balance(&address);
     assert_eq!(client.balance_round(&address), 31);
-    client.update_balance_manual(&address, &I256::from_i128(&env, 1 * 10_i128.pow(18)), &33);
+
+    governance_client.set_current_round(&33);
+    set_nqg_results(&env, &governance_client, &address, 3 * 10_i128.pow(18));
+    client.update_balance(&address);
     assert_eq!(client.balance_round(&address), 33);
 }
 
@@ -32,21 +43,21 @@ fn all_addresses() {
     let admin = Address::generate(&env);
     let Deployment {
         client,
-        governance_client: _,
+        governance_client,
     } = deploy_and_setup(&env, &admin);
     env.mock_all_auths();
-
+    governance_client.set_current_round(&33);
     let mut addresses: Vec<Address> = vec![];
     for _ in 1..=10 {
-        addresses.push(Address::generate(&env));
-        client.update_balance_manual(
-            addresses.last().unwrap(),
-            &I256::from_i128(&env, 10_i128.pow(18)),
-            &33,
-        );
+        let addr = Address::generate(&env);
+        set_nqg_results(&env, &governance_client, &addr, 10_i128.pow(18));
+        client.update_balance(&addr);
+        addresses.push(addr);
     }
+    governance_client.set_current_round(&34);
     for addr in &addresses {
-        client.update_balance_manual(addr, &I256::from_i128(&env, 10_i128.pow(18)), &34);
+        set_nqg_results(&env, &governance_client, &addr, 10_i128.pow(18));
+        client.update_balance(&addr);
     }
     // check for duplicates
     let fetched_addresses = client.all_addresses();
