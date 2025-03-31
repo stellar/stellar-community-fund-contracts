@@ -7,7 +7,7 @@ use soroban_sdk::{
     vec as SorobanVecMacro, Address, Env, Map as SorobanMap, String as SorobanString,
     Vec as SorobanVec, I256,
 };
-const ROUND: &'_ u32 = &31;
+const ROUND: &'_ u32 = &34;
 
 pub fn deploy_contract_without_initialization(env: &Env) -> VotingSystemClient {
     let contract_id = env.register(VotingSystem,());
