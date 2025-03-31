@@ -68,7 +68,7 @@ fn remove_temp_files(current_round: u32) {
     }
 }
 fn main() {
-    let current_round = 33;
+    let current_round = 34;
     let path = Utf8Path::new("data/previous_rounds_for_users.json");
     let prior_voting_history_neuron = PriorVotingHistoryNeuron::try_from_file(path).unwrap();
 
@@ -88,7 +88,7 @@ fn main() {
     });
     let trust_history_neuron: TrustHistoryNeuron = TrustHistoryNeuron::new(current_round as usize);
 
-    let users_raw = fs::read_to_string("data/voters_and_pilots.json").unwrap();
+    let users_raw = fs::read_to_string("data/all_users.json").unwrap();
     let users: Vec<String> = serde_json::from_str(users_raw.as_str()).unwrap();
 
     let mut neurons: Vec<Box<dyn Neuron>> = vec![];

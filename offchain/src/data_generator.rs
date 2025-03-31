@@ -71,7 +71,7 @@ pub fn normalized_votes(env: &Env) -> SorobanMap<SorobanString, SorobanMap<Sorob
     normalized_votes_soroban
 }
 pub fn trust(env: &Env) -> SorobanMap<SorobanString, I256> {
-    let trust_raw = fs::read_to_string("../neurons/result/trust_graph_neuron.json").unwrap();
+    let trust_raw = fs::read_to_string("../neurons/result/trust_history_neuron.json").unwrap();
     let trust_serde: Map<String, Value> = serde_json::from_str(trust_raw.as_str()).unwrap();
     let mut trust_soroban: SorobanMap<SorobanString, I256> = map![&env];
     trust_serde.iter().for_each(|(public_key, value)| {
