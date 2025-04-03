@@ -15,3 +15,5 @@ stored on-chain for future reference.
 This voting power is used to compute the final score for each submission: Each `Yes` and `No` vote is multiplied by
 respective users voting powers and tallied.
 
+Contract is also a part of Soroban Governor DAO system. Voting powers of users are used as SCF Token balances (votes), which are then used to vote on proposals in the DAO.
+

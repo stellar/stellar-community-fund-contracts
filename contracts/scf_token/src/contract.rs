@@ -118,6 +118,7 @@ impl SCFToken {
         let mut balances_sorted: Vec<i128> = vec![&env];
         for address in addresses {
             let balance = read_balance(&env, &address).current;
+            // todo check if balance rounds are the same
             insert_sorted(&mut balances_sorted, balance);
         }
 
