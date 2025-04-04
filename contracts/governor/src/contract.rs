@@ -403,12 +403,11 @@ mod test {
     }
 
     #[test]
-    fn test_update_proposal_threshold() {
+    fn update_proposal_threshold_consistent_balances_rounds() {
         let env = Env::default();
         let (governor_client, governance_client, scf_token_client) = prepare_test(&env, 30);
 
-        let random_balances: Vec<i128> = vec![&env, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        for b in &random_balances {
+        for b in 1..=10 {
             let addr = Address::generate(&env);
             set_nqg_results(&env, &governance_client, &addr, b * 10_i128.pow(18));
             scf_token_client.update_balance(&addr);
@@ -416,6 +415,26 @@ mod test {
         governor_client.update_proposal_threshold();
         let updated_settings = governor_client.settings();
         assert_eq!(updated_settings.proposal_threshold, 6 * 10_i128.pow(9));
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #6)")]
+    fn update_proposal_threshold_not_consistent_balances_rounds() {
+        let env = Env::default();
+        let (governor_client, governance_client, scf_token_client) = prepare_test(&env, 30);
+
+        let addr = Address::generate(&env);
+        set_nqg_results(&env, &governance_client, &addr, 10_i128.pow(18));
+        scf_token_client.update_balance(&addr);
+        governance_client.set_current_round(&31);
+
+        for b in 2..=10 {
+            let addr = Address::generate(&env);
+            set_nqg_results(&env, &governance_client, &addr, b * 10_i128.pow(18));
+            scf_token_client.update_balance(&addr);
+        }
+        governor_client.update_proposal_threshold();
+        
     }
 
     #[test]
