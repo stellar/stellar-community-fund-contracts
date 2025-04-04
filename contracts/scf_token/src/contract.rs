@@ -112,14 +112,23 @@ impl SCFToken {
 
         let addresses = read_all_addresses(&env);
         if addresses.len() == 0 {
-            panic_with_error!(env, ContractError::ZeroUserCount)
+            panic_with_error!(env, ContractError::ZeroUserCount);
         }
 
         let mut balances_sorted: Vec<i128> = vec![&env];
+        // all users must have balances updated from the same round, otherwise proposal threshold update will be invalid
+        let mut balance_update_round: Option<u32> = None;
         for address in addresses {
-            let balance = read_balance(&env, &address).current;
-            // todo check if balance rounds are the same
-            insert_sorted(&mut balances_sorted, balance);
+            let balance = read_balance(&env, &address);
+            match balance_update_round {
+                Some(round) => {
+                    if round != balance.updated_round {
+                        panic_with_error!(env, ContractError::InconsistentBalancesRounds);
+                    }
+                }
+                None => balance_update_round = Some(balance.updated_round),
+            }
+            insert_sorted(&mut balances_sorted, balance.current);
         }
 
         let target_n: u32 =
@@ -138,9 +147,6 @@ impl SCFToken {
         admin.require_auth();
 
         read_all_addresses(&env)
-    }
-    pub fn balance_round(env: Env, address: Address) -> u32 {
-        read_balance(&env, &address).updated_round
     }
 }
 
