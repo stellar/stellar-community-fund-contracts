@@ -434,7 +434,6 @@ mod test {
             scf_token_client.update_balance(&addr);
         }
         governor_client.update_proposal_threshold();
-        
     }
 
     #[test]
