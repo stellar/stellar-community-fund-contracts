@@ -492,7 +492,7 @@ mod test {
         };
         governor_client.propose(
             &council,
-            &String::from_str(&env, "title"),
+            &String::from_str(&env, "test"),
             &String::from_str(&env, "description"),
             &ProposalAction::Settings(settings),
         );
