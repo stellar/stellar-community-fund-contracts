@@ -18,6 +18,7 @@ pub enum ContractError {
     VotingPowerAlreadyUpdatedForUser = 3,
     ActionNotSupported = 4,
     ZeroUserCount = 5,
+    InconsistentBalancesRounds = 6,
 }
 
 #[contracterror]

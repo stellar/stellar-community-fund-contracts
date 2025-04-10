@@ -6,36 +6,6 @@ use crate::e2e::common::contract_utils::{
 };
 
 #[test]
-fn balance_round() {
-    let env = Env::default();
-    env.cost_estimate().budget().reset_unlimited();
-
-    let admin = Address::generate(&env);
-    let Deployment {
-        client,
-        governance_client,
-    } = deploy_and_setup(&env, &admin);
-    env.mock_all_auths();
-
-    let address = Address::generate(&env);
-
-    governance_client.set_current_round(&30);
-    set_nqg_results(&env, &governance_client, &address, 1 * 10_i128.pow(18));
-    client.update_balance(&address);
-    assert_eq!(client.balance_round(&address), 30);
-
-    governance_client.set_current_round(&31);
-    set_nqg_results(&env, &governance_client, &address, 2 * 10_i128.pow(18));
-    client.update_balance(&address);
-    assert_eq!(client.balance_round(&address), 31);
-
-    governance_client.set_current_round(&33);
-    set_nqg_results(&env, &governance_client, &address, 3 * 10_i128.pow(18));
-    client.update_balance(&address);
-    assert_eq!(client.balance_round(&address), 33);
-}
-
-#[test]
 fn all_addresses() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
@@ -165,4 +135,75 @@ fn proposal_threshold_less_than_5() {
         );
     }
     assert_eq!(client.optimal_threshold(), 1 * 10_i128.pow(9));
+}
+
+#[test]
+fn consistent_balances_rounds() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
+    let user3 = Address::generate(&env);
+
+    governance_client.set_current_round(&30);
+    set_nqg_results(&env, &governance_client, &user1, 1 * 10_i128.pow(18));
+    set_nqg_results(&env, &governance_client, &user2, 1 * 10_i128.pow(18));
+    set_nqg_results(&env, &governance_client, &user3, 1 * 10_i128.pow(18));
+    client.update_balance(&user1);
+    client.update_balance(&user2);
+    client.update_balance(&user3);
+
+    let _x = client.optimal_threshold();
+
+    governance_client.set_current_round(&31);
+    set_nqg_results(&env, &governance_client, &user1, 2 * 10_i128.pow(18));
+    set_nqg_results(&env, &governance_client, &user2, 2 * 10_i128.pow(18));
+    set_nqg_results(&env, &governance_client, &user3, 2 * 10_i128.pow(18));
+    client.update_balance(&user1);
+    client.update_balance(&user2);
+    client.update_balance(&user3);
+    let _x = client.optimal_threshold();
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #6)")]
+fn inconsistent_balances_rounds() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
+    let user3 = Address::generate(&env);
+
+    governance_client.set_current_round(&30);
+    set_nqg_results(&env, &governance_client, &user1, 1 * 10_i128.pow(18));
+    set_nqg_results(&env, &governance_client, &user2, 1 * 10_i128.pow(18));
+    set_nqg_results(&env, &governance_client, &user3, 1 * 10_i128.pow(18));
+    client.update_balance(&user1);
+    client.update_balance(&user2);
+    client.update_balance(&user3);
+
+    let _x = client.optimal_threshold();
+
+    governance_client.set_current_round(&31);
+    set_nqg_results(&env, &governance_client, &user1, 2 * 10_i128.pow(18));
+    set_nqg_results(&env, &governance_client, &user2, 2 * 10_i128.pow(18));
+    client.update_balance(&user1);
+    client.update_balance(&user2);
+    let _x = client.optimal_threshold();
 }
