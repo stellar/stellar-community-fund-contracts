@@ -422,7 +422,7 @@ mod test {
     #[should_panic(expected = "Error(Contract, #6)")]
     fn update_proposal_threshold_not_consistent_balances_rounds() {
         let env = Env::default();
-        let (governor_client, governance_client, scf_token_client) = prepare_test(&env, 30);
+        let (governor_client, governance_client, scf_token_client, _admin) = prepare_test(&env, 30);
 
         let addr = Address::generate(&env);
         set_nqg_results(&env, &governance_client, &addr, 10_i128.pow(18));
