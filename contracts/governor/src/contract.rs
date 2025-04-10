@@ -59,7 +59,7 @@ impl Governor for GovernorContract {
         }
 
         match action {
-            ProposalAction::Upgrade(_) => {
+            ProposalAction::Upgrade(_) | ProposalAction::Settings(_) => {
                 let council = storage::get_council_address(&e);
                 if creator != council {
                     panic_with_error!(&e, GovernorError::UnauthorizedError);
@@ -332,6 +332,7 @@ mod test {
         GovernorContractClient<'_>,
         governance::Client<'_>,
         scf_token::Client<'_>,
+        Address,
     ) {
         env.cost_estimate().budget().reset_unlimited();
         let admin = Address::generate(&env);
@@ -371,7 +372,7 @@ mod test {
         };
         require_valid_settings(&env, &settings);
         governor_client.initialize(&scf_token_address, &admin, &settings);
-        (governor_client, governance_client, scf_token_client)
+        (governor_client, governance_client, scf_token_client, admin)
     }
 
     fn set_nqg_results(
@@ -405,7 +406,7 @@ mod test {
     #[test]
     fn test_update_proposal_threshold() {
         let env = Env::default();
-        let (governor_client, governance_client, scf_token_client) = prepare_test(&env, 30);
+        let (governor_client, governance_client, scf_token_client, _admin) = prepare_test(&env, 30);
 
         let random_balances: Vec<i128> = vec![&env, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         for b in &random_balances {
@@ -422,7 +423,7 @@ mod test {
     #[should_panic(expected = "Error(Contract, #214)")]
     fn disallow_council_proposal() {
         let env = Env::default();
-        let (governor_client, governance_client, scf_token_client) = prepare_test(&env, 30);
+        let (governor_client, governance_client, scf_token_client, _admin) = prepare_test(&env, 30);
 
         let creator = Address::generate(&env);
         set_nqg_results(&env, &governance_client, &creator, 10_i128.pow(18));
@@ -432,6 +433,50 @@ mod test {
             &String::from_str(&env, "title"),
             &String::from_str(&env, "description"),
             &ProposalAction::Council(Address::generate(&env)),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #214)")]
+    fn user_cant_propose_settings() {
+        let env = Env::default();
+        let (governor_client, governance_client, scf_token_client, _admin) = prepare_test(&env, 30);
+
+        let random_user = Address::generate(&env);
+        set_nqg_results(&env, &governance_client, &random_user, 10_i128.pow(18));
+        scf_token_client.update_balance(&random_user);
+        governor_client.propose(
+            &random_user,
+            &String::from_str(&env, "title"),
+            &String::from_str(&env, "description"),
+            &ProposalAction::Council(Address::generate(&env)),
+        );
+    }
+
+    #[test]
+    fn council_can_propose_settings() {
+        let env = Env::default();
+        let (governor_client, governance_client, scf_token_client, council) =
+            prepare_test(&env, 30);
+
+        set_nqg_results(&env, &governance_client, &council, 10_i128.pow(18));
+        scf_token_client.update_balance(&council);
+
+        let settings = GovernorSettings {
+            proposal_threshold: 10_000_000,
+            vote_delay: ONE_DAY_LEDGERS,
+            vote_period: ONE_DAY_LEDGERS * 5,
+            timelock: ONE_DAY_LEDGERS,
+            grace_period: ONE_DAY_LEDGERS * 7,
+            quorum: 100,
+            counting_type: 2,
+            vote_threshold: 5100,
+        };
+        governor_client.propose(
+            &council,
+            &String::from_str(&env, "title"),
+            &String::from_str(&env, "description"),
+            &ProposalAction::Settings(settings),
         );
     }
 }
