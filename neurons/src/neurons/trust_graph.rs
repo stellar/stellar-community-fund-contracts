@@ -86,6 +86,53 @@ impl Neuron for TrustGraphNeuron {
             result.insert(user.into(), page_rank);
         }
 
+        // ADDITIONAL BONUS if you're trusted by highly trusted user
+        let mut result_with_bonus: HashMap<String, f64> = result.clone();
+        
+        // calculate who has top 5% best trust
+        let mut trust_scores_sorted: Vec<f64> = result.values().cloned().collect();
+        trust_scores_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+        let user_base_target_percent: usize = 1;
+        let target_n =
+        ((trust_scores_sorted.len() * user_base_target_percent) / 100).max(5);
+
+        let high_trust_value=  if target_n > trust_scores_sorted.len() {
+             trust_scores_sorted.get(0).unwrap().to_owned()
+        } else {
+            trust_scores_sorted
+            .get(trust_scores_sorted.len() - target_n)
+            .unwrap().to_owned()
+        };
+        // if you're trusted by someone whos trust score is higher than this, you get additional 0.05 point
+        let highly_trusted_bonus = 0.02;
+        println!("high_trust_value: {:?}", high_trust_value);
+        for (user, score) in &result {
+            // is user considered highly trusted
+            if score >= &high_trust_value {
+                // get all users he trusts 
+                // (someone can be trusted by a lot of users, but not trust anyone himself, in such case just skip)
+                if let Some(trusted_for_this_user) =  self.trusted_for_user.get(user){
+                    // loop through and give everyone a bonus
+                    for u in trusted_for_this_user {
+                        let res = result_with_bonus.get_mut(u).unwrap();
+                        *res += highly_trusted_bonus;
+                    }
+                }
+            }
+        }
+        // print only those results that have diff
+        let mut  with_bonus_count = 0;
+        for (user, score) in &result {
+            let with_bonus = result_with_bonus.get(user).unwrap();
+            if score != with_bonus {
+                with_bonus_count += 1;
+                println!("Score: {}, with bonus: {}", score, with_bonus);
+            }
+        }
+        println!("{}/{}", with_bonus_count, result.len());
+        // println!("result_with_bonus {:#?}", result_with_bonus);
+    
         result
     }
 }
