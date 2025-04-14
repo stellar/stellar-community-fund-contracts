@@ -113,7 +113,7 @@ impl Neuron for TrustGraphNeuron {
                 // get all users he trusts 
                 // (someone can be trusted by a lot of users, but not trust anyone himself, in such case just skip)
                 if let Some(trusted_for_this_user) =  self.trusted_for_user.get(user){
-                    // loop through and give everyone a bonus
+                    // give everyone a bonus
                     for u in trusted_for_this_user {
                         let res = result_with_bonus.get_mut(u).unwrap();
                         *res += highly_trusted_bonus;
