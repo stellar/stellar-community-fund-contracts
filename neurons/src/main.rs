@@ -68,7 +68,7 @@ fn remove_temp_files(current_round: u32) {
     }
 }
 fn main() {
-    // prepare users data 
+    // prepare users data
     let current_round = 34;
     // depending on which file is passed here, different users-base will be run through neurons
     let users_raw = fs::read_to_string("data/all_users.json").unwrap();
@@ -78,7 +78,7 @@ fn main() {
     let path = Utf8Path::new("data/previous_rounds_for_users.json");
     let prior_voting_history_neuron = PriorVotingHistoryNeuron::try_from_file(path).unwrap();
 
-    // prepare reputation neuron 
+    // prepare reputation neuron
     let path = Utf8Path::new("data/users_reputation.json");
     let assigned_reputation_neuron = AssignedReputationNeuron::try_from_file(path).unwrap();
 
