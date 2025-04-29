@@ -2,9 +2,9 @@ use crate::neurons::Neuron;
 use std::collections::{HashMap, HashSet};
 
 // users with top X % highest trust score (equal or above) will be considered highly trusted
-const HIGHLY_TRUSTED_PERCENT_THRESHOLD: usize = 1;
+const HIGHLY_TRUSTED_PERCENT_THRESHOLD: usize = 10;
 // users trusted by highly trusted users will get a bonus of X % of their own score
-const HIGHLY_TRUSTED_PERCENT_BONUS: f64 = 5.0;
+const HIGHLY_TRUSTED_PERCENT_BONUS: f64 = 15.0;
 
 #[derive(Clone, Debug)]
 pub struct TrustGraphNeuron {
