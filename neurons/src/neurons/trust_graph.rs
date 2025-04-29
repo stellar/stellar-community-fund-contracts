@@ -73,15 +73,15 @@ impl TrustGraphNeuron {
         }
 
         // print only those results that have diff - for debug
-        let mut with_bonus_count = 0;
-        for (user, score) in &trust_map {
-            let with_bonus = result_with_bonus.get(user).unwrap();
-            if score != with_bonus {
-                with_bonus_count += 1;
-                println!("Score: {}, with bonus: {}", score, with_bonus);
-            }
-        }
-        println!("{}/{}", with_bonus_count, trust_map.len());
+        // let mut with_bonus_count = 0;
+        // for (user, score) in &trust_map {
+        //     let with_bonus = result_with_bonus.get(user).unwrap();
+        //     if score != with_bonus {
+        //         with_bonus_count += 1;
+        //         println!("Score: {}, with bonus: {}", score, with_bonus);
+        //     }
+        // }
+        // println!("{}/{}", with_bonus_count, trust_map.len());
 
         result_with_bonus
     }
