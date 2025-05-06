@@ -37,12 +37,18 @@ Assigns voting power based on rounds voter previously participated in.
 Having participated in most recent rounds have greater impact on the bonus, than rounds that were long time ago.
 This way users who are inactive slowly loose their bonus, allowing for new, more active users to catch up.
 
+// TODO add curves and math formula here 
+
 ### Trust Graph Neuron
+// TODO update to actual values after deciding on them
 
-Assigns voting power based on trust assigned to voter by other voters.
-It uses min-max normalized PageRank algorithm to compute the score, and looks at the diference between score from previous and current round.
-If loss of trust since the last round is big enough, curve of trust bonus loss gets steeper. This mechanism creates a penalty system for users who possibly did something very wrong and community doesn't consider them trustworthy anymore.
+Assigns voting power based on the amount of users trusting given voter. Each user can select other voters as trusted.
+Final trust score calculation is done in 3 steps:
+1. min-max normalized PageRank algorithm to compute the initial score.
+2. voters trusted by users considered highly trusted (top **1%** of scores from page rank) get additional bonus of **0.1** point
+3. after steps 1 & 2 are done for current and previous round, difference between them is calculated. If voter lost more than **X%** of trust since previous round, **some** points are subtracted from his final score. This mechanism creates a penalty system for users who possibly did something very wrong and community doesn't consider them trustworthy anymore.
 
+![trust graph neuron logic](./images/trust_neuron_logic.png)
 ## Development
 
 ### Running Tests

@@ -68,36 +68,38 @@ fn remove_temp_files(current_round: u32) {
     }
 }
 fn main() {
-    let current_round = 34;
-    let path = Utf8Path::new("data/previous_rounds_for_users.json");
-    let prior_voting_history_neuron = PriorVotingHistoryNeuron::try_from_file(path).unwrap();
-
-    let path = Utf8Path::new("data/users_reputation.json");
-    let assigned_reputation_neuron = AssignedReputationNeuron::try_from_file(path).unwrap();
-
-    let path = Utf8Path::new("data/trusted_for_user_per_round.json");
-    let trust_data = load_trust_data(path).unwrap();
-    let mut trust_graph_neurons: Vec<TrustGraphNeuron> = vec![];
-    trust_data.iter().for_each(|(round, trusted_for_user)| {
-        if *round == current_round || *round == current_round - 1 {
-            trust_graph_neurons.push(TrustGraphNeuron::from_data(
-                trusted_for_user.clone(),
-                *round,
-            ));
-        }
-    });
-    let trust_history_neuron: TrustHistoryNeuron = TrustHistoryNeuron::new(current_round as usize);
-
+    // prepare users data
+    let current_round = 35;
+    // depending on which file is passed here, different users-base will be run through neurons
     let users_raw = fs::read_to_string("data/all_users.json").unwrap();
     let users: Vec<String> = serde_json::from_str(users_raw.as_str()).unwrap();
 
-    let mut neurons: Vec<Box<dyn Neuron>> = vec![];
-    for trust_neuron in trust_graph_neurons {
-        neurons.push(Box::new(trust_neuron));
-    }
+    // prepare prior voting history neuron
+    let path = Utf8Path::new("data/previous_rounds_for_users.json");
+    let prior_voting_history_neuron = PriorVotingHistoryNeuron::try_from_file(path).unwrap();
 
-    calculate_trust_neuron_results(&users, neurons);
+    // prepare reputation neuron
+    let path = Utf8Path::new("data/users_reputation.json");
+    let assigned_reputation_neuron = AssignedReputationNeuron::try_from_file(path).unwrap();
 
+    // prepare and run trust neurons for previous rounds
+    let path = Utf8Path::new("data/trusted_for_user_per_round.json");
+    let trust_data = load_trust_data(path).unwrap();
+    let mut trust_graph_neurons: Vec<Box<dyn Neuron>> = vec![];
+    trust_data.iter().for_each(|(round, trusted_for_user)| {
+        if *round == current_round || *round == current_round - 1 {
+            trust_graph_neurons.push(Box::new(TrustGraphNeuron::from_data(
+                trusted_for_user.clone(),
+                *round,
+            )));
+        }
+    });
+    calculate_trust_neuron_results(&users, trust_graph_neurons);
+
+    // prepare trust history neuron
+    let trust_history_neuron: TrustHistoryNeuron = TrustHistoryNeuron::new(current_round as usize);
+
+    // run all neurons
     calculate_neuron_results(
         &users,
         vec![
@@ -106,6 +108,7 @@ fn main() {
             Box::new(trust_history_neuron),
         ],
     );
+
     do_normalize_votes();
 
     remove_temp_files(current_round);
