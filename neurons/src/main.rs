@@ -69,7 +69,7 @@ fn remove_temp_files(current_round: u32) {
 }
 fn main() {
     // prepare users data
-    let current_round = 34;
+    let current_round = 35;
     // depending on which file is passed here, different users-base will be run through neurons
     let users_raw = fs::read_to_string("data/all_users.json").unwrap();
     let users: Vec<String> = serde_json::from_str(users_raw.as_str()).unwrap();
