@@ -1,8 +1,8 @@
 use crate::admin::{read_admin, write_admin, Admin};
 use soroban_sdk::token::Interface;
 use soroban_sdk::{
-    assert_with_error, contract, contractimpl, panic_with_error, vec, Address, BytesN, Env, String,
-    Vec, I256,
+    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN, Env, String, Vec,
+    I256,
 };
 
 use crate::balance::{extend_balance, read_balance, write_balance};
@@ -103,58 +103,12 @@ impl SCFToken {
         env.deployer().update_current_contract_wasm(wasm_hash);
     }
 
-    pub fn optimal_threshold(env: Env) -> i128 {
-        let admin = read_admin(&env);
-        admin.require_auth();
-
-        let user_base_target_percent: u32 = 10; // what top percentage of users should be able to create proposals
-        let minimal_user_base_count: u32 = 5; // how many users minimum can create proposals
-
-        let addresses = read_all_addresses(&env);
-        if addresses.len() == 0 {
-            panic_with_error!(env, ContractError::ZeroUserCount);
-        }
-
-        let mut balances_sorted: Vec<i128> = vec![&env];
-        // all users must have balances updated from the same round, otherwise proposal threshold update will be invalid
-        let mut balance_update_round: Option<u32> = None;
-        for address in addresses {
-            let balance = read_balance(&env, &address);
-            match balance_update_round {
-                Some(round) => {
-                    if round != balance.updated_round {
-                        panic_with_error!(env, ContractError::InconsistentBalancesRounds);
-                    }
-                }
-                None => balance_update_round = Some(balance.updated_round),
-            }
-            insert_sorted(&mut balances_sorted, balance.current);
-        }
-
-        let target_n: u32 =
-            ((balances_sorted.len() * user_base_target_percent) / 100).max(minimal_user_base_count);
-
-        if target_n > balances_sorted.len() {
-            return balances_sorted.get(0).unwrap();
-        }
-        balances_sorted
-            .get(balances_sorted.len() - target_n)
-            .unwrap()
-    }
-
     pub fn all_addresses(env: Env) -> Vec<Address> {
         let admin = read_admin(&env);
         admin.require_auth();
 
         read_all_addresses(&env)
     }
-}
-
-fn insert_sorted(vec: &mut Vec<i128>, value: i128) {
-    match vec.iter().position(|x| x > value) {
-        Some(pos) => vec.insert(pos as u32, value),
-        None => vec.push_back(value),
-    };
 }
 
 fn voting_power_for_user(
