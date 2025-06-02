@@ -1,5 +1,5 @@
 use soroban_sdk::{
-    contracttype, unwrap::UnwrapOptimized, Address, Env, IntoVal, Symbol, TryFromVal, Val,
+    contracttype, unwrap::UnwrapOptimized, Address, Env, IntoVal, Symbol, TryFromVal, Val, Vec,
 };
 
 use crate::{
@@ -12,6 +12,7 @@ const SETTINGS_KEY: &str = "Settings";
 const IS_INIT_KEY: &str = "IsInit";
 const PROPOSAL_ID_KEY: &str = "PropId";
 const COUNCIL_KEY: &str = "Council";
+const WHITELIST_KEY: &str = "Whitelist";
 
 // All stored data is used on a per proposal basis outside of the instance. Extend past the max possible
 // proposal lifetime to ensure all data is available after the proposal is concluced.
@@ -160,6 +161,28 @@ pub fn get_next_proposal_id(e: &Env) -> u32 {
     get_persistent_default::<Symbol, u32>(&e, &key, 0_u32, LEDGER_THRESHOLD, LEDGER_BUMP)
 }
 
+pub fn set_proposal_creation_whitelist(e: &Env, whitelist: Vec<Address>) {
+    let key = Symbol::new(&e, WHITELIST_KEY);
+    e.storage()
+        .persistent()
+        .set::<Symbol, Vec<Address>>(&key, &whitelist);
+    e.storage()
+        .persistent()
+        .extend_ttl(&key, LEDGER_THRESHOLD, LEDGER_BUMP);
+}
+
+pub fn get_proposal_creation_whitelist(e: &Env) -> Vec<Address> {
+    let key = Symbol::new(&e, WHITELIST_KEY);
+    let list = e
+        .storage()
+        .persistent()
+        .get::<Symbol, Vec<Address>>(&key)
+        .unwrap_optimized();
+    e.storage()
+        .persistent()
+        .extend_ttl(&key, LEDGER_THRESHOLD, LEDGER_BUMP);
+    list
+}
 /********** Temporary **********/
 
 /***** Proposal Config *****/

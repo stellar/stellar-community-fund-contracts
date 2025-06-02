@@ -29,7 +29,6 @@ pub enum GovernorError {
     ProposalAlreadyOpenError = 211,
     OutsideOfVotePeriodError = 212,
     InvalidProposalActionError = 213,
-
-    // custom error retuned if someone tries to create a council proposal
     ProposalActionNotSupported = 214,
+    MissingProposalPremissions = 215,
 }
