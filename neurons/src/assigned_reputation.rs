@@ -1,10 +1,6 @@
 use crate::neurons::Neuron;
-use anyhow::Result;
-use camino::Utf8Path;
 use serde_repr::Deserialize_repr;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
 
 #[derive(Deserialize_repr, Clone, Debug)]
 #[repr(i32)]
@@ -22,12 +18,8 @@ pub struct AssignedReputationNeuron {
 }
 
 impl AssignedReputationNeuron {
-    pub fn try_from_file(path: &Utf8Path) -> Result<Self> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-
-        let users_reputation = serde_json::from_reader(reader)?;
-        Ok(Self { users_reputation })
+    pub fn from_data(users_reputation: HashMap<String, ReputationTier>) -> Self {
+        Self { users_reputation }
     }
 }
 

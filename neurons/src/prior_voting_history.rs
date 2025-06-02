@@ -1,10 +1,6 @@
 use crate::neurons::Neuron;
-use anyhow::Result;
-use camino::Utf8Path;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,14 +10,10 @@ pub struct PriorVotingHistoryNeuron {
 }
 
 impl PriorVotingHistoryNeuron {
-    pub fn try_from_file(path: &Utf8Path) -> Result<Self> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-
-        let users_round_history = serde_json::from_reader(reader)?;
-        Ok(Self {
+    pub fn from_data(users_round_history: HashMap<String, Vec<u32>>) -> Self {
+        Self {
             users_round_history,
-        })
+        }
     }
 }
 

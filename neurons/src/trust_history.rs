@@ -1,16 +1,21 @@
 use crate::neurons::Neuron;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
 
 #[derive(Clone, Debug)]
 pub struct TrustHistoryNeuron {
     round: usize,
+    trust_graph_neurons_results: HashMap<String, HashMap<String, f64>>,
 }
 
 impl TrustHistoryNeuron {
-    pub fn new(round: usize) -> Self {
-        Self { round }
+    pub fn from_data(
+        round: usize,
+        trust_graph_neurons_results: HashMap<String, HashMap<String, f64>>,
+    ) -> Self {
+        Self {
+            round,
+            trust_graph_neurons_results,
+        }
     }
 }
 
@@ -36,12 +41,11 @@ impl Neuron for TrustHistoryNeuron {
         let mut users_trust_history: HashMap<String, Vec<f64>> = HashMap::new();
 
         for i in self.round - 1..=self.round {
-            println!("Reading round file: {}", i);
-            let path = format!("result/trust_graph_neuron_{}.json", i);
-            let file = File::open(path).unwrap();
-            let reader = BufReader::new(file);
-
-            let user_trust: HashMap<String, f64> = serde_json::from_reader(reader).unwrap();
+            let user_trust: HashMap<String, f64> = self
+                .trust_graph_neurons_results
+                .get(&format!("trust_graph_neuron_{}", i))
+                .unwrap()
+                .clone();
 
             user_trust
                 .iter()

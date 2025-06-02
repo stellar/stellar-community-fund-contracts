@@ -1,4 +1,4 @@
-use crate::{Submission, SubmissionCategory, Vote};
+use crate::{types::SubmissionCategory, Submission, Vote};
 use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
