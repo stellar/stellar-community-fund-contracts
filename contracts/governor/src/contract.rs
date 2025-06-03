@@ -1,5 +1,5 @@
 use soroban_sdk::{
-    contract, contractimpl, panic_with_error, unwrap::UnwrapOptimized, Address, Env, String,
+    contract, contractimpl, panic_with_error, unwrap::UnwrapOptimized, Address, Env, String, Vec,
 };
 
 use crate::{
@@ -66,21 +66,19 @@ impl Governor for GovernorContract {
                 }
             }
             ProposalAction::Council(_) => {
-                // we don't allow anyone to propose a council change
                 panic_with_error!(&e, GovernorError::ProposalActionNotSupported);
             }
-            _ => {}
+            ProposalAction::Snapshot | ProposalAction::Calldata(_) => {
+                let whitelist = storage::get_proposal_creation_whitelist(&e);
+                if !whitelist.contains(creator.clone()) {
+                    panic_with_error!(&e, GovernorError::MissingProposalPremissions)
+                }
+            }
         };
-        let settings = storage::get_settings(&e);
-        let votes_client = VotesClient::new(&e, &storage::get_voter_token_address(&e));
-        let creater_votes = votes_client.get_votes(&creator);
-        if creater_votes < settings.proposal_threshold {
-            panic_with_error!(&e, GovernorError::InsufficientVotingUnitsError)
-        }
-
         let proposal_config =
             ProposalConfig::new(&e, title.clone(), description.clone(), action.clone());
         let proposal_id = storage::get_next_proposal_id(&e);
+        let settings = storage::get_settings(&e);
         let vote_start = match action {
             // no vote delay for snapshot proposals as they cannot be executed
             ProposalAction::Snapshot => e.ledger().sequence(),
@@ -102,8 +100,6 @@ impl Governor for GovernorContract {
         storage::create_proposal_data(&e, proposal_id, &proposal_data);
         storage::create_proposal_vote_count(&e, proposal_id);
         storage::create_open_proposal(&e, &creator);
-
-        votes_client.set_vote_sequence(&vote_start);
 
         GovernorEvents::proposal_created(
             &e,
@@ -267,9 +263,9 @@ impl Governor for GovernorContract {
         if storage::get_voter_support(&e, &voter, proposal_id).is_some() {
             panic_with_error!(&e, GovernorError::AlreadyVotedError);
         }
-
         let voter_power = VotesClient::new(&e, &storage::get_voter_token_address(&e))
             .get_past_votes(&voter, &proposal_data.vote_start);
+
         if voter_power <= 0 {
             panic_with_error!(&e, GovernorError::InsufficientVotingUnitsError);
         }
@@ -293,21 +289,17 @@ impl Governor for GovernorContract {
 }
 #[contractimpl]
 impl GovernorContract {
-    pub fn update_proposal_threshold(env: Env) {
+    pub fn update_proposal_whitelist(env: Env, list: Vec<Address>) {
         let council = storage::get_council_address(&env);
         council.require_auth();
-        let scf_token_client = VotesClient::new(&env, &storage::get_voter_token_address(&env));
-        let target_threshold = scf_token_client.optimal_threshold();
-        let mut settings = storage::get_settings(&env);
-        settings.proposal_threshold = target_threshold;
-        storage::set_settings(&env, &settings);
+        storage::set_proposal_creation_whitelist(&env, list);
     }
 }
 
 #[cfg(test)]
 mod test {
     use governance::LayerAggregator;
-    use soroban_sdk::testutils::Address as AddressTrait;
+    use soroban_sdk::testutils::{Address as AddressTrait, Ledger, LedgerInfo};
     use soroban_sdk::{vec, Address, Env, Map, String, Vec, I256};
 
     use super::{GovernorContract, GovernorContractClient};
@@ -402,50 +394,87 @@ mod test {
 
         governance_client.calculate_voting_powers();
     }
-
     #[test]
-    fn update_proposal_threshold_consistent_balances_rounds() {
+    fn users_with_scf_token_can_vote() {
         let env = Env::default();
-        let (governor_client, governance_client, scf_token_client, _admin) = prepare_test(&env, 30);
-
-        for b in 1..=10 {
-            let addr = Address::generate(&env);
-            set_nqg_results(&env, &governance_client, &addr, b * 10_i128.pow(18));
-            scf_token_client.update_balance(&addr);
-        }
-        governor_client.update_proposal_threshold();
-        let updated_settings = governor_client.settings();
-        assert_eq!(updated_settings.proposal_threshold, 6 * 10_i128.pow(9));
+        let (governor_client, governance_client, scf_token_client, _council) =
+            prepare_test(&env, 30);
+        // user1 is whitelisted and creates a proposal
+        let creator = Address::generate(&env);
+        governor_client.update_proposal_whitelist(&vec![&env, creator.clone()]);
+        let proposal_id = governor_client.propose(
+            &creator,
+            &String::from_str(&env, "test"),
+            &String::from_str(&env, "test"),
+            &ProposalAction::Snapshot,
+        );
+        // user2 has some amount of scf token and votes on the proposal
+        let voter = Address::generate(&env);
+        set_nqg_results(&env, &governance_client, &voter, 10_i128.pow(18));
+        scf_token_client.update_balance(&voter);
+        let ledgers_jump = 10;
+        env.ledger().set(LedgerInfo {
+            timestamp: env
+                .ledger()
+                .timestamp()
+                .saturating_add(u64::from(ledgers_jump) * 5),
+            protocol_version: 22,
+            sequence_number: env.ledger().sequence().saturating_add(ledgers_jump),
+            network_id: Default::default(),
+            base_reserve: 10,
+            min_temp_entry_ttl: 10 * 17280,
+            min_persistent_entry_ttl: 10 * 17280,
+            max_entry_ttl: 365 * 17280,
+        });
+        governor_client.vote(&voter, &proposal_id, &1);
     }
 
     #[test]
-    #[should_panic(expected = "Error(Contract, #6)")]
-    fn update_proposal_threshold_not_consistent_balances_rounds() {
+    fn whitelisted_users_can_create_proposals() {
         let env = Env::default();
-        let (governor_client, governance_client, scf_token_client, _admin) = prepare_test(&env, 30);
-
-        let addr = Address::generate(&env);
-        set_nqg_results(&env, &governance_client, &addr, 10_i128.pow(18));
-        scf_token_client.update_balance(&addr);
-        governance_client.set_current_round(&31);
-
-        for b in 2..=10 {
-            let addr = Address::generate(&env);
-            set_nqg_results(&env, &governance_client, &addr, b * 10_i128.pow(18));
-            scf_token_client.update_balance(&addr);
+        let (governor_client, _governance_client, _scf_token_client, _council) =
+            prepare_test(&env, 30);
+        let user1 = Address::generate(&env);
+        let user2 = Address::generate(&env);
+        let whitelisted_users: Vec<Address> = vec![&env, user1, user2];
+        governor_client.update_proposal_whitelist(&whitelisted_users);
+        for user in whitelisted_users {
+            governor_client.propose(
+                &user,
+                &String::from_str(&env, "test"),
+                &String::from_str(&env, "test"),
+                &ProposalAction::Snapshot,
+            );
         }
-        governor_client.update_proposal_threshold();
+    }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #215)")]
+    fn not_whitelisted_users_cant_create_proposals() {
+        let env = Env::default();
+        let (governor_client, _governance_client, _scf_token_client, _council) =
+            prepare_test(&env, 30);
+        let user1 = Address::generate(&env);
+        let user2 = Address::generate(&env);
+        let whitelisted_users: Vec<Address> = vec![&env, user1, user2];
+        governor_client.update_proposal_whitelist(&whitelisted_users);
+        let user3 = Address::generate(&env);
+        governor_client.propose(
+            &user3,
+            &String::from_str(&env, "test"),
+            &String::from_str(&env, "test"),
+            &ProposalAction::Snapshot,
+        );
     }
 
     #[test]
     #[should_panic(expected = "Error(Contract, #214)")]
     fn disallow_council_proposal() {
         let env = Env::default();
-        let (governor_client, governance_client, scf_token_client, _admin) = prepare_test(&env, 30);
+        let (governor_client, _governance_client, _scf_token_client, _council) =
+            prepare_test(&env, 30);
 
         let creator = Address::generate(&env);
-        set_nqg_results(&env, &governance_client, &creator, 10_i128.pow(18));
-        scf_token_client.update_balance(&creator);
         governor_client.propose(
             &creator,
             &String::from_str(&env, "title"),
@@ -458,11 +487,10 @@ mod test {
     #[should_panic(expected = "Error(Contract, #214)")]
     fn user_cant_propose_settings() {
         let env = Env::default();
-        let (governor_client, governance_client, scf_token_client, _admin) = prepare_test(&env, 30);
+        let (governor_client, _governance_client, _scf_token_client, _council) =
+            prepare_test(&env, 30);
 
         let random_user = Address::generate(&env);
-        set_nqg_results(&env, &governance_client, &random_user, 10_i128.pow(18));
-        scf_token_client.update_balance(&random_user);
         governor_client.propose(
             &random_user,
             &String::from_str(&env, "title"),
@@ -474,11 +502,8 @@ mod test {
     #[test]
     fn council_can_propose_settings() {
         let env = Env::default();
-        let (governor_client, governance_client, scf_token_client, council) =
+        let (governor_client, _governance_client, _scf_token_client, council) =
             prepare_test(&env, 30);
-
-        set_nqg_results(&env, &governance_client, &council, 10_i128.pow(18));
-        scf_token_client.update_balance(&council);
 
         let settings = GovernorSettings {
             proposal_threshold: 10_000_000,
