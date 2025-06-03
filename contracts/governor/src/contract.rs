@@ -263,9 +263,9 @@ impl Governor for GovernorContract {
         if storage::get_voter_support(&e, &voter, proposal_id).is_some() {
             panic_with_error!(&e, GovernorError::AlreadyVotedError);
         }
-
         let voter_power = VotesClient::new(&e, &storage::get_voter_token_address(&e))
             .get_past_votes(&voter, &proposal_data.vote_start);
+
         if voter_power <= 0 {
             panic_with_error!(&e, GovernorError::InsufficientVotingUnitsError);
         }
@@ -299,8 +299,8 @@ impl GovernorContract {
 #[cfg(test)]
 mod test {
     use governance::LayerAggregator;
-    use soroban_sdk::testutils::Address as AddressTrait;
-    use soroban_sdk::{vec, Address, Env, String, Vec, I256};
+    use soroban_sdk::testutils::{Address as AddressTrait, Ledger, LedgerInfo};
+    use soroban_sdk::{vec, Address, Env, Map, String, Vec, I256};
 
     use super::{GovernorContract, GovernorContractClient};
     use crate::constants::ONE_DAY_LEDGERS;
@@ -367,34 +367,67 @@ mod test {
         (governor_client, governance_client, scf_token_client, admin)
     }
 
-    // TODO add test "any user having scf token can vote on proposals"
-    // fn set_nqg_results(
-    //     env: &Env,
-    //     governance_client: &governance::Client,
-    //     address: &Address,
-    //     new_balance: i128,
-    // ) {
-    //     let mut result = governance_client
-    //         .try_get_neuron_result(
-    //             &soroban_sdk::String::from_str(env, "0"),
-    //             &soroban_sdk::String::from_str(env, "0"),
-    //         )
-    //         .unwrap_or_else(|_| {
-    //             let mut map = Map::new(env);
-    //             map.set(address.to_string(), I256::from_i32(env, 0));
-    //             Ok(map)
-    //         })
-    //         .unwrap();
-    //     result.set(address.to_string(), I256::from_i128(env, new_balance));
+    fn set_nqg_results(
+        env: &Env,
+        governance_client: &governance::Client,
+        address: &Address,
+        new_balance: i128,
+    ) {
+        let mut result = governance_client
+            .try_get_neuron_result(
+                &soroban_sdk::String::from_str(env, "0"),
+                &soroban_sdk::String::from_str(env, "0"),
+            )
+            .unwrap_or_else(|_| {
+                let mut map = Map::new(env);
+                map.set(address.to_string(), I256::from_i32(env, 0));
+                Ok(map)
+            })
+            .unwrap();
+        result.set(address.to_string(), I256::from_i128(env, new_balance));
 
-    //     governance_client.set_neuron_result(
-    //         &soroban_sdk::String::from_str(env, "0"),
-    //         &soroban_sdk::String::from_str(env, "0"),
-    //         &result,
-    //     );
+        governance_client.set_neuron_result(
+            &soroban_sdk::String::from_str(env, "0"),
+            &soroban_sdk::String::from_str(env, "0"),
+            &result,
+        );
 
-    //     governance_client.calculate_voting_powers();
-    // }
+        governance_client.calculate_voting_powers();
+    }
+    #[test]
+    fn users_with_scf_token_can_vote() {
+        let env = Env::default();
+        let (governor_client, governance_client, scf_token_client, _council) =
+            prepare_test(&env, 30);
+        // user1 is whitelisted and creates a proposal
+        let creator = Address::generate(&env);
+        governor_client.update_proposal_whitelist(&vec![&env, creator.clone()]);
+        let proposal_id = governor_client.propose(
+            &creator,
+            &String::from_str(&env, "test"),
+            &String::from_str(&env, "test"),
+            &ProposalAction::Snapshot,
+        );
+        // user2 has some amount of scf token and votes on the proposal
+        let voter = Address::generate(&env);
+        set_nqg_results(&env, &governance_client, &voter, 10_i128.pow(18));
+        scf_token_client.update_balance(&voter);
+        let ledgers_jump = 10;
+        env.ledger().set(LedgerInfo {
+            timestamp: env
+                .ledger()
+                .timestamp()
+                .saturating_add(u64::from(ledgers_jump) * 5),
+            protocol_version: 22,
+            sequence_number: env.ledger().sequence().saturating_add(ledgers_jump),
+            network_id: Default::default(),
+            base_reserve: 10,
+            min_temp_entry_ttl: 10 * 17280,
+            min_persistent_entry_ttl: 10 * 17280,
+            max_entry_ttl: 365 * 17280,
+        });
+        governor_client.vote(&voter, &proposal_id, &1);
+    }
 
     #[test]
     fn whitelisted_users_can_create_proposals() {
