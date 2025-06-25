@@ -14,6 +14,7 @@ use crate::types::{ContractError, DataKey, VotesError};
 use crate::votes::Votes;
 
 pub const DECIMALS: u32 = 9;
+pub const MAX_ACCOUNTS_COUNT: u32 = 200;
 const NQG_DECIMALS: u32 = 18;
 
 mod governance {
@@ -42,6 +43,12 @@ impl SCFToken {
     pub fn update_balance(env: Env, address: Address) -> Result<(), ContractError> {
         let admin = read_admin(&env);
         admin.require_auth();
+
+        let addresses = read_all_addresses(&env);
+
+        if !addresses.contains(address.clone()) && addresses.len() >= MAX_ACCOUNTS_COUNT {
+            return Err(ContractError::ReachedMaxAccountsCount);
+        }
 
         let governance_address = read_governance_contract_address(&env);
         let governance_client = governance::Client::new(&env, &governance_address);

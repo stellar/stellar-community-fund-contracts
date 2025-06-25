@@ -19,6 +19,7 @@ pub enum ContractError {
     ActionNotSupported = 4,
     ZeroUserCount = 5,
     InconsistentBalancesRounds = 6,
+    ReachedMaxAccountsCount = 7,
 }
 
 #[contracterror]
