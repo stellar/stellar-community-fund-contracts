@@ -1,3 +1,4 @@
+use scf_token::MAX_ACCOUNTS_COUNT;
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{Address, Env};
 
@@ -39,4 +40,39 @@ fn all_addresses() {
         assert!(fetched_addresses.contains(a.clone()))
     }
     assert_eq!(addresses.len(), fetched_addresses.len() as usize);
+}
+
+#[test]
+fn max_accounts() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+    for _ in 1..=MAX_ACCOUNTS_COUNT {
+        let addr = Address::generate(&env);
+        set_nqg_results(&env, &governance_client, &addr, 10_i128.pow(18));
+        client.update_balance(&addr);
+    }
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #7)")]
+fn max_accounts_fail() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+    let admin = Address::generate(&env);
+    let Deployment {
+        client,
+        governance_client,
+    } = deploy_and_setup(&env, &admin);
+    env.mock_all_auths();
+    for _ in 1..=MAX_ACCOUNTS_COUNT + 1 {
+        let addr = Address::generate(&env);
+        set_nqg_results(&env, &governance_client, &addr, 10_i128.pow(18));
+        client.update_balance(&addr);
+    }
 }
