@@ -37,10 +37,7 @@ Assigns voting power based on rounds voter previously participated in.
 Having participated in most recent rounds have greater impact on the bonus, than rounds that were long time ago.
 This way users who are inactive slowly loose their bonus, allowing for new, more active users to catch up.
 
-// TODO add curves and math formula here 
-
 ### Trust Graph Neuron
-// TODO update to actual values after deciding on them
 
 Assigns voting power based on the amount of users trusting given voter. Each user can select other voters as trusted.
 Final trust score calculation is done in 3 steps:
