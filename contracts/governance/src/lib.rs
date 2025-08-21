@@ -67,6 +67,12 @@ pub enum DataKey {
 
 #[contractimpl]
 impl VotingSystem {
+    pub fn proof(env: Env) {
+        let bls: soroban_sdk::crypto::bls12_381::Bls12_381 = env.crypto().bls12_381();
+        // env.crypto().bls12_381()
+        // bls.pairing_check(vp1, vp2)
+    }
+
     /// Initialize the governance contract.
     pub fn initialize(env: Env, admin: Address, current_round: u32) {
         assert!(!is_set_admin(&env), "Admin already set");
@@ -417,4 +423,21 @@ fn next_layer_id(env: &Env) -> u32 {
         .instance()
         .set(&DataKey::CurrentLayerId, &(id + 1));
     id
+}
+
+#[cfg(test)]
+mod test {
+    use soroban_sdk::Env;
+    pub mod governance {
+        use soroban_sdk::contractimport;
+        contractimport!(file = "../target/wasm32-unknown-unknown/release/governance.wasm");
+    }
+    #[test]
+    fn hello() {
+        let env = Env::default();
+        let governance_address = env.register(governance::WASM, ());
+        let governance_client: governance::Client<'_> =
+            governance::Client::new(&env, &governance_address);
+        // governance_client.
+    }
 }
