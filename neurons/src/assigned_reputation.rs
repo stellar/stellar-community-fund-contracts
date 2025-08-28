@@ -1,7 +1,17 @@
 use crate::neurons::Neuron;
 use serde_repr::Deserialize_repr;
 use std::collections::HashMap;
+// Pilot: 3
+// Navigator: 2
+// Pathfinder: 1
 
+// [Chapter] Ambassador: 0.5
+// Ambassador President: 1
+// SCF Project: 1
+// Public Good Contributor: 1
+// Moderator: 1
+// SDF: 1
+// Tier 1 Validator: 1
 #[derive(Deserialize_repr, Clone, Debug)]
 #[repr(i32)]
 pub enum ReputationTier {
