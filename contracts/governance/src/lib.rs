@@ -3,9 +3,9 @@
 
 extern crate alloc;
 
+use crate::fixed_mul_floor::fixed_mul_floor;
 use alloc::string::ToString;
-
-use soroban_fixed_point_math::SorobanFixedPoint;
+// use soroban_fixed_point_math::SorobanFixedPoint;
 use soroban_sdk::{
     contract, contractimpl, contracttype, vec, Address, BytesN, Env, Map, String, Vec, I256,
 };
@@ -27,6 +27,7 @@ use crate::storage::{
 use crate::types::{Vote, VotingSystemError, ABSTAIN_VOTING_POWER};
 
 mod admin;
+mod fixed_mul_floor;
 mod neural_governance;
 mod storage;
 pub mod types;
@@ -400,7 +401,8 @@ fn weigh_neuron_result(env: &Env, weight: &I256, result: Map<String, I256>) -> M
     for (key, value) in result {
         scaled.set(
             key,
-            value.fixed_mul_floor(env, weight, &I256::from_i128(env, DECIMALS)),
+            // value.fixed_mul_floor(env, weight, &I256::from_i128(env, DECIMALS)),
+            fixed_mul_floor(env, &value, weight, &I256::from_i128(env, DECIMALS)),
         );
     }
 

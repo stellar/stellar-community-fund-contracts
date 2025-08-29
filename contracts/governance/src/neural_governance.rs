@@ -1,6 +1,7 @@
 #![allow(non_upper_case_globals)]
+use crate::fixed_mul_floor::fixed_mul_floor;
 
-use soroban_fixed_point_math::SorobanFixedPoint;
+// use soroban_fixed_point_math::SorobanFixedPoint;
 use soroban_sdk::{contracttype, Env, Map, String, Vec, I256};
 
 pub mod traits;
@@ -73,7 +74,8 @@ pub(crate) fn aggregate_result(
             LayerAggregator::Sum => res.iter().reduce(|acc, e| acc.add(&e)),
             LayerAggregator::Product => res
                 .iter()
-                .reduce(|acc, e| acc.fixed_mul_floor(env, &e, &decimals)),
+                // .reduce(|acc, e| acc.fixed_mul_floor(env, &e, &decimals)),
+                .reduce(|acc, e| fixed_mul_floor(env, &acc, &e, &decimals)),
         }
         .unwrap_or_else(|| I256::from_i128(env, 0));
         aggregated_result.set(user, res);
