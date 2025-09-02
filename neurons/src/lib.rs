@@ -128,7 +128,6 @@ pub fn run_votes_normalization(
                 ))
             }
         };
-
     let normalized_votes = match normalize_votes(votes, &submissions, &delegatees_for_user) {
         Ok(normalized_votes) => normalized_votes,
         Err(err) => return Err(format!("error normalizing votes {}", err.to_string())),
