@@ -16,8 +16,8 @@ jobs:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.81.0
-          targets: wasm32-unknown-unknown
+          toolchain: 1.85.0
+          targets: wasm32v1-none
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
         with:
