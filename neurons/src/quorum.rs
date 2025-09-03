@@ -6,8 +6,8 @@ use wasm_bindgen::JsValue;
 use web_sys::{self, console};
 
 const QUORUM_SIZE: u32 = 5;
-const QUORUM_ABSOLUTE_PARTICIPATION_THRESHOLD: f64 = 1.0 / 2.0;
-const QUORUM_RELATIVE_PARTICIPATION_THRESHOLD: f64 = 2.0 / 3.0;
+const QUORUM_ABSOLUTE_PARTICIPATION_THRESHOLD: f64 = 1.0 / 4.0;
+const QUORUM_RELATIVE_PARTICIPATION_THRESHOLD: f64 = 1.0 / 3.0;
 
 #[non_exhaustive]
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
