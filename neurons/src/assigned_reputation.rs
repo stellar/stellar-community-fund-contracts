@@ -1,17 +1,7 @@
 use crate::neurons::Neuron;
 use serde_repr::Deserialize_repr;
 use std::collections::HashMap;
-// Pilot: 3
-// Navigator: 2
-// Pathfinder: 1
 
-// [Chapter] Ambassador: 0.5
-// Ambassador President: 1
-// SCF Project: 1
-// Public Good Contributor: 1
-// Moderator: 1
-// SDF: 1
-// Tier 1 Validator: 1
 #[derive(Deserialize_repr, Clone, Debug)]
 #[repr(i32)]
 pub enum ReputationTier {
@@ -25,23 +15,46 @@ pub enum ReputationTier {
 #[derive(Clone, Debug)]
 pub struct AssignedReputationNeuron {
     users_reputation: HashMap<String, ReputationTier>,
+    users_discord_roles: HashMap<String, Vec<String>>,
 }
 
 impl AssignedReputationNeuron {
-    pub fn from_data(users_reputation: HashMap<String, ReputationTier>) -> Self {
-        Self { users_reputation }
+    pub fn from_data(
+        users_reputation: HashMap<String, ReputationTier>,
+        users_discord_roles: HashMap<String, Vec<String>>,
+    ) -> Self {
+        Self {
+            users_reputation,
+            users_discord_roles,
+        }
     }
 }
 
 fn reputation_bonus(reputation_tier: &ReputationTier) -> f64 {
     match reputation_tier {
         ReputationTier::Unknown | ReputationTier::Verified => 0.0,
-        ReputationTier::Pathfinder => 0.1,
-        ReputationTier::Navigator => 0.2,
-        ReputationTier::Pilot => 0.3,
+        ReputationTier::Pathfinder => 1.0,
+        ReputationTier::Navigator => 2.0,
+        ReputationTier::Pilot => 3.0,
     }
 }
 
+fn discord_roles_bonus(roles: &Vec<String>) -> f64 {
+    roles.iter().fold(0.0, |acc, role| acc + role_to_bonus(role))
+}
+
+// TODO add: [Chapter] Ambassador: 0.5
+fn role_to_bonus(role: &str) -> f64 {
+    match role {
+        "Ambassador President" => 1.0,
+        "SCF Project" => 1.0,
+        "Public Good Contributor" => 1.0,
+        "Moderator" => 1.0,
+        "SDF" => 1.0,
+        "Tier 1 Validator" => 1.0,
+        _ => 0.0,
+    }
+}
 impl Neuron for AssignedReputationNeuron {
     fn name(&self) -> String {
         "assigned_reputation_neuron".to_string()
@@ -51,10 +64,67 @@ impl Neuron for AssignedReputationNeuron {
         let mut result = HashMap::new();
 
         for user in users {
-            let bonus = reputation_bonus(self.users_reputation.get(user).unwrap());
+            let mut bonus = reputation_bonus(self.users_reputation.get(user).unwrap());
+            bonus += discord_roles_bonus(self.users_discord_roles.get(user).unwrap());
             result.insert(user.into(), bonus);
         }
 
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn reputation_bonus_values() {
+        assert_eq!(reputation_bonus(&ReputationTier::Unknown), 0.0);
+        assert_eq!(reputation_bonus(&ReputationTier::Verified), 0.0);
+        assert_eq!(reputation_bonus(&ReputationTier::Pathfinder), 1.0);
+        assert_eq!(reputation_bonus(&ReputationTier::Navigator), 2.0);
+        assert_eq!(reputation_bonus(&ReputationTier::Pilot), 3.0);
+    }
+
+    #[test]
+    fn roles_bonus_values() {
+        assert_eq!(discord_roles_bonus(&vec!["Ambassador President".to_string()]), 1.0);
+        assert_eq!(discord_roles_bonus(&vec!["SCF Project".to_string()]), 1.0);
+        assert_eq!(discord_roles_bonus(&vec!["Public Good Contributor".to_string()]), 1.0);
+        assert_eq!(discord_roles_bonus(&vec!["Moderator".to_string()]), 1.0);
+        assert_eq!(discord_roles_bonus(&vec!["SDF".to_string()]), 1.0);
+        assert_eq!(discord_roles_bonus(&vec!["Tier 1 Validator".to_string()]), 1.0);
+    }
+
+    #[test]
+    fn neuron_run() {
+        let users: Vec<String> = vec![
+            "user1".to_string(),
+            "user2".to_string(),
+            "user3".to_string(),
+        ];
+        let mut users_reputation: HashMap<String, ReputationTier> = HashMap::new();
+        users_reputation.insert("user1".to_string(), ReputationTier::Navigator);
+        users_reputation.insert("user2".to_string(), ReputationTier::Pilot);
+        users_reputation.insert("user3".to_string(), ReputationTier::Verified);
+
+        let mut users_discord_roles: HashMap<String, Vec<String>> = HashMap::new();
+        users_discord_roles.insert(
+            "user1".to_string(),
+            vec![
+                "SDF".to_string(),
+                "SCF Project".to_string(),
+                "Moderator".to_string(),
+            ],
+        );
+        users_discord_roles.insert("user2".to_string(), vec![]);
+        users_discord_roles
+            .insert("user3".to_string(), vec!["Public Good Contributor".to_string()]);
+
+        let neuron = AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);
+        let resut = neuron.calculate_result(&users);
+
+        assert_eq!(resut.get("user1").unwrap(), &5.0);
+        assert_eq!(resut.get("user2").unwrap(), &3.0);
+        assert_eq!(resut.get("user3").unwrap(), &1.0);
     }
 }
