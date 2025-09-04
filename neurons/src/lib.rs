@@ -21,6 +21,7 @@ pub fn run_neurons(
     users_base: &str,
     previous_rounds_for_users: &str,
     users_reputation: &str,
+    users_discord_roles: &str,
     trusted_for_user_per_round: &str,
 ) -> Result<String, String> {
     // parse all data
@@ -49,6 +50,17 @@ pub fn run_neurons(
                 ))
             }
         };
+    let users_discord_roles: HashMap<String, Vec<String>> =
+        match serde_json::from_str(users_discord_roles) {
+            Ok(users_discord_roles) => users_discord_roles,
+            Err(err) => {
+                return Err(format!(
+                    "users_discord_roles json parsing error {}",
+                    err.to_string()
+                ))
+            }
+        };
+    println!("users_discord_roles: {:?}", users_discord_roles);
     let trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>> =
         match serde_json::from_str(trusted_for_user_per_round) {
             Ok(trusted_for_user_per_round) => trusted_for_user_per_round,
@@ -63,7 +75,8 @@ pub fn run_neurons(
     let prior_voting_history_neuron =
         PriorVotingHistoryNeuron::from_data(previous_rounds_for_users);
 
-    let assigned_reputation_neuron = AssignedReputationNeuron::from_data(users_reputation);
+    let assigned_reputation_neuron =
+        AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);
 
     // prepare and run trust neurons for previous rounds
     let mut trust_graph_neurons: Vec<Box<dyn Neuron>> = vec![];
