@@ -44,20 +44,14 @@ pub fn run_neurons(
         match serde_json::from_str(users_reputation) {
             Ok(users_reputation) => users_reputation,
             Err(err) => {
-                return Err(format!(
-                    "users_reputation json parsing error {}",
-                    err.to_string()
-                ))
+                return Err(format!("users_reputation json parsing error {}", err.to_string()))
             }
         };
     let users_discord_roles: HashMap<String, Vec<String>> =
         match serde_json::from_str(users_discord_roles) {
             Ok(users_discord_roles) => users_discord_roles,
             Err(err) => {
-                return Err(format!(
-                    "users_discord_roles json parsing error {}",
-                    err.to_string()
-                ))
+                return Err(format!("users_discord_roles json parsing error {}", err.to_string()))
             }
         };
     println!("users_discord_roles: {:?}", users_discord_roles);
@@ -80,16 +74,12 @@ pub fn run_neurons(
 
     // prepare and run trust neurons for previous rounds
     let mut trust_graph_neurons: Vec<Box<dyn Neuron>> = vec![];
-    trusted_for_user_per_round
-        .iter()
-        .for_each(|(round, trusted_for_user)| {
-            if *round == current_round || *round == current_round - 1 {
-                trust_graph_neurons.push(Box::new(TrustGraphNeuron::from_data(
-                    trusted_for_user.clone(),
-                    *round,
-                )));
-            }
-        });
+    trusted_for_user_per_round.iter().for_each(|(round, trusted_for_user)| {
+        if *round == current_round || *round == current_round - 1 {
+            trust_graph_neurons
+                .push(Box::new(TrustGraphNeuron::from_data(trusted_for_user.clone(), *round)));
+        }
+    });
 
     let trust_graph_neurons_results: HashMap<String, HashMap<String, f64>> =
         calculate_trust_neuron_results(&users_base, trust_graph_neurons);
@@ -123,22 +113,14 @@ pub fn run_votes_normalization(
 
     let submissions: Vec<Submission> = match serde_json::from_str(submissions) {
         Ok(submissions) => submissions,
-        Err(err) => {
-            return Err(format!(
-                "submissions json parsing error {}",
-                err.to_string()
-            ))
-        }
+        Err(err) => return Err(format!("submissions json parsing error {}", err.to_string())),
     };
 
     let delegatees_for_user: HashMap<String, DelegateesForUser> =
         match serde_json::from_str(delegatees_for_user) {
             Ok(delegatees_for_user) => delegatees_for_user,
             Err(err) => {
-                return Err(format!(
-                    "delegatees_for_user json parsing error {}",
-                    err.to_string()
-                ))
+                return Err(format!("delegatees_for_user json parsing error {}", err.to_string()))
             }
         };
 

@@ -39,10 +39,7 @@ fn bonus(rounds_weights_sum: f64) -> f64 {
 }
 
 fn calculate_bonus(rounds_participated: &[u32]) -> f64 {
-    let rounds_weights_sum = rounds_participated
-        .iter()
-        .map(|round| round_weight(*round))
-        .sum();
+    let rounds_weights_sum = rounds_participated.iter().map(|round| round_weight(*round)).sum();
     bonus(rounds_weights_sum)
 }
 
@@ -56,11 +53,7 @@ impl Neuron for PriorVotingHistoryNeuron {
 
         for user in users {
             let bonus = calculate_bonus(
-                &self
-                    .users_round_history
-                    .get(user)
-                    .cloned()
-                    .unwrap_or_else(Vec::new),
+                &self.users_round_history.get(user).cloned().unwrap_or_else(Vec::new),
             );
             result.insert(user.into(), bonus);
         }
