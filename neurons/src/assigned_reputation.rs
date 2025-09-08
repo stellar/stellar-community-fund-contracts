@@ -43,7 +43,6 @@ fn discord_roles_bonus(roles: &Vec<String>) -> f64 {
     roles.iter().fold(0.0, |acc, role| acc + role_to_bonus(role))
 }
 
-// TODO add: [Chapter] Ambassador: 0.5
 fn role_to_bonus(role: &str) -> f64 {
     match role {
         "Ambassador President" => 1.0,
@@ -52,6 +51,18 @@ fn role_to_bonus(role: &str) -> f64 {
         "Moderator" => 1.0,
         "SDF" => 1.0,
         "Tier 1 Validator" => 1.0,
+
+        "West Africa Ambassador" => 0.5,
+        "Brazil Ambassador" => 0.5,
+        "India Ambassador" => 0.5,
+        "Southern African Ambassador" => 0.5,
+        "East Africa Ambassador" => 0.5,
+        "Mexico Ambassador" => 0.5,
+        "Colombia Ambassador" => 0.5,
+        "Chile Ambassador" => 0.5,
+        "Argentina Ambassador" => 0.5,
+        "Europe Ambassador" => 0.5,
+
         _ => 0.0,
     }
 }
@@ -93,6 +104,17 @@ mod tests {
         assert_eq!(discord_roles_bonus(&vec!["Moderator".to_string()]), 1.0);
         assert_eq!(discord_roles_bonus(&vec!["SDF".to_string()]), 1.0);
         assert_eq!(discord_roles_bonus(&vec!["Tier 1 Validator".to_string()]), 1.0);
+
+        assert_eq!(discord_roles_bonus(&vec!["West Africa Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Brazil Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["India Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Southern African Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["East Africa Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Mexico Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Colombia Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Chile Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Argentina Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Europe Ambassador".to_string()]), 0.5);
     }
 
     #[test]

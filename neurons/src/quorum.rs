@@ -45,10 +45,7 @@ pub fn normalize_votes(
             let submission = submissions
                 .iter()
                 .find(|sub| sub.name == submission_name)
-                .expect(&format!(
-                    "Missing details for submission: {}",
-                    submission_name
-                ));
+                .expect(&format!("Missing details for submission: {}", submission_name));
             let submission_votes =
                 normalize_votes_for_submission(submission, &submission_votes, delegatees_for_user)?;
             Ok((submission_name, submission_votes))
@@ -138,21 +135,19 @@ fn calculate_quorum_consensus(
         0.0
     };
 
-    Ok(
-        if absolute_agreement.abs() > QUORUM_ABSOLUTE_PARTICIPATION_THRESHOLD {
-            if relative_agreement.abs() > QUORUM_RELATIVE_PARTICIPATION_THRESHOLD {
-                if relative_agreement > 0.0 {
-                    Vote::Yes
-                } else {
-                    Vote::No
-                }
+    Ok(if absolute_agreement.abs() > QUORUM_ABSOLUTE_PARTICIPATION_THRESHOLD {
+        if relative_agreement.abs() > QUORUM_RELATIVE_PARTICIPATION_THRESHOLD {
+            if relative_agreement > 0.0 {
+                Vote::Yes
             } else {
-                Vote::Abstain
+                Vote::No
             }
         } else {
             Vote::Abstain
-        },
-    )
+        }
+    } else {
+        Vote::Abstain
+    })
 }
 
 #[cfg(test)]
@@ -503,50 +498,17 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(
-            normalized_votes_for_submission1.get(&user1).unwrap(),
-            &Vote::Yes
-        );
-        assert_eq!(
-            normalized_votes_for_submission1.get(&user2).unwrap(),
-            &Vote::Yes
-        );
-        assert_eq!(
-            normalized_votes_for_submission1.get(&user3).unwrap(),
-            &Vote::Yes
-        );
-        assert_eq!(
-            normalized_votes_for_submission1.get(&user4).unwrap(),
-            &Vote::Yes
-        );
-        assert_eq!(
-            normalized_votes_for_submission1.get(&user5).unwrap(),
-            &Vote::Yes
-        );
-        assert_eq!(
-            normalized_votes_for_submission1.get(&user6).unwrap(),
-            &Vote::Yes
-        );
+        assert_eq!(normalized_votes_for_submission1.get(&user1).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes_for_submission1.get(&user2).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes_for_submission1.get(&user3).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes_for_submission1.get(&user4).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes_for_submission1.get(&user5).unwrap(), &Vote::Yes);
+        assert_eq!(normalized_votes_for_submission1.get(&user6).unwrap(), &Vote::Yes);
 
-        assert_eq!(
-            normalized_votes_for_submission2.get(&user1).unwrap(),
-            &Vote::No
-        );
-        assert_eq!(
-            normalized_votes_for_submission2.get(&user7).unwrap(),
-            &Vote::No
-        );
-        assert_eq!(
-            normalized_votes_for_submission2.get(&user8).unwrap(),
-            &Vote::No
-        );
-        assert_eq!(
-            normalized_votes_for_submission2.get(&user9).unwrap(),
-            &Vote::No
-        );
-        assert_eq!(
-            normalized_votes_for_submission2.get(&user10).unwrap(),
-            &Vote::No
-        );
+        assert_eq!(normalized_votes_for_submission2.get(&user1).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes_for_submission2.get(&user7).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes_for_submission2.get(&user8).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes_for_submission2.get(&user9).unwrap(), &Vote::No);
+        assert_eq!(normalized_votes_for_submission2.get(&user10).unwrap(), &Vote::No);
     }
 }

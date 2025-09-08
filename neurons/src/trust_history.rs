@@ -47,16 +47,14 @@ impl Neuron for TrustHistoryNeuron {
                 .unwrap()
                 .clone();
 
-            user_trust
-                .iter()
-                .for_each(|(user, trust)| match users_trust_history.get_mut(user) {
-                    Some(trust_vec) => {
-                        trust_vec.push(*trust);
-                    }
-                    None => {
-                        let _ = users_trust_history.insert(user.to_string(), vec![*trust]);
-                    }
-                });
+            user_trust.iter().for_each(|(user, trust)| match users_trust_history.get_mut(user) {
+                Some(trust_vec) => {
+                    trust_vec.push(*trust);
+                }
+                None => {
+                    let _ = users_trust_history.insert(user.to_string(), vec![*trust]);
+                }
+            });
         }
         let mut result = HashMap::new();
 

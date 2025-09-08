@@ -163,12 +163,7 @@ mod tests {
     macro_rules! assert_f64_near {
         ( $a:expr, $b:expr ) => {
             let eps = 0.001f64;
-            assert!(
-                ($a - $b).abs() < eps,
-                "Values a = {}, b = {} are not near",
-                $a,
-                $b
-            );
+            assert!(($a - $b).abs() < eps, "Values a = {}, b = {} are not near", $a, $b);
         };
     }
 
