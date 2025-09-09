@@ -149,8 +149,7 @@ fn calculate_high_trust_value(trust_map: &HashMap<String, f64>, percent_threshol
     let mut trust_scores_sorted: Vec<f64> = trust_map.values().cloned().collect();
     trust_scores_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-    let target_index =
-        trust_scores_sorted.len() - ((trust_scores_sorted.len() * percent_threshold) / 100).max(1);
+    let target_index = trust_scores_sorted.len() - ((trust_scores_sorted.len() * percent_threshold) / 100).max(1);
 
     trust_scores_sorted.get(target_index).unwrap().to_owned()
 }
@@ -163,12 +162,7 @@ mod tests {
     macro_rules! assert_f64_near {
         ( $a:expr, $b:expr ) => {
             let eps = 0.001f64;
-            assert!(
-                ($a - $b).abs() < eps,
-                "Values a = {}, b = {} are not near",
-                $a,
-                $b
-            );
+            assert!(($a - $b).abs() < eps, "Values a = {}, b = {} are not near", $a, $b);
         };
     }
 
@@ -201,10 +195,7 @@ mod tests {
         };
 
         let result = trust_graph_neuron.handle_page_rank(
-            &["A", "B", "C", "D", "E"]
-                .into_iter()
-                .map(std::string::ToString::to_string)
-                .collect::<Vec<_>>(),
+            &["A", "B", "C", "D", "E"].into_iter().map(std::string::ToString::to_string).collect::<Vec<_>>(),
         );
 
         let with_bonus = trust_graph_neuron.handle_highly_trusted_bonus(result, 1, 100.0);
@@ -228,10 +219,7 @@ mod tests {
         };
 
         let result = trust_graph_neuron.handle_page_rank(
-            &["A", "B", "C", "D", "E"]
-                .into_iter()
-                .map(std::string::ToString::to_string)
-                .collect::<Vec<_>>(),
+            &["A", "B", "C", "D", "E"].into_iter().map(std::string::ToString::to_string).collect::<Vec<_>>(),
         );
 
         assert_f64_near!(result.get("A").unwrap(), &1.0);
