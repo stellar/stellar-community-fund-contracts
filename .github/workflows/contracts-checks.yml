@@ -20,10 +20,10 @@ jobs:
           targets: wasm32v1-none
           components: clippy, rustfmt
           key: 1
-      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
+      - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ./contracts
-          cache-all-crates: false
+          cache-all-crates: true
 
       - name: Install soroban cli
         run: |
