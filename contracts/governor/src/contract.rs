@@ -309,12 +309,12 @@ mod test {
 
     pub mod scf_token {
         use soroban_sdk::contractimport;
-        contractimport!(file = "../target/wasm32-unknown-unknown/release/scf_token.wasm");
+        contractimport!(file = "../target/wasm32v1-none/release/scf_token.wasm");
     }
 
     pub mod governance {
         use soroban_sdk::contractimport;
-        contractimport!(file = "../target/wasm32-unknown-unknown/release/governance.wasm");
+        contractimport!(file = "../target/wasm32v1-none/release/governance.wasm");
     }
 
     fn prepare_test(
@@ -418,7 +418,7 @@ mod test {
                 .ledger()
                 .timestamp()
                 .saturating_add(u64::from(ledgers_jump) * 5),
-            protocol_version: 22,
+            protocol_version: 23,
             sequence_number: env.ledger().sequence().saturating_add(ledgers_jump),
             network_id: Default::default(),
             base_reserve: 10,

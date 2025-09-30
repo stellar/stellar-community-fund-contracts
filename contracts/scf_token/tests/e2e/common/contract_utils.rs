@@ -6,7 +6,7 @@ use soroban_sdk::{Address, Env, Map, I256};
 pub mod governance {
     use soroban_sdk::contractimport;
 
-    contractimport!(file = "../target/wasm32-unknown-unknown/release/governance.wasm");
+    contractimport!(file = "../target/wasm32v1-none/release/governance.wasm");
 }
 
 pub fn deploy_contract<'a>(
@@ -106,7 +106,7 @@ pub fn jump(env: &mut Env, ledgers: u32) {
             .ledger()
             .timestamp()
             .saturating_add(u64::from(ledgers) * 5),
-        protocol_version: 22,
+        protocol_version: 23,
         sequence_number: env.ledger().sequence().saturating_add(ledgers),
         network_id: Default::default(),
         base_reserve: 10,
