@@ -1,8 +1,8 @@
 use crate::admin::{read_admin, write_admin, Admin};
 use soroban_sdk::token::Interface;
 use soroban_sdk::{
-    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN, Env, String, Vec,
-    I256,
+    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN, Env,
+    MuxedAddress, String, Vec, I256,
 };
 
 use crate::balance::{extend_balance, read_balance, write_balance};
@@ -20,7 +20,7 @@ const NQG_DECIMALS: u32 = 18;
 mod governance {
     use soroban_sdk::contractimport;
 
-    contractimport!(file = "../target/wasm32-unknown-unknown/release/governance.wasm");
+    contractimport!(file = "../target/wasm32v1-none/release/governance.wasm");
 }
 
 #[contract]
@@ -222,7 +222,7 @@ impl Interface for SCFToken {
         read_balance(&env, &id).current
     }
 
-    fn transfer(env: Env, from: Address, to: Address, amount: i128) {
+    fn transfer(env: Env, from: Address, to: MuxedAddress, amount: i128) {
         panic_with_error!(env, ContractError::ActionNotSupported);
     }
 
