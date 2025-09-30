@@ -30,7 +30,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libdbus-1-dev
+          sudo apt-get install -y pkg-config libdbus-1-dev libudev
 
       - name: Install soroban cli
         run: |
