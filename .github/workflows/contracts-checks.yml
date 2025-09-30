@@ -20,7 +20,7 @@ jobs:
           toolchain: 1.85.0
           targets: wasm32v1-none
           components: clippy, rustfmt
-          key: 1
+          key: 2
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -38,7 +38,7 @@ jobs:
 
       - name: Build contracts
         run: |
-          soroban contract build
+          stellar contract build
 
       - name: Run tests
         run: |

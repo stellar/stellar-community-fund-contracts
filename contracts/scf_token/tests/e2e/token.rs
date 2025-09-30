@@ -1,5 +1,6 @@
 use crate::e2e::common::contract_utils::{deploy_and_setup, update_balance, Deployment};
 use scf_token::DECIMALS;
+// use scf_token::DECIMALS;
 use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{Address, Env, Error, String};
 

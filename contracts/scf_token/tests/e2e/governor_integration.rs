@@ -3,7 +3,6 @@ use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{Address, Env};
 
 use crate::e2e::common::contract_utils::{deploy_and_setup, set_nqg_results, Deployment};
-
 #[test]
 fn all_addresses() {
     let env = Env::default();
