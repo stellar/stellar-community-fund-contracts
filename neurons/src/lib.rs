@@ -74,8 +74,11 @@ pub fn run_neurons(
             }
         };
     // create neurons
-    let prior_voting_history_neuron =
-        PriorVotingHistoryNeuron::from_data(previous_rounds_for_users, votes_per_round);
+    let prior_voting_history_neuron = PriorVotingHistoryNeuron::from_data(
+        previous_rounds_for_users,
+        votes_per_round,
+        current_round,
+    );
 
     let assigned_reputation_neuron =
         AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);

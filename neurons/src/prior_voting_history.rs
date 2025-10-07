@@ -1,12 +1,13 @@
 use crate::neurons::Neuron;
 use crate::types::generalised_logistic_function;
 use crate::Vote;
-use core::panic;
 use serde::Deserialize;
 use std::collections::HashMap;
-
-pub const ACTIVE_VOTES_HISTORY_OLDEST_ROUND: u32 = 32; // we dont have data from rounds before 32
-pub const ACTIVE_VOTES_MIN_RATIO: f64 = 0.5; // lowest possible ratio of active votes
+use wasm_bindgen::JsValue;
+use web_sys::{self, console};
+const ROUND_IMPORTANCE_DECAY_OFFSET: u32 = 8;
+const ACTIVE_VOTES_HISTORY_OLDEST_ROUND: u32 = 32; // we dont have data from rounds before 32
+const ACTIVE_VOTES_MIN_RATIO: f64 = 0.5; // lowest possible ratio of active votes
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,42 +15,57 @@ pub const ACTIVE_VOTES_MIN_RATIO: f64 = 0.5; // lowest possible ratio of active 
 pub struct PriorVotingHistoryNeuron {
     users_round_history: HashMap<String, Vec<u32>>,
     votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, // round -> submission -> user -> vote
+    current_round: u32,
 }
 
 impl PriorVotingHistoryNeuron {
     pub fn from_data(
         users_round_history: HashMap<String, Vec<u32>>,
         votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>,
+        current_round: u32,
     ) -> Self {
         Self {
             users_round_history,
             votes_per_round,
+            current_round,
         }
     }
 
     pub fn calculate_bonus(&self, user: String) -> f64 {
+        // console::log_1(&JsValue::from_str(&format!("USER: {user} ")));
         let rounds_participated =
             self.users_round_history.get(&user).cloned().unwrap_or_else(Vec::new);
+        if rounds_participated.len().eq(&0) {
+            return 0.0;
+        }
         // calculate weights sum
         let mut rounds_weights_sum = 0.0;
         for round in rounds_participated {
-            let round_weight =
+            // console::log_1(&JsValue::from_str(&format!("ROUND: {round} /rounds_participated")));
+            let x_offset: f64 = (self.current_round - ROUND_IMPORTANCE_DECAY_OFFSET) as f64;
+            let round_weight: f64 =
                 // TODO MAKE X_OFF current round dependent
-                generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, 22.0, round as f64);
-            println!("round {round} weight {round_weight}");
+                generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, x_offset, round as f64);
+            // console::log_1(&JsValue::from_str(&format!("weight {round_weight}")));
             if round < ACTIVE_VOTES_HISTORY_OLDEST_ROUND {
                 rounds_weights_sum += round_weight;
-                println!("PRE 32");
+                // console::log_1(&JsValue::from_str(&format!("PRE 32")));
             } else {
                 // get votes from given round
                 match self.votes_per_round.get(&round) {
                     Some(votes) => {
                         // multiply weight by ratio of active votes in given round
-                        let with_ratio = calculate_active_votes_ratio(&user, votes);
+                        let with_ratio = round_weight * calculate_active_votes_ratio(&user, votes);
                         rounds_weights_sum += with_ratio;
-                        println!("raw: {round_weight} with ratio: {with_ratio}");
+                        // console::log_1(&JsValue::from_str(&format!(
+                        //     "raw: {round_weight} with ratio: {with_ratio}"
+                        // )));
                     }
-                    None => panic!("Voting history neuron get votes from given round fail"),
+                    None => {
+                        console::log_1(&JsValue::from_str(&format!(
+                            "missing votes for {user} from this {round} round"
+                        )));
+                    }
                 }
             }
         }
@@ -76,19 +92,21 @@ impl Neuron for PriorVotingHistoryNeuron {
 fn calculate_active_votes_ratio(user: &str, votes: &HashMap<String, HashMap<String, Vote>>) -> f64 {
     let mut total_votes_count: f64 = 0.0;
     let mut active_votes_count: f64 = 0.0;
+    // let mut not_found: f64 = 0.0;
     // iterate over all submissions
-    votes.into_iter().for_each(|(_submission_name, votes)| {
+    votes.into_iter().for_each(|(submission_name, votes)| {
         // get users vote for this submission
         match votes.get(user) {
             Some(vote) => match vote {
                 Vote::Yes | Vote::No => active_votes_count += 1.0,
                 Vote::Abstain | Vote::Delegate => {}
             },
-            None => panic!("Missing vote from user: {user}"),
+            None => console::log_1(&JsValue::from_str(&format!(
+                "user {user} missing vote for submission {submission_name}"
+            ))),
         }
         total_votes_count += 1.0;
     });
-    // calculate ratio of active votes
     (active_votes_count / total_votes_count).max(ACTIVE_VOTES_MIN_RATIO)
 }
 
