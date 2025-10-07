@@ -100,9 +100,11 @@ fn calculate_active_votes_ratio(user: &str, votes: &HashMap<String, HashMap<Stri
                 Vote::Yes | Vote::No => active_votes_count += 1.0,
                 Vote::Abstain | Vote::Delegate => {}
             },
-            None => console::log_1(&JsValue::from_str(&format!(
-                "user {user} missing vote for submission {submission_name}"
-            ))),
+            None => {
+                //     console::log_1(&JsValue::from_str(&format!(
+                //     "user {user} missing vote for submission {submission_name}"
+                // )))
+            }
         }
         total_votes_count += 1.0;
     });
