@@ -62,9 +62,9 @@ impl PriorVotingHistoryNeuron {
                         // )));
                     }
                     None => {
-                        console::log_1(&JsValue::from_str(&format!(
-                            "missing votes for {user} from this {round} round"
-                        )));
+                        // console::log_1(&JsValue::from_str(&format!(
+                        //     "missing votes for {user} from this {round} round"
+                        // )));
                     }
                 }
             }
@@ -92,7 +92,6 @@ impl Neuron for PriorVotingHistoryNeuron {
 fn calculate_active_votes_ratio(user: &str, votes: &HashMap<String, HashMap<String, Vote>>) -> f64 {
     let mut total_votes_count: f64 = 0.0;
     let mut active_votes_count: f64 = 0.0;
-    // let mut not_found: f64 = 0.0;
     // iterate over all submissions
     votes.into_iter().for_each(|(submission_name, votes)| {
         // get users vote for this submission
