@@ -16,15 +16,20 @@ use trust_history::TrustHistoryNeuron;
 use types::{Submission, Vote, DECIMALS};
 use wasm_bindgen::prelude::*;
 
+use crate::retro_vote_quality::RetroVoteQualityNeuron;
+
 #[wasm_bindgen]
 pub fn run_neurons(
     current_round: u32,
     users_base: &str,
     previous_rounds_for_users: &str,
-    votes_per_round: &str,
     users_reputation: &str,
     users_discord_roles: &str,
     trusted_for_user_per_round: &str,
+    votes_per_round: &str,
+    normalized_votes_per_round: &str,
+    tranche_status_map: &str,
+    submissions_airtable_ids: &str,
 ) -> Result<String, String> {
     // parse all data
     // depending on which file is passed here, different users-base will be run through neurons
@@ -32,6 +37,34 @@ pub fn run_neurons(
         Ok(users_base) => users_base,
         Err(err) => return Err(format!("users_base json parsing error {}", err.to_string())),
     };
+    let normalized_votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>> =
+        match serde_json::from_str(normalized_votes_per_round) {
+            Ok(normalized_votes_per_round) => normalized_votes_per_round,
+            Err(err) => {
+                return Err(format!(
+                    "normalized_votes_per_round json parsing error {}",
+                    err.to_string()
+                ))
+            }
+        };
+    let tranche_status_map: HashMap<String, Vec<String>> =
+        match serde_json::from_str(tranche_status_map) {
+            Ok(tranche_status_map) => tranche_status_map,
+            Err(err) => {
+                return Err(format!("tranche_status_map json parsing error {}", err.to_string()))
+            }
+        };
+    let submissions_airtable_ids: HashMap<String, String> =
+        match serde_json::from_str(submissions_airtable_ids) {
+            Ok(submissions_airtable_ids) => submissions_airtable_ids,
+            Err(err) => {
+                return Err(format!(
+                    "submissions_airtable_ids json parsing error {}",
+                    err.to_string()
+                ))
+            }
+        };
+
     let previous_rounds_for_users: HashMap<String, Vec<u32>> =
         match serde_json::from_str(previous_rounds_for_users) {
             Ok(previous_rounds_for_users) => previous_rounds_for_users,
@@ -77,7 +110,7 @@ pub fn run_neurons(
     // create neurons
     let prior_voting_history_neuron = PriorVotingHistoryNeuron::from_data(
         previous_rounds_for_users,
-        votes_per_round,
+        votes_per_round.clone(),
         current_round,
     );
 
@@ -99,6 +132,12 @@ pub fn run_neurons(
     let trust_history_neuron =
         TrustHistoryNeuron::from_data(current_round as usize, trust_graph_neurons_results);
 
+    let retro_vote_quality_neuron = RetroVoteQualityNeuron::from_data(
+        votes_per_round,
+        normalized_votes_per_round,
+        tranche_status_map,
+        submissions_airtable_ids,
+    );
     // run all neurons
     let results = calculate_neuron_results(
         &users_base,
@@ -106,6 +145,7 @@ pub fn run_neurons(
             Box::new(prior_voting_history_neuron),
             Box::new(assigned_reputation_neuron),
             Box::new(trust_history_neuron),
+            Box::new(retro_vote_quality_neuron),
         ],
     );
 
