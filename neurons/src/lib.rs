@@ -2,6 +2,7 @@ pub mod assigned_reputation;
 pub mod neurons;
 pub mod prior_voting_history;
 pub mod quorum;
+pub mod retro_vote_quality;
 pub mod trust_graph;
 pub mod trust_history;
 pub mod types;
