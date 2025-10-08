@@ -21,6 +21,7 @@ pub fn run_neurons(
     current_round: u32,
     users_base: &str,
     previous_rounds_for_users: &str,
+    votes_per_round: &str,
     users_reputation: &str,
     users_discord_roles: &str,
     trusted_for_user_per_round: &str,
@@ -39,6 +40,13 @@ pub fn run_neurons(
                     "previous_rounds_for_users json parsing error {}",
                     err.to_string()
                 ))
+            }
+        };
+    let votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>> =
+        match serde_json::from_str(votes_per_round) {
+            Ok(votes_per_round) => votes_per_round,
+            Err(err) => {
+                return Err(format!("votes_per_round json parsing error {}", err.to_string()))
             }
         };
     let users_reputation: HashMap<String, ReputationTier> =
@@ -67,8 +75,11 @@ pub fn run_neurons(
             }
         };
     // create neurons
-    let prior_voting_history_neuron =
-        PriorVotingHistoryNeuron::from_data(previous_rounds_for_users);
+    let prior_voting_history_neuron = PriorVotingHistoryNeuron::from_data(
+        previous_rounds_for_users,
+        votes_per_round,
+        current_round,
+    );
 
     let assigned_reputation_neuron =
         AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);
