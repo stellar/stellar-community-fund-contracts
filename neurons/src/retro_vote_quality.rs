@@ -2,8 +2,8 @@ use crate::neurons::Neuron;
 use crate::Vote;
 use std::collections::HashMap;
 
-const DELEGATED_VOTE_MULTIPLIER: f64 = 0.5;
-
+const DELEGATED_VOTE_DENOMINATOR: i32 = 2;
+const FIXED_POINT_SCALING_FACTOR: i32 = 100; // *10 to mitigate float precission loss, and *10 to allow integer division
 #[derive(Clone, Debug)]
 pub struct RetroVoteQualityNeuron {
     votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, // round -> submission -> user -> vote (Yes/No/Abstain/Delegate)
@@ -27,7 +27,7 @@ impl RetroVoteQualityNeuron {
         }
     }
     fn run_user(&self, user: &str) -> f64 {
-        let mut total_bonus: f64 = 0.0;
+        let mut total_bonus: i32 = 0;
         // loop through rounds 30-current
         for (round, round_votes) in &self.votes_per_round {
             // loop through all submissions
@@ -39,7 +39,7 @@ impl RetroVoteQualityNeuron {
                         continue;
                     };
                     // lookup bonus for this submission
-                    let bonus_value = match self.lookup_tranche_status(&submission_name) {
+                    let bonus_value: i32 = match self.lookup_tranche_status(&submission_name) {
                         Some(tranche_status) => tranche_status_to_bonus(&tranche_status),
                         None => continue,
                     };
@@ -54,8 +54,7 @@ impl RetroVoteQualityNeuron {
                             {
                                 // apply bonus value * 0.5
                                 if resolved_vote == Vote::Yes {
-                                    let lowered_bonus = bonus_value * DELEGATED_VOTE_MULTIPLIER;
-                                    total_bonus += lowered_bonus;
+                                    total_bonus += bonus_value / DELEGATED_VOTE_DENOMINATOR;
                                 }
                             }
                         }
@@ -64,7 +63,7 @@ impl RetroVoteQualityNeuron {
                 }
             }
         }
-        total_bonus
+        total_bonus as f64 / FIXED_POINT_SCALING_FACTOR as f64
     }
     fn resolve_delegated_vote(
         &self,
@@ -100,14 +99,14 @@ impl RetroVoteQualityNeuron {
         None
     }
 }
-fn tranche_status_to_bonus(tranche_status: &str) -> f64 {
+fn tranche_status_to_bonus(tranche_status: &str) -> i32 {
     match tranche_status {
-        "Live on Stellar within 6 months" => 0.3,
-        "Live on Stellar after 6 months" => 0.1,
-        "Not live on Stellar within 6 months, Awarded" => -0.3,
-        "Not live on Stellar within 6 months, MVP" => -0.2,
-        "Not live on Stellar within 6 months, Testnet" => -0.1,
-        _ => 0.0,
+        "Live on Stellar within 6 months" => 30,               // 0.3
+        "Live on Stellar after 6 months" => 10,                // 0.1
+        "Not live on Stellar within 6 months, Awarded" => -30, // -0.3
+        "Not live on Stellar within 6 months, MVP" => -20,     // -0.2
+        "Not live on Stellar within 6 months, Testnet" => -10, // -0.1
+        _ => 0,
     }
 }
 impl Neuron for RetroVoteQualityNeuron {
