@@ -194,7 +194,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications, "".to_string()),
             &submission_votes,
             &delegates_for_user,
         )
@@ -244,7 +244,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications, "".to_string()),
             &submission_votes,
             &delegates_for_user,
         )
@@ -297,7 +297,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications, "".to_string()),
             &submission_votes,
             &delegates_for_user,
         )
@@ -350,7 +350,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications, "".to_string()),
             &submission_votes,
             &delegates_for_user,
         )
@@ -386,7 +386,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications, "".to_string()),
             &submission_votes,
             &delegates_for_user,
         )
@@ -425,7 +425,7 @@ mod tests {
         );
 
         let normalized_votes = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications, "".to_string()),
             &submission_votes,
             &delegates_for_user,
         )
@@ -486,13 +486,17 @@ mod tests {
         );
 
         let normalized_votes_for_submission1 = normalize_votes_for_submission(
-            &Submission::new("sub1".to_string(), SubmissionCategory::Applications),
+            &Submission::new("sub1".to_string(), SubmissionCategory::Applications, "".to_string()),
             &submission1_votes,
             &delegates_for_user,
         )
         .unwrap();
         let normalized_votes_for_submission2 = normalize_votes_for_submission(
-            &Submission::new("sub2".to_string(), SubmissionCategory::FinancialProtocols),
+            &Submission::new(
+                "sub2".to_string(),
+                SubmissionCategory::FinancialProtocols,
+                "".to_string(),
+            ),
             &submission2_votes,
             &delegates_for_user,
         )

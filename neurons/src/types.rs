@@ -15,12 +15,17 @@ pub enum SubmissionCategory {
 pub struct Submission {
     pub name: String,
     pub category: SubmissionCategory,
+    pub project_name: String,
 }
 
 impl Submission {
     #[must_use]
-    pub fn new(name: String, category: SubmissionCategory) -> Self {
-        Self { name, category }
+    pub fn new(name: String, category: SubmissionCategory, project_name: String) -> Self {
+        Self {
+            name,
+            category,
+            project_name,
+        }
     }
 }
 
