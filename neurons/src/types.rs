@@ -15,12 +15,17 @@ pub enum SubmissionCategory {
 pub struct Submission {
     pub name: String,
     pub category: SubmissionCategory,
+    pub project_name: String,
 }
 
 impl Submission {
     #[must_use]
-    pub fn new(name: String, category: SubmissionCategory) -> Self {
-        Self { name, category }
+    pub fn new(name: String, category: SubmissionCategory, project_name: String) -> Self {
+        Self {
+            name,
+            category,
+            project_name,
+        }
     }
 }
 
@@ -30,4 +35,17 @@ pub enum Vote {
     No,
     Delegate,
     Abstain,
+}
+
+pub(crate) fn generalised_logistic_function(
+    a: f64,
+    k: f64,
+    c: f64,
+    q: f64,
+    b: f64,
+    nu: f64,
+    x_off: f64,
+    x: f64,
+) -> f64 {
+    a + (k - a) / (f64::powf(c + q * f64::exp(-b * (x - x_off)), 1.0 / nu))
 }
