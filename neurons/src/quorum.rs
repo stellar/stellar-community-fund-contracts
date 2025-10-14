@@ -1,9 +1,15 @@
 use crate::{types::SubmissionCategory, Submission, Vote};
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Error, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use wasm_bindgen::JsValue;
+use web_sys::{
+    self,
+    console::{self, log_1},
+};
 
-const QUORUM_SIZE: u32 = 5;
+// const QUORUM_SIZE: u32 = 5;
+const MAX_QUORUM_SIZE: u32 = 15;
 const QUORUM_ABSOLUTE_PARTICIPATION_THRESHOLD: f64 = 1.0 / 2.0;
 const QUORUM_RELATIVE_PARTICIPATION_THRESHOLD: f64 = 2.0 / 3.0;
 
@@ -81,7 +87,7 @@ fn normalize_votes_for_submission(
                     .get(&user)
                     .ok_or_else(|| anyhow!("Delegatees missing for user {user}"))?;
                 let delegatees = delegatees_for_category(&submission.category, delegatees);
-                let normalized_vote = calculate_quorum_consensus(delegatees, submission_votes)?;
+                let normalized_vote = do_calculate_quorum_consensus(delegatees, submission_votes)?;
                 Ok((user, normalized_vote))
             } else {
                 Ok((user, vote))
@@ -90,9 +96,40 @@ fn normalize_votes_for_submission(
         .collect::<Result<_>>()
 }
 
+fn do_calculate_quorum_consensus(
+    delegatees: &[String],
+    submission_votes: &HashMap<String, Vote>,
+) -> Result<Vote> {
+    let mut target_quorum_size = 5;
+    loop {
+        match calculate_quorum_consensus(delegatees, submission_votes, target_quorum_size) {
+            Ok(Vote::Abstain) => {
+                target_quorum_size += 1;
+                log_1(&JsValue::from_str(&format!("target_quorum_size += 1",)));
+                if target_quorum_size > MAX_QUORUM_SIZE {
+                    log_1(&JsValue::from_str(&format!("target_quorum_size > MAX_QUORUM_SIZE")));
+                    return Ok(Vote::Abstain);
+                }
+            }
+            Ok(Vote::Delegate) => bail!("Impossible quorum outcome"),
+            Err(err) => {
+                log_1(&JsValue::from_str(&err.to_string()));
+                return Ok(Vote::Abstain);
+            }
+            Ok(vote) => {
+                if target_quorum_size > 5 {
+                    log_1(&JsValue::from_str("HIT"));
+                }
+                return Ok(vote);
+            }
+        }
+    }
+}
+
 fn calculate_quorum_consensus(
     delegatees: &[String],
     submission_votes: &HashMap<String, Vote>,
+    target_quorum_size: u32,
 ) -> Result<Vote> {
     let valid_delegates: Vec<&String> = delegatees
         .iter()
@@ -102,13 +139,20 @@ fn calculate_quorum_consensus(
         })
         .collect();
 
-    let selected_delegatees = if valid_delegates.len() < QUORUM_SIZE as usize {
-        valid_delegates.as_slice()
+    let selected_delegatees = if valid_delegates.len() < target_quorum_size as usize {
+        // valid_delegates.as_slice()
+        bail!("not enough delegates defined");
     } else {
-        &valid_delegates[..QUORUM_SIZE as usize]
+        &valid_delegates[..target_quorum_size as usize]
     };
 
-    let mut quorum_size = 0;
+    // log_1(&JsValue::from_str(&format!(
+    //     "valid_delegates {} selected_delegatees {}",
+    //     valid_delegates.len(),
+    //     selected_delegatees.len()
+    // )));
+
+    let mut actual_quorum_size = 0;
     let mut agreement: i32 = 0;
     for &delegatee in selected_delegatees {
         let delegatee_vote = submission_votes.get(delegatee).unwrap_or(&Vote::Abstain);
@@ -117,7 +161,7 @@ fn calculate_quorum_consensus(
             continue;
         }
 
-        quorum_size += 1;
+        actual_quorum_size += 1;
         match delegatee_vote {
             Vote::Yes => agreement += 1,
             Vote::No => agreement -= 1,
@@ -128,9 +172,9 @@ fn calculate_quorum_consensus(
         };
     }
 
-    let absolute_agreement: f64 = f64::from(agreement) / f64::from(QUORUM_SIZE);
-    let relative_agreement: f64 = if quorum_size > 0 {
-        f64::from(agreement) / f64::from(quorum_size)
+    let absolute_agreement: f64 = f64::from(agreement) / f64::from(target_quorum_size);
+    let relative_agreement: f64 = if actual_quorum_size > 0 {
+        f64::from(agreement) / f64::from(actual_quorum_size)
     } else {
         0.0
     };
