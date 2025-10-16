@@ -136,10 +136,8 @@ fn calculate_quorum_consensus(
 
     if votes_yes > votes_no {
         Ok(Vote::Yes)
-    } else if votes_yes < votes_no {
-        Ok(Vote::No)
     } else {
-        Ok(Vote::Abstain)
+        Ok(Vote::No)
     }
 }
 
