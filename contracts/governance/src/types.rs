@@ -52,4 +52,5 @@ pub enum VotingSystemError {
     VotesForSubmissionNotSet = 13,
     SubmissionDoesNotExist = 14,
     VotingPowersNotSet = 15,
+    TallyResultsNotSet = 16,
 }

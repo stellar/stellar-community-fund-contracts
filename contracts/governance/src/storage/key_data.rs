@@ -41,6 +41,12 @@ pub struct VotingPowersKeyData {
     round: u32,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct TallyResultsKeyData {
+    round: u32,
+}
+
 pub fn get_layer_key(layer_id: &String) -> DataKey {
     let data = LayerKeyData {
         layer_id: layer_id.clone(),
@@ -81,6 +87,11 @@ pub fn get_submissions_key(round: u32) -> DataKey {
 pub fn get_voting_powers_key(round: u32) -> DataKey {
     let data = VotingPowersKeyData { round };
     DataKey::VotingPowers(data)
+}
+
+pub fn get_tally_results_key(round: u32) -> DataKey {
+    let data = TallyResultsKeyData { round };
+    DataKey::TallyResults(data)
 }
 
 #[cfg(test)]

@@ -19,10 +19,11 @@ pub use crate::neural_governance::LayerAggregator;
 use crate::neural_governance::{aggregate_result, Layer, Neuron, NGQ};
 use crate::storage::{
     read_layer, read_neural_governance, read_neuron, read_neuron_result, read_submission_votes,
-    read_submissions, read_voting_powers, remove_layer, remove_neuron, write_layer,
-    write_neural_governance, write_neuron, write_neuron_result, write_submission_votes,
-    write_submissions, write_voting_powers, LayerKeyData, NeuronKeyData, NeuronResultKeyData,
-    SubmissionVotesKeyData, SubmissionsKeyData, VotingPowersKeyData,
+    read_submissions, read_tally_results, read_voting_powers, remove_layer, remove_neuron,
+    write_layer, write_neural_governance, write_neuron, write_neuron_result,
+    write_submission_votes, write_submissions, write_tally_results, write_voting_powers,
+    LayerKeyData, NeuronKeyData, NeuronResultKeyData, SubmissionVotesKeyData, SubmissionsKeyData,
+    TallyResultsKeyData, VotingPowersKeyData,
 };
 use crate::types::{Vote, VotingSystemError, ABSTAIN_VOTING_POWER};
 
@@ -64,6 +65,8 @@ pub enum DataKey {
     LayerKey(LayerKeyData),
     SubmissionVotes(SubmissionVotesKeyData),
     VotingPowers(VotingPowersKeyData),
+
+    TallyResults(TallyResultsKeyData),
 }
 
 #[contractimpl]
@@ -189,8 +192,23 @@ impl VotingSystem {
                 Vote::Abstain => (),
             };
         }
+        let tally_result: I256 = submission_voting_power_plus.sub(&submission_voting_power_minus);
+        let mut tally_results: Map<String, I256> =
+            match read_tally_results(env, Self::get_current_round(env)) {
+                Ok(tally_results) => tally_results,
+                Err(_) => Map::new(env),
+            };
+        tally_results.set(submission_id, tally_result.clone());
+        write_tally_results(env, Self::get_current_round(env), &tally_results);
+        Ok(tally_result)
+    }
 
-        Ok(submission_voting_power_plus.sub(&submission_voting_power_minus))
+    /// Get tally results for all submissions for a specific round.
+    pub fn get_tally_results(
+        env: &Env,
+        round: u32,
+    ) -> Result<Map<String, I256>, VotingSystemError> {
+        read_tally_results(env, round)
     }
 }
 
