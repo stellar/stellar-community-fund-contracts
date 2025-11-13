@@ -3,14 +3,14 @@ use soroban_sdk::{Env, Map, String, Vec, I256};
 use crate::neural_governance::{Layer, Neuron, NGQ};
 use crate::storage::key_data::{
     get_layer_key, get_neuron_key, get_neuron_result_key, get_submission_votes_key,
-    get_submissions_key, get_voting_powers_key,
+    get_submissions_key, get_tally_results_key, get_voting_powers_key,
 };
 use crate::types::{Vote, VotingSystemError};
 use crate::{ContractResult, DataKey};
 
 pub use crate::storage::key_data::{
     LayerKeyData, NeuronKeyData, NeuronResultKeyData, SubmissionVotesKeyData, SubmissionsKeyData,
-    VotingPowersKeyData,
+    TallyResultsKeyData, VotingPowersKeyData,
 };
 
 mod key_data;
@@ -138,4 +138,23 @@ pub(crate) fn read_voting_powers(env: &Env, round: u32) -> ContractResult<Map<St
 pub(crate) fn write_voting_powers(env: &Env, round: u32, voting_powers: &Map<String, I256>) {
     let key = get_voting_powers_key(round);
     env.storage().persistent().set(&key, voting_powers);
+}
+
+pub(crate) fn read_tally_results(env: &Env, round: u32) -> ContractResult<Map<String, I256>> {
+    let key = get_tally_results_key(round);
+    env.storage()
+        .persistent()
+        .get(&key)
+        .ok_or(VotingSystemError::TallyResultsNotSet)
+}
+
+pub(crate) fn write_tally_results(
+    env: &Env,
+    round: u32,
+    submissions_tally_results: &Map<String, I256>,
+) {
+    let key = get_tally_results_key(round);
+    env.storage()
+        .persistent()
+        .set(&key, submissions_tally_results);
 }
