@@ -96,7 +96,6 @@ pub fn run_neurons(
                 return Err(format!("users_discord_roles json parsing error {}", err.to_string()))
             }
         };
-    println!("users_discord_roles: {:?}", users_discord_roles);
     let trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>> =
         match serde_json::from_str(trusted_for_user_per_round) {
             Ok(trusted_for_user_per_round) => trusted_for_user_per_round,

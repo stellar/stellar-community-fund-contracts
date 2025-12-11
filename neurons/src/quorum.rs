@@ -10,7 +10,7 @@ use web_sys::{
 
 const SMALLEST_DEFINED_QUORUM_SIZE: usize = 7;
 const MIN_QUORUM_SIZE: usize = 5;
-const THRESHOLD: f64 = 0.5;
+const THRESHOLD: f64 = 0.667;
 
 #[non_exhaustive]
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
