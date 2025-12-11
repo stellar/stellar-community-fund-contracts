@@ -1,3 +1,6 @@
+use wasm_bindgen::JsValue;
+use web_sys::console;
+
 use crate::neurons::Neuron;
 use std::collections::{HashMap, HashSet};
 
@@ -65,8 +68,16 @@ impl TrustGraphNeuron {
                 if let Some(trusted_for_this_user) = self.trusted_for_user.get(user) {
                     // give everyone a bonus
                     for u in trusted_for_this_user {
-                        let res = result_with_bonus.get_mut(u).unwrap();
-                        *res += (*res / 100.0) * percent_bonus;
+                        match result_with_bonus.get_mut(u) {
+                            Some(res) => {
+                                *res += (*res / 100.0) * percent_bonus;
+                            }
+                            None => {
+                                console::log_1(&JsValue::from_str(&format!(
+                                    "handle_highly_trusted_bonus missing: {u}"
+                                )));
+                            }
+                        }
                     }
                 }
             }
