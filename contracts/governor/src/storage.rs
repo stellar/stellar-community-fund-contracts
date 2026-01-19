@@ -12,6 +12,7 @@ const SETTINGS_KEY: &str = "Settings";
 const IS_INIT_KEY: &str = "IsInit";
 const PROPOSAL_ID_KEY: &str = "PropId";
 const COUNCIL_KEY: &str = "Council";
+const ADMIN_KEY: &str = "Admin";
 const WHITELIST_KEY: &str = "Whitelist";
 
 // All stored data is used on a per proposal basis outside of the instance. Extend past the max possible
@@ -139,6 +140,23 @@ pub fn get_council_address(e: &Env) -> Address {
         .unwrap_optimized()
 }
 
+/// Set the admin address
+///
+/// ### Arguments
+/// * `admin` - The address of the admin
+pub fn set_admin_address(e: &Env, admin: &Address) {
+    e.storage()
+        .instance()
+        .set::<Symbol, Address>(&Symbol::new(&e, ADMIN_KEY), &admin);
+}
+
+/// Get the admin address
+pub fn get_admin_address(e: &Env) -> Address {
+    e.storage()
+        .instance()
+        .get::<Symbol, Address>(&Symbol::new(&e, ADMIN_KEY))
+        .unwrap_optimized()
+}
 /********** Persistent **********/
 
 /// Set the next proposal id and bump if necessary

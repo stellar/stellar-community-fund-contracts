@@ -10,7 +10,13 @@ pub trait Governor {
     /// * `votes` - The address of the contract used to track votes
     /// * `council` - The address of the security council for the DAO
     /// * `settings` - The settings for the governor
-    fn initialize(e: Env, votes: Address, council: Address, settings: GovernorSettings);
+    fn initialize(
+        e: Env,
+        votes: Address,
+        council: Address,
+        admin: Address,
+        settings: GovernorSettings,
+    );
 
     /// Get the current settings of the governor
     fn settings(e: Env) -> GovernorSettings;

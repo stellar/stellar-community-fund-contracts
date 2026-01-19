@@ -20,13 +20,20 @@ pub struct GovernorContract;
 
 #[contractimpl]
 impl Governor for GovernorContract {
-    fn initialize(e: Env, votes: Address, council: Address, settings: GovernorSettings) {
+    fn initialize(
+        e: Env,
+        votes: Address,
+        council: Address,
+        admin: Address,
+        settings: GovernorSettings,
+    ) {
         if storage::get_is_init(&e) {
             panic_with_error!(&e, GovernorError::AlreadyInitializedError);
         }
         require_valid_settings(&e, &settings);
         storage::set_settings(&e, &settings);
         storage::set_council_address(&e, &council);
+        storage::set_admin_address(&e, &admin);
         storage::set_voter_token_address(&e, &votes);
         storage::set_is_init(&e);
         storage::extend_instance(&e);
@@ -290,8 +297,8 @@ impl Governor for GovernorContract {
 #[contractimpl]
 impl GovernorContract {
     pub fn update_proposal_whitelist(env: Env, list: Vec<Address>) {
-        let council = storage::get_council_address(&env);
-        council.require_auth();
+        let admin = storage::get_admin_address(&env);
+        admin.require_auth();
         storage::set_proposal_creation_whitelist(&env, list);
     }
 }
@@ -328,6 +335,7 @@ mod test {
     ) {
         env.cost_estimate().budget().reset_unlimited();
         let admin = Address::generate(&env);
+        let council = Address::generate(&env);
         env.mock_all_auths();
 
         let governance_address = env.register(governance::WASM, ());
@@ -363,8 +371,13 @@ mod test {
             vote_threshold: 5100,
         };
         require_valid_settings(&env, &settings);
-        governor_client.initialize(&scf_token_address, &admin, &settings);
-        (governor_client, governance_client, scf_token_client, admin)
+        governor_client.initialize(&scf_token_address, &council, &admin, &settings);
+        (
+            governor_client,
+            governance_client,
+            scf_token_client,
+            council,
+        )
     }
 
     fn set_nqg_results(
