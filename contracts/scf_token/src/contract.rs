@@ -14,7 +14,7 @@ use crate::types::{ContractError, DataKey, VotesError};
 use crate::votes::Votes;
 
 pub const DECIMALS: u32 = 9;
-pub const MAX_ACCOUNTS_COUNT: u32 = 200;
+pub const MAX_ACCOUNTS_COUNT: u32 = 500;
 const NQG_DECIMALS: u32 = 18;
 
 mod governance {
@@ -65,6 +65,67 @@ impl SCFToken {
         );
 
         let voting_power = voting_power_for_user(&env, &governance_client, &address)?;
+
+        let voting_power_whole = scf_score_to_balance(&env, &voting_power);
+        let voting_power_i128: i128 = voting_power_whole
+            .to_i128()
+            .expect("Failed to convert voting power to i128");
+
+        let new_balance = old_balance.new_balance(voting_power_i128, current_ledger, current_round);
+
+        let balance_change = new_balance.current - new_balance.previous;
+
+        let old_total_supply = read_total_supply(&env);
+
+        let new_total_supply_value = old_total_supply.current + balance_change;
+        let new_total_supply_value = if new_total_supply_value >= 0 {
+            new_total_supply_value
+        } else {
+            0
+        };
+        let new_total_supply = old_total_supply
+            .clone()
+            .new_total_supply(new_total_supply_value, current_ledger);
+
+        write_total_supply(&env, &new_total_supply);
+        write_balance(&env, &address, &new_balance);
+        extend_balance(&env, &address);
+
+        update_all_addresses(&env, address);
+
+        Ok(())
+    }
+
+    pub fn initialize_manual(env: Env, admin: Address) {
+        assert_with_error!(
+            env,
+            !env.storage().instance().has(&DataKey::Admin),
+            ContractError::ContractAlreadyInitialized
+        );
+
+        write_admin(&env, &admin);
+    }
+
+    pub fn update_balance_manual(
+        env: Env,
+        address: Address,
+        value: I256,
+        current_round: u32,
+    ) -> Result<(), ContractError> {
+        let admin = read_admin(&env);
+        admin.require_auth();
+
+        let current_ledger = env.ledger().sequence();
+
+        let old_balance = read_balance(&env, &address);
+
+        assert_with_error!(
+            env,
+            old_balance.updated_round < current_round,
+            ContractError::VotingPowerAlreadyUpdatedForUser
+        );
+
+        let voting_power = value;
 
         let voting_power_whole = scf_score_to_balance(&env, &voting_power);
         let voting_power_i128: i128 = voting_power_whole
