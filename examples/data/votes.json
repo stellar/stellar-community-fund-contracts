@@ -1,0 +1,23 @@
+{
+    "Submission1": {
+        "user1": "Yes",
+        "user2": "Yes",
+        "user3": "Yes",
+        "user4": "Yes",
+        "user5": "Yes"
+    },
+    "Submission2": {
+        "user1": "No",
+        "user2": "Yes",
+        "user3": "No",
+        "user4": "No",
+        "user5": "Yes"
+    },
+    "Submission3": {
+        "user1": "No",
+        "user2": "No",
+        "user3": "Yes",
+        "user4": "No",
+        "user5": "No"
+    }
+}
