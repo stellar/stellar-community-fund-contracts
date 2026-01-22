@@ -1,6 +1,8 @@
 # How to use SCF's voting setup
 
-This guide shows how to setup and run a similar voting system as SCF uses for community votes. It uses actual smart contracts, but everything else is a minimal working setup, just to demonstrate the voting flow. In the real world we use much more complicated setup with databases, full backend, and neurons compiled to WASM to work in js env. For this tutorial we'll use json files instead of actual database. Example files with data are located in `/data` folder.
+This guide shows how to setup and run a similar voting system as SCF uses for community votes. It uses actual smart contracts, but everything else is a minimal working setup, just to demonstrate the voting flow. In the real world we use much more complicated setup with databases, full backend, and neurons compiled to WASM to work in js env. For this tutorial we'll use json files instead of actual database. Example files with data are located in `data` folder.
+
+`cd examples` to make sure all scripts work correctly
 
 ## Neurons 
 Neurons are used to calculate component values of voting power. We input some data into each neuron, and it outputs a numeric value. Output values are converted to fixed point decimal values to ensure no precission loss while converting data between different formats. Then the results of all neurons are have to be uploaded to Neural Quorum Governance contract, will use this data to calculate the final voting power.
@@ -70,7 +72,7 @@ After voting is complete, it is possible to change the round number on the contr
 Voting powers calculated for the voting round can be easily used as a token, for example to use as voting power in DAO systems. For this we have our SCF Token smart contract. Source code is located in `/contracts/scf_token`. This contract will directly  call our previously deployed NQG contract to get voting powers of voters. Each user can have a balance of the token set to their voting power. Token contract we use also implements `votes` trait so it can be used as votes token in dao systems like Soroban Governor.
 
 ### Deploy SCF token contract 
-First deploy and initialize the Token contract. Keep in mind that it needs address of the NQG contract to initialize, so you need to provide it in the script below:
+First deploy and initialize the Token contract. Keep in mind that it needs address of the NQG contract to initialize, so make sure correct address is present in the .env file.
 `./scripts/scf_token_deploy.sh`
 
 ### Fetch voting powers from NQG contract

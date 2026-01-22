@@ -6,7 +6,7 @@ source $ENV_PATH
 echo "CURRENT_ROUND: $CURRENT_ROUND"
 
 echo STEP 1: Build all contracts
-pushd "./contracts"
+pushd "../contracts"
   stellar contract build 
 popd
 
@@ -49,14 +49,11 @@ echo "Neural governance set up successfully"
 echo STEP 4: Update .env file
 SED_IN_PLACE_OPTION="-i"
 
-# Check operating system for sed in-place argument
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS requires an empty string with -i
     SED_IN_PLACE_OPTION="-i ''"
 fi
 
 if grep -q "^NEURAL_GOVERNANCE_ADDRESS=" "$ENV_PATH"; then
-    # Use eval to handle variable SED_IN_PLACE_OPTION correctly
     eval sed $SED_IN_PLACE_OPTION "s/^NEURAL_GOVERNANCE_ADDRESS=.*/NEURAL_GOVERNANCE_ADDRESS=$NEURAL_GOVERNANCE_ADDRESS/" "$ENV_PATH"
     echo "NEURAL_GOVERNANCE_ADDRESS has been updated."
 else

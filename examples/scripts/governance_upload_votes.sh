@@ -2,11 +2,15 @@
 ENV_PATH=".env"
 source $ENV_PATH
 
-SUBMISSIONS_FILE="./data/votes.json"
+VOTES_FILE="./data/votes.json"
 
-jq -c '.[]' "$SUBMISSIONS_FILE" | while read -r row; do
-    name=$(echo "$row" | jq -r '.name')
-    category=$(echo "$row" | jq -r '.category')
+for row in $(jq -r '. | to_entries[] | @base64' "$VOTES_FILE"); do
+    _decode() {
+     echo ${row} | base64 --decode
+    }
+    name=$(_decode | jq -r '.key')
+    votes=$(_decode | jq -c '.value')
+
     echo "Uploading votes for submission $name "
     stellar contract invoke \
         --id $NEURAL_GOVERNANCE_ADDRESS \
@@ -15,4 +19,5 @@ jq -c '.[]' "$SUBMISSIONS_FILE" | while read -r row; do
         --network-passphrase "$STELLAR_NETWORK_PASSPHRASE" \
         -- set_votes_for_submission \
         --submission_id=$name \
-        --
+        --votes=$votes
+done

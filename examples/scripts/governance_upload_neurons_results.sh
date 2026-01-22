@@ -2,38 +2,47 @@
 ENV_PATH=".env"
 source $ENV_PATH
 
-SUBMISSIONS_FILE="./data/neurons_output.json"
+NEURONS_FILE="./data/neurons_output.json"
 
-jq -c '.[]' "$SUBMISSIONS_FILE" | while read -r row; do
-    name=$(echo "$row" | jq -r '.name')
-    category=$(echo "$row" | jq -r '.category')
+NEURON1=$(jq -c '.Neuron1' "$NEURONS_FILE")
+NEURON2=$(jq -c '.Neuron2' "$NEURONS_FILE")
+NEURON3=$(jq -c '.Neuron3' "$NEURONS_FILE")
 
-echo "Uploading neuron1"
+echo "Uploading neuron1 data"
+echo "$NEURON1"
+
 stellar contract invoke \
     --id $NEURAL_GOVERNANCE_ADDRESS \
     --source-account $STELLAR_SECRET_KEY \
     --rpc-url $STELLAR_RPC_URL \
     --network-passphrase "$STELLAR_NETWORK_PASSPHRASE" \
     -- set_neuron_result \
-    --layer_id="0" \
-    --neuron_id="0" \
+    --layer_id '{"string":"0"}' \
+    --neuron_id '{"string":"0"}' \
+    --result=$NEURON1
 
-echo "Uploading neuron2"
+echo "Uploading neuron2 data"
+echo "$NEURON2"
+
 stellar contract invoke \
     --id $NEURAL_GOVERNANCE_ADDRESS \
     --source-account $STELLAR_SECRET_KEY \
     --rpc-url $STELLAR_RPC_URL \
     --network-passphrase "$STELLAR_NETWORK_PASSPHRASE" \
     -- set_neuron_result \
-    --layer_id="0" \
-    --neuron_id="1" \
+    --layer_id '{"string":"0"}' \
+    --neuron_id '{"string":"1"}' \
+    --result=$NEURON2
 
-echo "Uploading neuron3"
+echo "Uploading neuron3 data"
+echo "$NEURON3"
+
 stellar contract invoke \
     --id $NEURAL_GOVERNANCE_ADDRESS \
     --source-account $STELLAR_SECRET_KEY \
     --rpc-url $STELLAR_RPC_URL \
     --network-passphrase "$STELLAR_NETWORK_PASSPHRASE" \
     -- set_neuron_result \
-    --layer_id="1" \
-    --neuron_id="0" \
+    --layer_id '{"string":"1"}' \
+    --neuron_id '{"string":"0"}' \
+    --result=$NEURON3

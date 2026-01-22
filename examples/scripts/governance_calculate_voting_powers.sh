@@ -2,6 +2,7 @@
 ENV_PATH=".env"
 source $ENV_PATH
 
+echo "Calculating voting powers"
 stellar contract invoke \
   --id $NEURAL_GOVERNANCE_ADDRESS \
   --source-account $STELLAR_SECRET_KEY \
