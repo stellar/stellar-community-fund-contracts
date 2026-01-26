@@ -1,6 +1,6 @@
-# How to use SCF's voting setup
+# How to use SCF's Implementation of Neural Quorum Governance
 
-This guide shows how to setup and run a similar voting system as SCF uses for community votes. It uses actual smart contracts, but everything else is a minimal working setup, just to demonstrate the voting flow. In the real world we use much more complicated setup with databases, full backend, and neurons compiled to WASM to work in js env. For this tutorial we'll use json files instead of actual database. Example files with data are located in `data` folder.
+This guide shows how to setup and run a similar voting system as SCF uses for Community Vote. It uses actual Soroban smart contracts, but everything else is a minimal working setup, just to demonstrate the voting flow. In the actual implementation we use much more complicated setup with databases, full backend, and neurons compiled to WASM to work in js env. For this tutorial we'll use json files instead of actual database. Example files with data are located in `data` folder.
 
 `cd examples` to make sure all scripts work correctly
 
