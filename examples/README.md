@@ -21,7 +21,7 @@ Neuron3: Divides input value by 3
 
 If you have rust installed, head into the correct folder and run:
 
-`pushd examples/neurons`
+`pushd neurons`
 `cargo run`
 `popd`
 
@@ -80,7 +80,8 @@ Now we can set token balances. Do this by calling a `update_balance()` function,
 `./scripts/scf_token_balance.sh`
 
 ### Check total votes distribution
-To check total amout of votes distributed call `total_supply()`
+To check total amout of votes distributed call `total_supply()`.
+`./scripts/scf_token_total_supply.sh`
 
 ## What's next
 Now you have working bare-minimum setup of the Neural Quorum Governance Voting system. You can create a backend service that will nicely connect all of those elements into one api, however it suits your project, using one of many stellar sdk's
