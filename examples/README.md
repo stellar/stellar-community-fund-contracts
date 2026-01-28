@@ -5,7 +5,7 @@ This guide shows how to setup and run a similar voting system as SCF uses for Co
 `cd examples` to make sure all scripts work correctly
 
 ## Neurons 
-Neurons are used to calculate component values of voting power. We input some data into each neuron, and it outputs a numeric value. Output values are converted to fixed point decimal values to ensure no precission loss while converting data between different formats. Then the results of all neurons are have to be uploaded to Neural Quorum Governance contract, will use this data to calculate the final voting power.
+Neurons are used to calculate component values of voting power. We input some data into each neuron, and it outputs a numeric value. Output values are converted to fixed point decimal values to ensure no precission loss while converting data between different formats. Then the results of all neurons have to be uploaded to the Neural Quorum Governance contract, which will use this data to calculate the final voting power.
 
 Why not upload all data into the contract and calculate all values there?
 Doing so would be beneficial for transparency of the whole voting system, but comes with 2 problems:
