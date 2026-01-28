@@ -12,7 +12,7 @@ popd
 echo STEP 2: Deploy scf_token contract
 SCF_TOKEN_ADDRESS="$(stellar contract deploy \
   --network $STELLAR_NETWORK \
-  --wasm ./contracts/target/wasm32v1-none/release/scf_token.wasm \
+  --wasm ../contracts/target/wasm32v1-none/release/scf_token.wasm \
   --rpc-url $STELLAR_RPC_URL \
   --network-passphrase "$STELLAR_NETWORK_PASSPHRASE" \
   --source-account $STELLAR_SECRET_KEY)"
@@ -40,7 +40,7 @@ if grep -q "^SCF_TOKEN_ADDRESS=" "$ENV_PATH"; then
     eval sed $SED_IN_PLACE_OPTION "s/^SCF_TOKEN_ADDRESS=.*/SCF_TOKEN_ADDRESS=$SCF_TOKEN_ADDRESS/" "$ENV_PATH"
     echo "SCF_TOKEN_ADDRESS has been updated."
 else
-    echo "SCF_TOKEN_ADDRESS not found. Adding API_KEY to the .env file."
+    echo "SCF_TOKEN_ADDRESS not found. Adding SCF_TOKEN_ADDRESS to the .env file."
     echo "SCF_TOKEN_ADDRESS=$SCF_TOKEN_ADDRESS" >> "$ENV_PATH"
 fi
 

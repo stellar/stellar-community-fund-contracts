@@ -10,14 +10,14 @@ Neurons are used to calculate component values of voting power. We input some da
 Why not upload all data into the contract and calculate all values there?
 Doing so would be beneficial for transparency of the whole voting system, but comes with 2 problems:
  - privacy - some of the data we use for neurons would allow bad actors to link specific users to publickeys.
- - performance - due to high amout of data, and high complexity of calculations doing everything on-chain would not be possible in a reasonable time and cost.
+ - performance - due to high amount of data, and high complexity of calculations doing everything on-chain would not be possible in a reasonable time and cost.
 
 ### Minimal neurons setup
-In `/neurons` you can see a rust project that contains example neurons, along with the code that will trigger them. In the `data` folder there is some example data that will be used by the neurons as an input. Neurons can perform any type of calculations, for example provide 0.5 points bonus for each round a user have participaded in, or something more complicated. In this example we have 3 neurons, called Neuron1 Neuron2 and Neuron3. 
+In `/neurons` you can see a rust project that contains example neurons, along with the code that will trigger them. In the `data` folder there is some example data that will be used by the neurons as an input. Neurons can perform any type of calculations, for example provide 0.5 points bonus for each round a user have participated in, or something more complicated. In this example we have 3 neurons, called Neuron1 Neuron2 and Neuron3. 
 
 Neuron1: Multiplies input value by 1.5
 Neuron2: Subtracts 20% from the input value
-Neuron3: Divides input value by 3
+Neuron3: Multiplies input value by 3
 
 If you have rust installed, head into the correct folder and run:
 
@@ -31,7 +31,7 @@ In the `data` folder you'll see `neurons_output.json`. Now that we have the neur
 Neural Quorum Governance contract is used to calculate voters voting powers (based on supplied neurons results), and tally the votes. Source code for it is located in `/contracts/governance`
 
 ### Deploying and initializing the contract 
-First in the `examples` folder create a `.env` file, by changing the name of `env.example` and filling in your account data. This script will compile, deploy and initialize NQG contract. Also Layers will be setup (more about layers see `Uploading neurons results`) After deployent address of the contract will be saved in .env file for future use.
+First in the `examples` folder create a `.env` file, by changing the name of `env.example` and filling in your account data. This script will compile, deploy and initialize NQG contract. Also Layers will be setup (more about layers see `Uploading neurons results`) After deployment address of the contract will be saved in .env file for future use.
 
 `./scripts/governance_deploy.sh`
 
@@ -54,7 +54,7 @@ Results of each neuron, calculated beforehand will now be uploaded to the contra
 `./scripts/governance_upload_neurons_results.sh`
 
 ### Calculating voting powers
-After uploading neurons, we can tigger the calculation of voting powers. This function will run all of the Layers and save the results in storage, so it can be accessed anytime.
+After uploading neurons, we can trigger the calculation of voting powers. This function will run all of the Layers and save the results in storage, so it can be accessed anytime.
 
 `./scripts/governance_calculate_voting_powers.sh`
 
@@ -80,7 +80,7 @@ Now we can set token balances. Do this by calling a `update_balance()` function,
 `./scripts/token_update_balance.sh`
 
 ### Check total votes distribution
-To check total amout of votes distributed call `total_supply()`.
+To check total amount of votes distributed call `total_supply()`.
 `./scripts/token_total_supply.sh`
 
 ## What's next

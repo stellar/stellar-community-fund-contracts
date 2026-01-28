@@ -2,7 +2,7 @@
 ENV_PATH=".env"
 source $ENV_PATH
 
-echo "Setting round to $ROUND"
+echo "Setting round to $CURRENT_ROUND"
 stellar contract invoke \
   --id $NEURAL_GOVERNANCE_ADDRESS \
   --source-account $STELLAR_SECRET_KEY \
