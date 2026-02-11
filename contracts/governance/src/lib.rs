@@ -210,6 +210,18 @@ impl VotingSystem {
     ) -> Result<Map<String, I256>, VotingSystemError> {
         read_tally_results(env, round)
     }
+
+    pub fn get_voting_power_for_user(env: Env, user: String) -> Result<I256, VotingSystemError> {
+        match read_voting_powers(&env, Self::get_current_round(&env)) {
+            Ok(voting_powers) => {
+                if let Some(voting_power) = voting_powers.get(user) {
+                    return Ok(voting_power);
+                }
+                return Err(VotingSystemError::NGQResultForVoterMissing);
+            }
+            Err(_) => return Err(VotingSystemError::UnknownError),
+        }
+    }
 }
 
 #[contractimpl]

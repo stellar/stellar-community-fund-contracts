@@ -286,3 +286,72 @@ fn set_bump_round_flow() {
         result25
     );
 }
+
+#[test]
+fn get_voting_power_for_user() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let contract_client = deploy_contract(&env);
+    contract_client.set_current_round(&25);
+
+    let user1 = String::from_str(&env, "user1");
+    let user2 = String::from_str(&env, "user2");
+    let neuron0 = String::from_str(&env, "0");
+    let neuron1 = String::from_str(&env, "1");
+    let layer0 = String::from_str(&env, "0");
+
+    // Setup contract
+    contract_client.add_layer(
+        &soroban_sdk::vec![
+            &env,
+            (
+                neuron0.clone(),
+                I256::from_i128(&env, 1_000_000_000_000_000_000)
+            ),
+            (
+                neuron1.clone(),
+                I256::from_i128(&env, 1_000_000_000_000_000_000)
+            )
+        ],
+        &LayerAggregator::Sum,
+    );
+
+    let mut result0 = Map::new(&env);
+    result0.set(user1.clone(), I256::from_i128(&env, 100));
+    result0.set(user2.clone(), I256::from_i128(&env, 200));
+    contract_client.set_neuron_result(&layer0, &neuron0, &result0);
+
+    let mut result1 = Map::new(&env);
+    result1.set(user1.clone(), I256::from_i128(&env, 222));
+    result1.set(user2.clone(), I256::from_i128(&env, 333));
+    contract_client.set_neuron_result(&layer0, &neuron1, &result1);
+
+    // Verify results are set
+    assert_eq!(
+        contract_client.get_neuron_result(&layer0, &neuron0),
+        result0
+    );
+    assert_eq!(
+        contract_client.get_neuron_result(&layer0, &neuron1),
+        result1
+    );
+    contract_client.calculate_voting_powers();
+    // Verify correct voting powers are returned for each user
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user1),
+        I256::from_i32(&env, 322)
+    );
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user2),
+        I256::from_i32(&env, 533)
+    );
+    // Verify error is returned for invalid user
+    assert_eq!(
+        contract_client
+            .try_get_voting_power_for_user(&String::from_str(&env, "Random user"))
+            .unwrap_err()
+            .unwrap(),
+        VotingSystemError::NGQResultForVoterMissing
+    );
+}
