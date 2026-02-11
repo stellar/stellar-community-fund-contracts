@@ -9,7 +9,7 @@ pub mod governance {
     contractimport!(file = "../target/wasm32v1-none/release/governance.wasm");
 }
 
-pub fn deploy_contract<'a>(
+pub fn deploy_scf_token_contract<'a>(
     env: &Env,
     governance_address: &Address,
     admin: &Address,
@@ -22,7 +22,7 @@ pub fn deploy_contract<'a>(
     scf_token_client
 }
 
-pub fn deploy_scf_contract<'a>(env: &Env, admin: &Address) -> governance::Client<'a> {
+pub fn deploy_governance_contract<'a>(env: &Env, admin: &Address) -> governance::Client<'a> {
     let governance_address = env.register(governance::WASM, ());
     let governance_client = governance::Client::new(env, &governance_address);
 
@@ -48,8 +48,8 @@ pub struct Deployment<'a> {
 pub fn deploy_and_setup<'a>(env: &Env, admin: &Address) -> Deployment<'a> {
     env.mock_all_auths();
 
-    let governance_client = deploy_scf_contract(env, admin);
-    let client = deploy_contract(env, &governance_client.address, admin);
+    let governance_client = deploy_governance_contract(env, admin);
+    let client = deploy_scf_token_contract(env, &governance_client.address, admin);
 
     env.set_auths(&[]);
 

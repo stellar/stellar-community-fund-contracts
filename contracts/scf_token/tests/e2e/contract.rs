@@ -3,8 +3,8 @@ use soroban_sdk::testutils::Address as AddressTrait;
 use soroban_sdk::{Address, Env, Error, Map, String, I256};
 
 use crate::e2e::common::contract_utils::{
-    bump_round, deploy_and_setup, deploy_contract, deploy_scf_contract, set_nqg_results,
-    update_balance, Deployment,
+    bump_round, deploy_and_setup, deploy_governance_contract, deploy_scf_token_contract,
+    set_nqg_results, update_balance, Deployment,
 };
 
 #[test]
@@ -14,7 +14,7 @@ fn initializing_contract() {
 
     let admin = Address::generate(&env);
 
-    let governance_client = deploy_scf_contract(&env, &admin);
+    let governance_client = deploy_governance_contract(&env, &admin);
     let scf_token_address = env.register(SCFToken, ());
     let scf_token_client = SCFTokenClient::new(&env, &scf_token_address);
 
@@ -33,8 +33,8 @@ fn updating_balances() {
 
     let admin = Address::generate(&env);
 
-    let governance_client = deploy_scf_contract(&env, &admin);
-    let scf_token_client = deploy_contract(&env, &governance_client.address, &admin);
+    let governance_client = deploy_governance_contract(&env, &admin);
+    let scf_token_client = deploy_scf_token_contract(&env, &governance_client.address, &admin);
 
     let address = Address::generate(&env);
     let mut result = Map::new(&env);

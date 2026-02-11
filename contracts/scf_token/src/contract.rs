@@ -123,12 +123,9 @@ fn voting_power_for_user(
     governance_client: &governance::Client,
     address: &Address,
 ) -> Result<I256, ContractError> {
-    let voting_powers = governance_client.get_voting_powers();
-    let voting_powers = voting_powers
-        .get(address.to_string())
-        .ok_or(ContractError::VotingPowerMissingForUser)?;
-    Ok(if voting_powers >= I256::from_i32(env, 0) {
-        voting_powers
+    let voting_power: I256 = governance_client.get_voting_power_for_user(&address.to_string());
+    Ok(if voting_power >= I256::from_i32(env, 0) {
+        voting_power
     } else {
         I256::from_i32(env, 0)
     })
