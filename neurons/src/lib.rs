@@ -13,7 +13,7 @@ use quorum::{normalize_votes, DelegateesForUser};
 use std::collections::HashMap;
 use trust_graph::TrustGraphNeuron;
 use trust_history::TrustHistoryNeuron;
-use types::{Submission, Vote, DECIMALS};
+use types::{Vote, DECIMALS};
 use wasm_bindgen::prelude::*;
 
 use crate::retro_vote_quality::RetroVoteQualityNeuron;
@@ -152,19 +152,10 @@ pub fn run_neurons(
 }
 
 #[wasm_bindgen]
-pub fn run_votes_normalization(
-    votes: &str,
-    submissions: &str,
-    delegatees_for_user: &str,
-) -> Result<String, String> {
+pub fn run_votes_normalization(votes: &str, delegatees_for_user: &str) -> Result<String, String> {
     let votes: HashMap<String, HashMap<String, Vote>> = match serde_json::from_str(votes) {
         Ok(votes) => votes,
         Err(err) => return Err(format!("votes json parsing error {}", err.to_string())),
-    };
-
-    let submissions: Vec<Submission> = match serde_json::from_str(submissions) {
-        Ok(submissions) => submissions,
-        Err(err) => return Err(format!("submissions json parsing error {}", err.to_string())),
     };
 
     let delegatees_for_user: HashMap<String, DelegateesForUser> =
@@ -175,7 +166,7 @@ pub fn run_votes_normalization(
             }
         };
 
-    let normalized_votes = match normalize_votes(votes, &submissions, &delegatees_for_user) {
+    let normalized_votes = match normalize_votes(votes, &delegatees_for_user) {
         Ok(normalized_votes) => normalized_votes,
         Err(err) => return Err(format!("error normalizing votes {}", err.to_string())),
     };

@@ -3,8 +3,8 @@ use crate::types::generalised_logistic_function;
 use crate::Vote;
 use serde::Deserialize;
 use std::collections::HashMap;
-use wasm_bindgen::JsValue;
-use web_sys::{self, console};
+// use wasm_bindgen::JsValue;
+// use web_sys::{self, console};
 const ROUND_IMPORTANCE_DECAY_OFFSET: u32 = 8;
 const ACTIVE_VOTES_HISTORY_OLDEST_ROUND: u32 = 32; // we dont have data from rounds before 32
 const ACTIVE_VOTES_MIN_RATIO: f64 = 0.5; // lowest possible ratio of active votes
@@ -44,7 +44,6 @@ impl PriorVotingHistoryNeuron {
             // console::log_1(&JsValue::from_str(&format!("ROUND: {round} /rounds_participated")));
             let x_offset: f64 = (self.current_round - ROUND_IMPORTANCE_DECAY_OFFSET) as f64;
             let round_weight: f64 =
-                // TODO MAKE X_OFF current round dependent
                 generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, x_offset, round as f64);
             // console::log_1(&JsValue::from_str(&format!("weight {round_weight}")));
             if round < ACTIVE_VOTES_HISTORY_OLDEST_ROUND {
@@ -93,7 +92,7 @@ fn calculate_active_votes_ratio(user: &str, votes: &HashMap<String, HashMap<Stri
     let mut total_votes_count: f64 = 0.0;
     let mut active_votes_count: f64 = 0.0;
     // iterate over all submissions
-    votes.into_iter().for_each(|(submission_name, votes)| {
+    votes.into_iter().for_each(|(_submission_name, votes)| {
         // get users vote for this submission
         match votes.get(user) {
             Some(vote) => match vote {

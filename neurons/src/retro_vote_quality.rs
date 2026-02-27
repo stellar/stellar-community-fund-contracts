@@ -8,7 +8,7 @@ const FIXED_POINT_SCALING_FACTOR: i32 = 100; // *10 to mitigate float precission
 pub struct RetroVoteQualityNeuron {
     votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, // round -> submission -> user -> vote (Yes/No/Abstain/Delegate)
     normalized_votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, // round -> submission -> user -> vote (Yes/No/Abstain)
-    tranche_status_map: HashMap<String, Vec<String>>,
+    tranche_status_map: HashMap<String, Vec<String>>, // tranche status -> [submission id (airtable)]
     submissions_airtable_ids: HashMap<String, String>,
 }
 
@@ -28,7 +28,7 @@ impl RetroVoteQualityNeuron {
     }
     fn run_user(&self, user: &str) -> f64 {
         let mut total_bonus: i32 = 0;
-        // loop through rounds 30-current
+        // loop through rounds
         for (round, round_votes) in &self.votes_per_round {
             // loop through all submissions
             for (submission_name, submission_votes) in round_votes {
@@ -128,7 +128,8 @@ impl Neuron for RetroVoteQualityNeuron {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // TODO write some tests for this
+    // use super::*;
     #[test]
     fn reputation_bonus_values() {}
 }
