@@ -169,6 +169,7 @@ impl VotingSystem {
     ///
     /// The function will panic if no voting powers are set for the active round.
     pub fn tally_submission(env: &Env, submission_id: String) -> Result<I256, VotingSystemError> {
+        require_admin(&env);
         let submission_votes = Self::get_votes_for_submission(env, submission_id.clone())?;
         let mut submission_voting_power_plus = I256::from_i32(env, 0);
         let mut submission_voting_power_minus = I256::from_i32(env, 0);
