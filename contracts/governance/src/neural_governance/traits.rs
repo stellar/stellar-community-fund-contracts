@@ -22,20 +22,6 @@ pub trait Governance {
     /// * `layer_id`: ID of the layer to remove
     fn remove_layer(env: Env, layer_id: String) -> Result<(), VotingSystemError>;
 
-    /// Update an existing layer
-    ///
-    /// # Arguments
-    ///
-    /// * `layer_id`: ID of the layer to update
-    /// * `raw_neurons`: tuples of neuron names and their respective weights.
-    /// * `layer_aggregator`: a function used to aggregate the neuron results within the layer.
-    fn update_layer(
-        env: Env,
-        layer_id: String,
-        raw_neurons: Vec<(String, I256)>,
-        layer_aggregator: LayerAggregator,
-    ) -> Result<(), VotingSystemError>;
-
     // TODO docs
     fn get_layer(env: Env, layer_id: String) -> Result<Layer, VotingSystemError>;
 

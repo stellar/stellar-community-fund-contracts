@@ -83,46 +83,6 @@ fn remove_layer() {
 }
 
 #[test]
-fn update_layer() {
-    let env = Env::default();
-    let contract_client = deploy_contract(&env);
-
-    let governance = contract_client.get_neural_governance();
-    assert_eq!(governance.layers, Vec::new(&env));
-
-    let neurons = vec![
-        &env,
-        (String::from_str(&env, "aaa"), I256::from_i32(&env, 100)),
-        (String::from_str(&env, "b"), I256::from_i32(&env, 2000)),
-    ];
-    contract_client.add_layer(&neurons, &LayerAggregator::Sum);
-
-    let neurons = vec![
-        &env,
-        (String::from_str(&env, "cc"), I256::from_i32(&env, 3)),
-    ];
-    contract_client.update_layer(
-        &String::from_str(&env, "0"),
-        &neurons,
-        &LayerAggregator::Product,
-    );
-
-    let layer = contract_client.get_layer(&String::from_str(&env, "0"));
-    assert_eq!(layer.neurons, vec![&env, String::from_str(&env, "0")]);
-    assert_eq!(layer.aggregator, LayerAggregator::Product);
-
-    let neuron =
-        contract_client.get_neuron(&String::from_str(&env, "0"), &String::from_str(&env, "0"));
-    assert_eq!(neuron.name, String::from_str(&env, "cc"));
-    assert_eq!(neuron.weight, I256::from_i32(&env, 3));
-
-    assert_eq!(
-        contract_client.try_get_neuron(&String::from_str(&env, "0"), &String::from_str(&env, "1")),
-        Err(Ok(VotingSystemError::NeuronMissing))
-    );
-}
-
-#[test]
 fn add_layer_after_removing() {
     let env = Env::default();
     let contract_client = deploy_contract(&env);

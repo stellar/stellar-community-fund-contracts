@@ -282,25 +282,6 @@ impl Governance for VotingSystem {
         Ok(())
     }
 
-    fn update_layer(
-        env: Env,
-        layer_id: String,
-        raw_neurons: Vec<(String, I256)>,
-        layer_aggregator: LayerAggregator,
-    ) -> Result<(), VotingSystemError> {
-        require_admin(&env);
-
-        let layer = read_layer(&env, &layer_id)?;
-
-        for neuron_id in layer.neurons {
-            remove_neuron(&env, &layer_id, &neuron_id);
-        }
-
-        create_or_update_layer(env, layer_id, raw_neurons, layer_aggregator);
-
-        Ok(())
-    }
-
     fn get_layer(env: Env, layer_id: String) -> Result<Layer, VotingSystemError> {
         read_layer(&env, &layer_id)
     }
