@@ -1,5 +1,5 @@
-use soroban_sdk::{vec, Address, Env, IntoVal, Map, String, Vec, I256};
 use soroban_sdk::testutils::{Address as AddressTrait, MockAuth, MockAuthInvoke};
+use soroban_sdk::{vec, Address, Env, IntoVal, Map, String, Vec, I256};
 
 use governance::types::{Vote, VotingSystemError};
 use governance::{LayerAggregator, DECIMALS};
@@ -131,7 +131,14 @@ fn tally_submission_requires_admin() {
         invoke: &MockAuthInvoke {
             contract: &contract_client.address,
             fn_name: "set_submissions",
-            args: vec![&env, vec![&env, (submission.clone(), String::from_str(&env, "Applications"))].to_val()],
+            args: vec![
+                &env,
+                vec![
+                    &env,
+                    (submission.clone(), String::from_str(&env, "Applications")),
+                ]
+                .to_val(),
+            ],
             sub_invokes: &[],
         },
     }]);
@@ -165,7 +172,11 @@ fn tally_submission_requires_admin() {
         invoke: &MockAuthInvoke {
             contract: &contract_client.address,
             fn_name: "add_layer",
-            args: vec![&env, raw_neurons.clone().to_val(), LayerAggregator::Sum.into_val(&env)],
+            args: vec![
+                &env,
+                raw_neurons.clone().to_val(),
+                LayerAggregator::Sum.into_val(&env),
+            ],
             sub_invokes: &[],
         },
     }]);
@@ -178,7 +189,12 @@ fn tally_submission_requires_admin() {
         invoke: &MockAuthInvoke {
             contract: &contract_client.address,
             fn_name: "set_neuron_result",
-            args: vec![&env, String::from_str(&env, "0").to_val(), String::from_str(&env, "0").to_val(), neuron_result.clone().to_val()],
+            args: vec![
+                &env,
+                String::from_str(&env, "0").to_val(),
+                String::from_str(&env, "0").to_val(),
+                neuron_result.clone().to_val(),
+            ],
             sub_invokes: &[],
         },
     }]);
