@@ -1,9 +1,10 @@
-use soroban_sdk::{vec, Env, Map, String, Vec, I256};
+use soroban_sdk::{vec, Address, Env, IntoVal, Map, String, Vec, I256};
+use soroban_sdk::testutils::{Address as AddressTrait, MockAuth, MockAuthInvoke};
 
 use governance::types::{Vote, VotingSystemError};
 use governance::{LayerAggregator, DECIMALS};
 
-use crate::e2e::common::contract_utils::deploy_contract;
+use crate::e2e::common::contract_utils::{deploy_contract, deploy_contract_without_initialization};
 
 #[allow(clippy::identity_op)]
 #[test]
@@ -112,6 +113,95 @@ fn setting_votes_for_unknown_submission() {
             .unwrap(),
         VotingSystemError::SubmissionDoesNotExist
     );
+}
+
+#[test]
+fn tally_submission_requires_admin() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let contract_client = deploy_contract_without_initialization(&env);
+    let admin = Address::generate(&env);
+    contract_client.initialize(&admin, &25);
+
+    // Set up a submission and votes with admin auth
+    let submission = String::from_str(&env, "test_submission");
+    env.mock_auths(&[MockAuth {
+        address: &admin,
+        invoke: &MockAuthInvoke {
+            contract: &contract_client.address,
+            fn_name: "set_submissions",
+            args: vec![&env, vec![&env, (submission.clone(), String::from_str(&env, "Applications"))].to_val()],
+            sub_invokes: &[],
+        },
+    }]);
+    contract_client.set_submissions(&vec![
+        &env,
+        (submission.clone(), String::from_str(&env, "Applications")),
+    ]);
+
+    let user = String::from_str(&env, "user1");
+    let mut votes = Map::new(&env);
+    votes.set(user.clone(), Vote::Yes);
+    env.mock_auths(&[MockAuth {
+        address: &admin,
+        invoke: &MockAuthInvoke {
+            contract: &contract_client.address,
+            fn_name: "set_votes_for_submission",
+            args: vec![&env, submission.clone().to_val(), votes.clone().to_val()],
+            sub_invokes: &[],
+        },
+    }]);
+    contract_client.set_votes_for_submission(&submission, &votes);
+
+    // Set up neuron results and calculate voting powers with admin auth
+    let mut raw_neurons: Vec<(String, I256)> = Vec::new(&env);
+    raw_neurons.push_back((
+        String::from_str(&env, "Dummy"),
+        I256::from_i128(&env, DECIMALS),
+    ));
+    env.mock_auths(&[MockAuth {
+        address: &admin,
+        invoke: &MockAuthInvoke {
+            contract: &contract_client.address,
+            fn_name: "add_layer",
+            args: vec![&env, raw_neurons.clone().to_val(), LayerAggregator::Sum.into_val(&env)],
+            sub_invokes: &[],
+        },
+    }]);
+    contract_client.add_layer(&raw_neurons, &LayerAggregator::Sum);
+
+    let mut neuron_result = Map::new(&env);
+    neuron_result.set(user, I256::from_i128(&env, 100 * DECIMALS));
+    env.mock_auths(&[MockAuth {
+        address: &admin,
+        invoke: &MockAuthInvoke {
+            contract: &contract_client.address,
+            fn_name: "set_neuron_result",
+            args: vec![&env, String::from_str(&env, "0").to_val(), String::from_str(&env, "0").to_val(), neuron_result.clone().to_val()],
+            sub_invokes: &[],
+        },
+    }]);
+    contract_client.set_neuron_result(
+        &String::from_str(&env, "0"),
+        &String::from_str(&env, "0"),
+        &neuron_result,
+    );
+
+    env.mock_auths(&[MockAuth {
+        address: &admin,
+        invoke: &MockAuthInvoke {
+            contract: &contract_client.address,
+            fn_name: "calculate_voting_powers",
+            args: vec![&env],
+            sub_invokes: &[],
+        },
+    }]);
+    contract_client.calculate_voting_powers();
+
+    // Try to tally without admin auth - should fail
+    let result = contract_client.try_tally_submission(&submission);
+    assert!(result.is_err());
 }
 
 #[test]
