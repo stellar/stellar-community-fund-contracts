@@ -24,7 +24,7 @@ NEURAL_GOVERNANCE_ADDRESS=$(stellar contract deploy \
 echo "NEURAL_GOVERNANCE_ADDRESS: $NEURAL_GOVERNANCE_ADDRESS"
 echo "Contract admin initialized successfully, round set to $CURRENT_ROUND"
 
-echo STEP 2: Setup neural governance
+echo STEP 3: Setup neural governance
 stellar contract invoke \
   --id $NEURAL_GOVERNANCE_ADDRESS \
   --source-account $STELLAR_SECRET_KEY \
@@ -45,7 +45,7 @@ stellar contract invoke \
 
 echo "Neural governance set up successfully"
 
-echo STEP 3: Update .env file
+echo STEP 4: Update .env file
 SED_IN_PLACE_OPTION="-i"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
