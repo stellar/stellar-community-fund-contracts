@@ -1,17 +1,18 @@
-use soroban_sdk::testutils::{Address as AddressTrait, MockAuth, MockAuthInvoke};
-use soroban_sdk::{vec, Address, Env, IntoVal, Map, String, Vec, I256};
+use soroban_sdk::testutils::{MockAuth, MockAuthInvoke};
+use soroban_sdk::{vec, Env, IntoVal, Map, String, Vec, I256};
 
 use governance::types::{Vote, VotingSystemError};
 use governance::{LayerAggregator, DECIMALS};
 
-use crate::e2e::common::contract_utils::{deploy_contract, deploy_contract_without_initialization};
+use crate::e2e::common::contract_utils::{deploy_contract};
 
 #[allow(clippy::identity_op)]
 #[test]
 fn voting_data_upload() {
     let env = Env::default();
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
     env.cost_estimate().budget().reset_unlimited();
+    env.mock_all_auths();
 
     let mut raw_neurons: Vec<(String, I256)> = Vec::new(&env);
     raw_neurons.push_back((
@@ -104,8 +105,10 @@ fn voting_data_upload() {
 fn setting_votes_for_unknown_submission() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
+    
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
 
-    let contract_client = deploy_contract(&env);
     assert_eq!(
         contract_client
             .try_set_votes_for_submission(&String::from_str(&env, "sub1"), &Map::new(&env))
@@ -120,9 +123,7 @@ fn tally_submission_requires_admin() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
 
-    let contract_client = deploy_contract_without_initialization(&env);
-    let admin = Address::generate(&env);
-    contract_client.initialize(&admin, &25);
+    let (contract_client, admin) = deploy_contract(&env);
 
     // Set up a submission and votes with admin auth
     let submission = String::from_str(&env, "test_submission");
@@ -225,7 +226,8 @@ fn adding_duplicate_submissions() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
 
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
 
     contract_client.set_submissions(&vec![
         &env,
@@ -254,7 +256,8 @@ fn setting_round() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
 
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
 
     contract_client.set_current_round(&20);
     assert_eq!(contract_client.get_current_round(), 20);
@@ -268,7 +271,9 @@ fn set_bump_round_flow() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
 
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
+
     contract_client.set_current_round(&25);
 
     let submission = String::from_str(&env, "sub1");
@@ -398,7 +403,9 @@ fn get_voting_power_for_user() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
 
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
+
     contract_client.set_current_round(&25);
 
     let user1 = String::from_str(&env, "user1");

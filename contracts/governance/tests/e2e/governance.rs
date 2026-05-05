@@ -8,7 +8,8 @@ use crate::e2e::common::contract_utils::deploy_contract;
 #[test]
 fn add_layer() {
     let env = Env::default();
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
 
     let governance = contract_client.get_neural_governance();
     assert_eq!(governance.layers, Vec::new(&env));
@@ -48,7 +49,9 @@ fn add_layer() {
 #[test]
 fn remove_layer() {
     let env = Env::default();
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
+
+    env.mock_all_auths();
 
     let governance = contract_client.get_neural_governance();
     assert_eq!(governance.layers, Vec::new(&env));
@@ -85,7 +88,8 @@ fn remove_layer() {
 #[test]
 fn add_layer_after_removing() {
     let env = Env::default();
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
 
     let governance = contract_client.get_neural_governance();
     assert_eq!(governance.layers, Vec::new(&env));

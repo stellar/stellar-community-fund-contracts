@@ -72,8 +72,7 @@ pub enum DataKey {
 #[contractimpl]
 impl VotingSystem {
     /// Initialize the governance contract.
-    pub fn initialize(env: Env, admin: Address, current_round: u32) {
-        assert!(!is_set_admin(&env), "Admin already set");
+    pub fn __constructor(env: Env, admin: Address, current_round: u32) {
         set_admin(&env, &admin);
 
         let neural_governance = NGQ::new(&env);

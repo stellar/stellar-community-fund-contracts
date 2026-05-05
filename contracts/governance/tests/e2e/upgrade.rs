@@ -10,8 +10,9 @@ fn upgrade_contract() {
     let env = Env::default();
     let hash = env.deployer().upload_contract_wasm(mock_contract::WASM);
 
-    let contract_client = deploy_contract(&env);
+    let (contract_client, _admin) = deploy_contract(&env);
     let address = contract_client.address.clone();
+    env.mock_all_auths();
 
     contract_client.upgrade(&hash);
 
@@ -23,14 +24,15 @@ fn upgrade_contract() {
 fn storage_is_retained_after_upgrade() {
     let env = Env::default();
     let hash = env.deployer().upload_contract_wasm(mock_contract::WASM);
-
-    let contract_client = deploy_contract(&env);
+    
+    let (contract_client, _admin) = deploy_contract(&env);
     let address = contract_client.address.clone();
 
     // Store data using old impl
     let mut result = Map::new(&env);
     result.set(String::from_str(&env, "user1"), I256::from_i32(&env, 100));
     result.set(String::from_str(&env, "user2"), I256::from_i32(&env, 200));
+    env.mock_all_auths();
 
     contract_client.set_neuron_result(
         &String::from_str(&env, "0"),
