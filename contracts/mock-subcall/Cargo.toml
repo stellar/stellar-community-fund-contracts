@@ -1,13 +1,13 @@
 [package]
-name = "soroban-governor"
-version = "1.1.1"
+name = "mock-subcall"
+version = "0.0.0"
 authors = ["Script3 Ltd. <gm@script3.io>"]
-license = "MIT"
+license = "AGPL-3.0"
 edition = "2021"
 publish = false
 
 [lib]
-crate-type = ["rlib", "cdylib"]
+crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [features]

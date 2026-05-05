@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["governance", "scf_token", "governor"]
+members = ["governance", "scf_token", "governor", "governor/tests", "mock-subcall"]
 edition = "2021"
 
 [workspace.dependencies]

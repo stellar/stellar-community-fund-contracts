@@ -1,0 +1,12 @@
+[package]
+name = "governor-tests"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "tests"
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+soroban-governor = { path = "..", features = ["testutils"] }
