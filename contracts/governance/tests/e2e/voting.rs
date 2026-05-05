@@ -4,7 +4,7 @@ use soroban_sdk::{vec, Env, IntoVal, Map, String, Vec, I256};
 use governance::types::{Vote, VotingSystemError};
 use governance::{LayerAggregator, DECIMALS};
 
-use crate::e2e::common::contract_utils::{deploy_contract};
+use crate::e2e::common::contract_utils::deploy_contract;
 
 #[allow(clippy::identity_op)]
 #[test]
@@ -105,7 +105,7 @@ fn voting_data_upload() {
 fn setting_votes_for_unknown_submission() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();
-    
+
     let (contract_client, _admin) = deploy_contract(&env);
     env.mock_all_auths();
 

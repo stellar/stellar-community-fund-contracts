@@ -10,7 +10,7 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, vec, Address, BytesN, Env, Map, String, Vec, I256,
 };
 
-use admin::{require_admin};
+use admin::require_admin;
 
 use crate::admin::set_admin;
 use crate::admin::traits::Admin;

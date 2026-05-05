@@ -124,7 +124,8 @@ impl<'a> GovernorFixture<'a> {
     /// May only be called once per round per address.
     pub fn set_voter_balance(&self, addr: &Address, balance: i128) {
         // scf_token divides NQG by 10^9 to get its balance.
-        let nqg_value = I256::from_i128(self.env, balance).mul(&I256::from_i32(self.env, 10).pow(9));
+        let nqg_value =
+            I256::from_i128(self.env, balance).mul(&I256::from_i32(self.env, 10).pow(9));
 
         let mut result = self
             .governance

@@ -7,7 +7,6 @@ use crate::e2e::common::contract_utils::{
     set_nqg_results, update_balance, Deployment,
 };
 
-
 #[test]
 fn updating_balances() {
     let env = Env::default();

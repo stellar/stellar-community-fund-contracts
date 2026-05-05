@@ -32,7 +32,9 @@ fn test_vote() {
     e.jump(settings.vote_delay + 1);
 
     let voter_support = 0;
-    fixture.governor.vote(&samwise, &proposal_id, &voter_support);
+    fixture
+        .governor
+        .vote(&samwise, &proposal_id, &voter_support);
 
     // capture events from vote before subsequent calls clear them
     let events = e.events().all();

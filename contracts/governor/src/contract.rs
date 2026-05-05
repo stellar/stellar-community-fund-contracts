@@ -353,7 +353,10 @@ mod test {
             vote_threshold: 5100,
         };
         require_valid_settings(&env, &settings);
-        let governor_address = env.register(GovernorContract, (scf_token_address, admin.clone(), settings));
+        let governor_address = env.register(
+            GovernorContract,
+            (scf_token_address, admin.clone(), settings),
+        );
         let governor_client: GovernorContractClient<'_> =
             GovernorContractClient::new(&env, &governor_address);
         (governor_client, governance_client, scf_token_client, admin)

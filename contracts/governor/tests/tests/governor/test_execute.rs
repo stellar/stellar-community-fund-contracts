@@ -18,11 +18,7 @@ const TOTAL_VOTES: i128 = 10_000 * 10i128.pow(7);
 /// proposed by the council (bombadil). Returns (fixture, proposal_id, new_settings).
 fn setup_settings_proposal_voted<'a>(
     e: &'a Env,
-) -> (
-    tests::governor::GovernorFixture<'a>,
-    u32,
-    GovernorSettings,
-) {
+) -> (tests::governor::GovernorFixture<'a>, u32, GovernorSettings) {
     let bombadil = Address::generate(e);
     let samwise = Address::generate(e);
     let pippin = Address::generate(e);
@@ -128,7 +124,10 @@ fn test_execute_expired() {
     let events = e.events().all();
 
     // settings should NOT have changed: new_settings.vote_delay = 1231 vs default ONE_DAY_LEDGERS
-    assert_eq!(fixture.governor.settings().vote_delay, initial_settings.vote_delay);
+    assert_eq!(
+        fixture.governor.settings().vote_delay,
+        initial_settings.vote_delay
+    );
 
     let proposal = fixture.governor.get_proposal(&proposal_id).unwrap();
     assert_eq!(proposal.data.status, ProposalStatus::Expired);
@@ -380,16 +379,10 @@ fn test_execute_calldata_single_auth() {
     let (fixture, samwise, admin_client, token_client, token_address) = setup_calldata_fixture(&e);
     let settings = fixture.governor.settings();
 
-    let (outer_subcall_address, _) = create_mock_subcall_contract(
-        &e,
-        &token_address,
-        &fixture.governor_address,
-    );
-    let (inner_subcall_address, _) = create_mock_subcall_contract(
-        &e,
-        &token_address,
-        &fixture.governor_address,
-    );
+    let (outer_subcall_address, _) =
+        create_mock_subcall_contract(&e, &token_address, &fixture.governor_address);
+    let (inner_subcall_address, _) =
+        create_mock_subcall_contract(&e, &token_address, &fixture.governor_address);
 
     let call_amount: i128 = 100 * 10i128.pow(7);
     admin_client
@@ -453,16 +446,10 @@ fn test_execute_calldata_auth_chain() {
     let (fixture, samwise, admin_client, token_client, token_address) = setup_calldata_fixture(&e);
     let settings = fixture.governor.settings();
 
-    let (outer_subcall_address, _) = create_mock_subcall_contract(
-        &e,
-        &token_address,
-        &fixture.governor_address,
-    );
-    let (inner_subcall_address, _) = create_mock_subcall_contract(
-        &e,
-        &token_address,
-        &fixture.governor_address,
-    );
+    let (outer_subcall_address, _) =
+        create_mock_subcall_contract(&e, &token_address, &fixture.governor_address);
+    let (inner_subcall_address, _) =
+        create_mock_subcall_contract(&e, &token_address, &fixture.governor_address);
 
     let call_amount: i128 = 100 * 10i128.pow(7);
     admin_client

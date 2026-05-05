@@ -24,7 +24,7 @@ fn upgrade_contract() {
 fn storage_is_retained_after_upgrade() {
     let env = Env::default();
     let hash = env.deployer().upload_contract_wasm(mock_contract::WASM);
-    
+
     let (contract_client, _admin) = deploy_contract(&env);
     let address = contract_client.address.clone();
 

@@ -1,4 +1,3 @@
-
 use soroban_sdk::testutils::{
     Address as AddressTrait, AuthorizedFunction, AuthorizedInvocation, MockAuth, MockAuthInvoke,
 };
@@ -11,7 +10,6 @@ fn auth() {
     let env = Env::default();
     let (contract_client, admin) = deploy_contract(&env);
     env.mock_all_auths();
-
 
     contract_client.set_current_round(&30);
     assert_eq!(
