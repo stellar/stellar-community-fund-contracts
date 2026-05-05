@@ -10,7 +10,7 @@ use crate::storage::{
     read_all_addresses, read_governance_contract_address, read_total_supply, update_all_addresses,
     write_governance_contract_address, write_total_supply,
 };
-use crate::types::{ContractError, DataKey, VotesError};
+use crate::types::{ContractError, VotesError};
 use crate::votes::Votes;
 
 pub const DECIMALS: u32 = 9;
@@ -29,13 +29,7 @@ pub struct SCFToken;
 #[contractimpl]
 #[allow(clippy::needless_pass_by_value)]
 impl SCFToken {
-    pub fn initialize(env: Env, admin: Address, governance_address: Address) {
-        assert_with_error!(
-            env,
-            !env.storage().instance().has(&DataKey::Admin),
-            ContractError::ContractAlreadyInitialized
-        );
-
+    pub fn __constructor(env: Env, admin: Address, governance_address: Address) {
         write_admin(&env, &admin);
         write_governance_contract_address(&env, &governance_address);
     }

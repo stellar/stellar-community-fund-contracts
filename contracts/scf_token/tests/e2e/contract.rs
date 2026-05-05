@@ -7,24 +7,6 @@ use crate::e2e::common::contract_utils::{
     set_nqg_results, update_balance, Deployment,
 };
 
-#[test]
-fn initializing_contract() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let admin = Address::generate(&env);
-
-    let governance_client = deploy_governance_contract(&env, &admin);
-    let scf_token_address = env.register(SCFToken, ());
-    let scf_token_client = SCFTokenClient::new(&env, &scf_token_address);
-
-    scf_token_client.initialize(&admin, &governance_client.address);
-    // Try initializing again
-    assert_eq!(
-        scf_token_client.try_initialize(&admin, &governance_client.address),
-        Err(Ok(Error::from_contract_error(2)))
-    );
-}
 
 #[test]
 fn updating_balances() {

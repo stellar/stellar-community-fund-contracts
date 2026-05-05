@@ -14,7 +14,6 @@ pub enum DataKey {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum ContractError {
     VotingPowerMissingForUser = 1,
-    ContractAlreadyInitialized = 2,
     VotingPowerAlreadyUpdatedForUser = 3,
     ActionNotSupported = 4,
     ZeroUserCount = 5,

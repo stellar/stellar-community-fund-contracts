@@ -14,19 +14,15 @@ pub fn deploy_scf_token_contract<'a>(
     governance_address: &Address,
     admin: &Address,
 ) -> SCFTokenClient<'a> {
-    let scf_token_address = env.register(SCFToken, ());
+    let scf_token_address = env.register(SCFToken, (admin, governance_address));
     let scf_token_client = SCFTokenClient::new(env, &scf_token_address);
-
-    scf_token_client.initialize(admin, governance_address);
 
     scf_token_client
 }
 
 pub fn deploy_governance_contract<'a>(env: &Env, admin: &Address) -> governance::Client<'a> {
-    let governance_address = env.register(governance::WASM, ());
+    let governance_address = env.register(governance::WASM, (admin, 25u32));
     let governance_client = governance::Client::new(env, &governance_address);
-
-    governance_client.initialize(admin, &25);
 
     let neurons = soroban_sdk::vec![
         &env,
