@@ -6,7 +6,6 @@ use soroban_sdk::contracterror;
 pub enum GovernorError {
     // Default errors to align with built-in contract
     InternalError = 1,
-    AlreadyInitializedError = 3,
 
     UnauthorizedError = 4,
 

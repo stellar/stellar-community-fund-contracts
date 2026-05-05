@@ -20,15 +20,11 @@ pub struct GovernorContract;
 
 #[contractimpl]
 impl Governor for GovernorContract {
-    fn initialize(e: Env, votes: Address, council: Address, settings: GovernorSettings) {
-        if storage::get_is_init(&e) {
-            panic_with_error!(&e, GovernorError::AlreadyInitializedError);
-        }
+    fn __constructor(e: Env, votes: Address, council: Address, settings: GovernorSettings) {
         require_valid_settings(&e, &settings);
         storage::set_settings(&e, &settings);
         storage::set_council_address(&e, &council);
         storage::set_voter_token_address(&e, &votes);
-        storage::set_is_init(&e);
         storage::extend_instance(&e);
     }
 
@@ -330,10 +326,9 @@ mod test {
         let admin = Address::generate(&env);
         env.mock_all_auths();
 
-        let governance_address = env.register(governance::WASM, ());
+        let governance_address = env.register(governance::WASM, (admin.clone(), round));
         let governance_client: governance::Client<'_> =
             governance::Client::new(&env, &governance_address);
-        governance_client.initialize(&admin, &round);
         let neurons = soroban_sdk::vec![
             &env,
             (
@@ -343,14 +338,9 @@ mod test {
         ];
         governance_client.add_layer(&neurons, &LayerAggregator::Sum);
 
-        let governor_address = env.register(GovernorContract, ());
-        let governor_client: GovernorContractClient<'_> =
-            GovernorContractClient::new(&env, &governor_address);
-
-        let scf_token_address = env.register(scf_token::WASM, ());
+        let scf_token_address = env.register(scf_token::WASM, (admin.clone(), governance_address));
         let scf_token_client: scf_token::Client<'_> =
             scf_token::Client::new(&env, &scf_token_address);
-        scf_token_client.initialize(&admin, &governance_address);
 
         let settings = GovernorSettings {
             proposal_threshold: 10_000_000,
@@ -363,7 +353,9 @@ mod test {
             vote_threshold: 5100,
         };
         require_valid_settings(&env, &settings);
-        governor_client.initialize(&scf_token_address, &admin, &settings);
+        let governor_address = env.register(GovernorContract, (scf_token_address, admin.clone(), settings));
+        let governor_client: GovernorContractClient<'_> =
+            GovernorContractClient::new(&env, &governor_address);
         (governor_client, governance_client, scf_token_client, admin)
     }
 

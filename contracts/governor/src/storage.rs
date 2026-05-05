@@ -73,18 +73,6 @@ fn get_persistent_default<K: IntoVal<Env, Val>, V: TryFromVal<Env, Val>>(
 
 /********** Instance **********/
 
-/// Check if the contract has been initialized
-pub fn get_is_init(e: &Env) -> bool {
-    e.storage().instance().has(&Symbol::new(e, IS_INIT_KEY))
-}
-
-/// Set the contract as initialized
-pub fn set_is_init(e: &Env) {
-    e.storage()
-        .instance()
-        .set::<Symbol, bool>(&Symbol::new(e, IS_INIT_KEY), &true);
-}
-
 /// Set the voter token address
 ///
 /// ### Arguments

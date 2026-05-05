@@ -1,6 +1,6 @@
-use scf_token::{DataKey, SCFToken, SCFTokenClient, DECIMALS};
+use scf_token::{DataKey, DECIMALS};
 use soroban_sdk::testutils::Address as AddressTrait;
-use soroban_sdk::{Address, Env, Error, Map, String, I256};
+use soroban_sdk::{Address, Env, Map, String, I256};
 
 use crate::e2e::common::contract_utils::{
     bump_round, deploy_and_setup, deploy_governance_contract, deploy_scf_token_contract,
