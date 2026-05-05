@@ -48,8 +48,7 @@ impl VoteCount {
     /// * False if the vote has not reached quorum
     pub fn is_over_quorum(&self, quorum: u32, counting_type: u32, total_votes: i128) -> bool {
         let quorum_votes = self.count_quorum(counting_type);
-        let quorum_requirement_floor =
-            (total_votes * i128::from(quorum)) / i128::from(BPS_SCALAR);
+        let quorum_requirement_floor = (total_votes * i128::from(quorum)) / i128::from(BPS_SCALAR);
         quorum_votes > quorum_requirement_floor
     }
 

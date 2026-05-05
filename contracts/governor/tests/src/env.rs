@@ -19,7 +19,10 @@ pub trait EnvTestUtils {
 impl EnvTestUtils for Env {
     fn jump(&self, ledgers: u32) {
         self.ledger().set(LedgerInfo {
-            timestamp: self.ledger().timestamp().saturating_add(u64::from(ledgers) * 5),
+            timestamp: self
+                .ledger()
+                .timestamp()
+                .saturating_add(u64::from(ledgers) * 5),
             protocol_version: 23,
             sequence_number: self.ledger().sequence().saturating_add(ledgers),
             network_id: Default::default(),

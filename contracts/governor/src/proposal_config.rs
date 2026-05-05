@@ -25,7 +25,9 @@ impl ProposalConfig {
                 }
             }
             ProposalAction::Settings(ref settings) => require_valid_settings(e, settings),
-            ProposalAction::Upgrade(_) | ProposalAction::Council(_) | ProposalAction::Snapshot => (),
+            ProposalAction::Upgrade(_) | ProposalAction::Council(_) | ProposalAction::Snapshot => {
+                ()
+            }
         }
 
         ProposalConfig {
@@ -130,10 +132,7 @@ mod test {
             InvokerContractAuthEntry::Contract(sub_invocation) => {
                 assert_eq!(sub_invocation.context.contract, inner_subcall_address);
                 assert_eq!(sub_invocation.context.fn_name, Symbol::new(&e, "subcall"));
-                assert_eq!(
-                    sub_invocation.context.args,
-                    (call_amount,).into_val(&e)
-                );
+                assert_eq!(sub_invocation.context.args, (call_amount,).into_val(&e));
                 assert_eq!(sub_invocation.sub_invocations.len(), 1);
                 match sub_invocation.sub_invocations.get(0) {
                     Some(InvokerContractAuthEntry::Contract(sub_invocation)) => {
