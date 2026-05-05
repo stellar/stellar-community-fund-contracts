@@ -108,7 +108,12 @@ pub enum VoteType {
 }
 
 // Stores proposal results
-#[derive(Clone)]
+//
+// `_for` keeps its underscore prefix because `for` is a reserved keyword and the
+// field name is part of the on-chain serialization schema — renaming it would
+// break stored data and any indexers reading the event payload.
+#[allow(clippy::pub_underscore_fields)]
+#[derive(Clone, Default)]
 #[contracttype]
 pub struct VoteCount {
     pub against: i128,

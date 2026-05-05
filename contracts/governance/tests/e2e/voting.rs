@@ -267,6 +267,7 @@ fn setting_round() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn set_bump_round_flow() {
     let env = Env::default();
     env.cost_estimate().budget().reset_unlimited();

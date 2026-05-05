@@ -25,9 +25,7 @@ impl ProposalConfig {
                 }
             }
             ProposalAction::Settings(ref settings) => require_valid_settings(e, settings),
-            ProposalAction::Upgrade(_) => (),
-            ProposalAction::Council(_) => (),
-            ProposalAction::Snapshot => (),
+            ProposalAction::Upgrade(_) | ProposalAction::Council(_) | ProposalAction::Snapshot => (),
         }
 
         ProposalConfig {
@@ -66,10 +64,7 @@ impl ProposalConfig {
 
     /// Check if the proposal is executable
     pub fn is_executable(&self) -> bool {
-        match self.action {
-            ProposalAction::Snapshot => false,
-            _ => true,
-        }
+        !matches!(self.action, ProposalAction::Snapshot)
     }
 }
 
@@ -83,7 +78,7 @@ fn build_auth_vec(e: &Env, auths: &Vec<Calldata>) -> Vec<InvokerContractAuthEntr
                 fn_name: auth.function,
                 args: auth.args,
             },
-            sub_invocations: build_auth_vec(&e, &auth.auths),
+            sub_invocations: build_auth_vec(e, &auth.auths),
         });
         auth_vec.push_back(pre_auth_entry);
     }
@@ -112,7 +107,7 @@ mod test {
             Calldata {
                 contract_id: inner_subcall_address.clone(),
                 function: Symbol::new(&e, "subcall"),
-                args: (call_amount.clone(),).into_val(&e),
+                args: (call_amount,).into_val(&e),
                 auths: vec![
                     &e,
                     Calldata {
@@ -121,7 +116,7 @@ mod test {
                         args: (
                             governor_address.clone(),
                             inner_subcall_address.clone(),
-                            call_amount.clone(),
+                            call_amount,
                         )
                             .into_val(&e),
                         auths: vec![&e],
@@ -137,7 +132,7 @@ mod test {
                 assert_eq!(sub_invocation.context.fn_name, Symbol::new(&e, "subcall"));
                 assert_eq!(
                     sub_invocation.context.args,
-                    (call_amount.clone(),).into_val(&e)
+                    (call_amount,).into_val(&e)
                 );
                 assert_eq!(sub_invocation.sub_invocations.len(), 1);
                 match sub_invocation.sub_invocations.get(0) {
@@ -149,16 +144,16 @@ mod test {
                             (
                                 governor_address.clone(),
                                 inner_subcall_address.clone(),
-                                call_amount.clone()
+                                call_amount
                             )
                                 .into_val(&e)
                         );
                         assert_eq!(sub_invocation.sub_invocations.len(), 0);
                     }
-                    _ => assert!(false, "Expected sub_invocation"),
+                    _ => panic!("Expected sub_invocation"),
                 }
             }
-            _ => assert!(false, "Expected sub_invocation"),
+            _ => panic!("Expected sub_invocation"),
         }
     }
 }

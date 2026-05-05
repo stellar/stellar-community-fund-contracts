@@ -41,9 +41,9 @@ pub fn create_mock_subcall_contract<'a>(
 
 /// Register a Stellar Asset Contract (SEP-41 compliant). Used only by subcall/
 /// calldata-execute tests where the proposal needs a transferable underlying asset;
-/// scf_token does not support transfers by design.
+/// `scf_token` does not support transfers by design.
 ///
-/// Returns (address, admin_client, token_client). The admin client is used for `mint`,
+/// Returns `(address, admin_client, token_client)`. The admin client is used for `mint`,
 /// the token client for `transfer` / `balance`.
 pub fn create_sep41_token<'a>(
     e: &'a Env,
@@ -56,13 +56,13 @@ pub fn create_sep41_token<'a>(
     (address, admin_client, token_client)
 }
 
-/// Default governance round used by `setup_governor`.
+/// Default governance round used by `create_governor`.
 pub const DEFAULT_ROUND: u32 = 30;
 
 /// Default governor settings used by tests.
 pub fn default_governor_settings() -> GovernorSettings {
     GovernorSettings {
-        proposal_threshold: 1_0000000,
+        proposal_threshold: 10_000_000,
         vote_delay: ONE_DAY_LEDGERS,
         vote_period: ONE_DAY_LEDGERS * 7,
         timelock: ONE_DAY_LEDGERS,
@@ -95,9 +95,9 @@ pub fn default_proposal_data(e: &Env) -> (String, String, ProposalAction) {
     (title, description, ProposalAction::Calldata(calldata))
 }
 
-/// Test fixture wiring up governance + scf_token + governor.
+/// Test fixture wiring up governance + `scf_token` + governor.
 ///
-/// `admin` is also used as the governor council and as the scf_token / governance admin.
+/// `admin` is also used as the governor council and as the `scf_token` / governance admin.
 pub struct GovernorFixture<'a> {
     pub env: &'a Env,
     pub admin: Address,
@@ -108,7 +108,7 @@ pub struct GovernorFixture<'a> {
     pub token_address: Address,
 }
 
-impl<'a> GovernorFixture<'a> {
+impl GovernorFixture<'_> {
     /// Whitelist `addrs` as proposal creators.
     pub fn whitelist(&self, addrs: &[Address]) {
         let mut list = soroban_sdk::Vec::new(self.env);
@@ -118,9 +118,9 @@ impl<'a> GovernorFixture<'a> {
         self.governor.update_proposal_whitelist(&list);
     }
 
-    /// Set `addr`'s NQG-derived scf_token balance to `balance` (in scf_token decimals — 10^9).
+    /// Set `addr`'s NQG-derived `scf_token` balance to `balance` (in `scf_token` decimals — 10^9).
     ///
-    /// Sets the neuron result, recalculates voting powers, then calls update_balance.
+    /// Sets the neuron result, recalculates voting powers, then calls `update_balance`.
     /// May only be called once per round per address.
     pub fn set_voter_balance(&self, addr: &Address, balance: i128) {
         // scf_token divides NQG by 10^9 to get its balance.
@@ -148,7 +148,7 @@ impl<'a> GovernorFixture<'a> {
     }
 }
 
-/// Build a fresh fixture: deploys governance, scf_token, and the governor with default-ish wiring.
+/// Build a fresh fixture: deploys governance, `scf_token`, and the governor with default-ish wiring.
 ///
 /// `admin` is the governance/token admin AND the governor council.
 pub fn create_governor<'a>(

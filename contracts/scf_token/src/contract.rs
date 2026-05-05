@@ -58,7 +58,7 @@ impl SCFToken {
             ContractError::VotingPowerAlreadyUpdatedForUser
         );
 
-        let voting_power = voting_power_for_user(&env, &governance_client, &address)?;
+        let voting_power = voting_power_for_user(&env, &governance_client, &address);
 
         let voting_power_whole = scf_score_to_balance(&env, &voting_power);
         let voting_power_i128: i128 = voting_power_whole
@@ -116,13 +116,13 @@ fn voting_power_for_user(
     env: &Env,
     governance_client: &governance::Client,
     address: &Address,
-) -> Result<I256, ContractError> {
+) -> I256 {
     let voting_power: I256 = governance_client.get_voting_power_for_user(&address.to_string());
-    Ok(if voting_power >= I256::from_i32(env, 0) {
+    if voting_power >= I256::from_i32(env, 0) {
         voting_power
     } else {
         I256::from_i32(env, 0)
-    })
+    }
 }
 
 fn scf_score_to_balance(env: &Env, value: &I256) -> I256 {

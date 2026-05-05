@@ -89,7 +89,7 @@ fn transfer() {
     update_balance(&env, &client, &governance_client, &address, 10_i128.pow(18));
 
     assert_eq!(
-        client.try_transfer(&address, &Address::generate(&env), &1,),
+        client.try_transfer(&address, Address::generate(&env), &1,),
         Err(Ok(Error::from_contract_error(4)))
     );
 }

@@ -217,9 +217,9 @@ impl VotingSystem {
                 if let Some(voting_power) = voting_powers.get(user) {
                     return Ok(voting_power);
                 }
-                return Err(VotingSystemError::NGQResultForVoterMissing);
+                Err(VotingSystemError::NGQResultForVoterMissing)
             }
-            Err(_) => return Err(VotingSystemError::UnknownError),
+            Err(_) => Err(VotingSystemError::UnknownError),
         }
     }
 }

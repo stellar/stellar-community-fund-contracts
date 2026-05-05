@@ -24,8 +24,8 @@ fn all_addresses() {
     }
     governance_client.set_current_round(&34);
     for addr in &addresses {
-        set_nqg_results(&env, &governance_client, &addr, 10_i128.pow(18));
-        client.update_balance(&addr);
+        set_nqg_results(&env, &governance_client, addr, 10_i128.pow(18));
+        client.update_balance(addr);
     }
     // check for duplicates
     let fetched_addresses = client.all_addresses();
@@ -36,7 +36,7 @@ fn all_addresses() {
     }
     // check if all required addresses where returned
     for a in &addresses {
-        assert!(fetched_addresses.contains(a.clone()))
+        assert!(fetched_addresses.contains(a.clone()));
     }
     assert_eq!(addresses.len(), fetched_addresses.len() as usize);
 }

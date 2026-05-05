@@ -64,10 +64,10 @@ fn test_propose_calldata() {
                     action_calldata.auths.get(0).unwrap().contract_id
                 );
             } else {
-                assert!(false, "test setup error");
+                panic!("test setup error");
             }
         }
-        _ => assert!(false, "expected calldata proposal action"),
+        _ => panic!("expected calldata proposal action"),
     }
     assert_eq!(proposal.config.title, title);
     assert_eq!(proposal.config.description, description);

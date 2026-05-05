@@ -15,11 +15,11 @@ use crate::{
 /// * `settings` - The settings for the governor
 ///
 /// ### Panics
-/// * If the vote_period is greater than the maximum vote period or less than the minimum vote period
-/// * If the vote_delay + vote_period + timelock + grace_period is greater than the maximum proposal lifetime
-/// * If the grace_period is less than the minimum grace period
-/// * If the proposal_threshold is less than 1
-/// * If the counting_type is greater than 0b111
+/// * If the `vote_period` is greater than the maximum vote period or less than the minimum vote period
+/// * If the `vote_delay` + `vote_period` + `timelock` + `grace_period` is greater than the maximum proposal lifetime
+/// * If the `grace_period` is less than the minimum grace period
+/// * If the `proposal_threshold` is less than 1
+/// * If the `counting_type` is greater than `0b111`
 /// * If the quorum or vote threshold is greater than 99% or less than 0.1%
 pub fn require_valid_settings(e: &Env, settings: &GovernorSettings) {
     if settings.vote_period > MAX_VOTE_PERIOD
@@ -63,7 +63,6 @@ mod tests {
         };
 
         require_valid_settings(&e, &settings);
-        assert!(true);
     }
 
     #[test]
@@ -81,7 +80,6 @@ mod tests {
         };
 
         require_valid_settings(&e, &settings);
-        assert!(true);
     }
 
     #[test]
@@ -136,7 +134,6 @@ mod tests {
         };
 
         require_valid_settings(&e, &settings);
-        assert!(true);
     }
 
     #[test]
@@ -155,7 +152,6 @@ mod tests {
         };
 
         require_valid_settings(&e, &settings);
-        assert!(true);
     }
 
     #[test]

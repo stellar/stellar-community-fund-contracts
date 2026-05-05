@@ -215,18 +215,15 @@ impl Governor for GovernorContract {
         // require from to be the creator or the council
         if from != proposal_data.creator {
             let council = storage::get_council_address(&e);
-            if from != council {
-                panic_with_error!(&e, GovernorError::UnauthorizedError);
-            } else {
+            if from == council {
                 // block the security council from canceling council proposals
                 let proposal_config =
                     storage::get_proposal_config(&e, proposal_id).unwrap_optimized();
-                match proposal_config.action {
-                    ProposalAction::Council(_) => {
-                        panic_with_error!(&e, GovernorError::UnauthorizedError);
-                    }
-                    _ => {}
+                if let ProposalAction::Council(_) = proposal_config.action {
+                    panic_with_error!(&e, GovernorError::UnauthorizedError);
                 }
+            } else {
+                panic_with_error!(&e, GovernorError::UnauthorizedError);
             }
         }
 
@@ -284,11 +281,12 @@ impl Governor for GovernorContract {
     }
 }
 #[contractimpl]
+#[allow(clippy::needless_pass_by_value)]
 impl GovernorContract {
     pub fn update_proposal_whitelist(env: Env, list: Vec<Address>) {
         let council = storage::get_council_address(&env);
         council.require_auth();
-        storage::set_proposal_creation_whitelist(&env, list);
+        storage::set_proposal_creation_whitelist(&env, &list);
     }
 }
 
@@ -323,12 +321,12 @@ mod test {
         Address,
     ) {
         env.cost_estimate().budget().reset_unlimited();
-        let admin = Address::generate(&env);
+        let admin = Address::generate(env);
         env.mock_all_auths();
 
         let governance_address = env.register(governance::WASM, (admin.clone(), round));
         let governance_client: governance::Client<'_> =
-            governance::Client::new(&env, &governance_address);
+            governance::Client::new(env, &governance_address);
         let neurons = soroban_sdk::vec![
             &env,
             (
@@ -340,7 +338,7 @@ mod test {
 
         let scf_token_address = env.register(scf_token::WASM, (admin.clone(), governance_address));
         let scf_token_client: scf_token::Client<'_> =
-            scf_token::Client::new(&env, &scf_token_address);
+            scf_token::Client::new(env, &scf_token_address);
 
         let settings = GovernorSettings {
             proposal_threshold: 10_000_000,
@@ -352,13 +350,13 @@ mod test {
             counting_type: 2,
             vote_threshold: 5100,
         };
-        require_valid_settings(&env, &settings);
+        require_valid_settings(env, &settings);
         let governor_address = env.register(
             GovernorContract,
             (scf_token_address, admin.clone(), settings),
         );
         let governor_client: GovernorContractClient<'_> =
-            GovernorContractClient::new(&env, &governor_address);
+            GovernorContractClient::new(env, &governor_address);
         (governor_client, governance_client, scf_token_client, admin)
     }
 

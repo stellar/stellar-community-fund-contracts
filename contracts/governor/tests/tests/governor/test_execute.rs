@@ -14,11 +14,11 @@ use tests::{
 
 const TOTAL_VOTES: i128 = 10_000 * 10i128.pow(7);
 
-/// Helper: setup a fixture where samwise + pippin have voted on a Settings proposal
-/// proposed by the council (bombadil). Returns (fixture, proposal_id, new_settings).
-fn setup_settings_proposal_voted<'a>(
-    e: &'a Env,
-) -> (tests::governor::GovernorFixture<'a>, u32, GovernorSettings) {
+/// Helper: setup a fixture where samwise + pippin have voted on a `Settings` proposal
+/// proposed by the council (bombadil). Returns `(fixture, proposal_id, new_settings)`.
+fn setup_settings_proposal_voted(
+    e: &Env,
+) -> (tests::governor::GovernorFixture<'_>, u32, GovernorSettings) {
     let bombadil = Address::generate(e);
     let samwise = Address::generate(e);
     let pippin = Address::generate(e);
@@ -36,7 +36,7 @@ fn setup_settings_proposal_voted<'a>(
 
     let (title, description, _) = default_proposal_data(e);
     let new_settings = GovernorSettings {
-        proposal_threshold: 829421,
+        proposal_threshold: 829_421,
         vote_delay: 1231,
         vote_period: 7456,
         timelock: 15678,
@@ -278,13 +278,13 @@ fn test_execute_snapshot_errors() {
 // calldata invokes `token.transfer(governor, ...)`, which requires real
 // `from.require_auth()` semantics — scf_token rejects transfers by design.
 
-fn setup_calldata_fixture<'a>(
-    e: &'a Env,
+fn setup_calldata_fixture(
+    e: &Env,
 ) -> (
-    tests::governor::GovernorFixture<'a>,
+    tests::governor::GovernorFixture<'_>,
     Address,
-    soroban_sdk::token::StellarAssetClient<'a>,
-    soroban_sdk::token::TokenClient<'a>,
+    soroban_sdk::token::StellarAssetClient<'_>,
+    soroban_sdk::token::TokenClient<'_>,
     Address,
 ) {
     let bombadil = Address::generate(e);

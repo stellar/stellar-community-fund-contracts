@@ -127,7 +127,7 @@ fn test_vote_multiple_users() {
 
     let samwise_votes = 1_000 * 10i128.pow(7);
     let pippin_votes = 500 * 10i128.pow(7);
-    let merry_votes = 1234567;
+    let merry_votes = 1_234_567;
     let bilbo_votes = 2345 * 10i128.pow(7);
 
     fixture.set_voter_balance(&samwise, samwise_votes);

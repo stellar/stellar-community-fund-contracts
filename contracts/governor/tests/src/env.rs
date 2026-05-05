@@ -9,17 +9,17 @@ pub trait EnvTestUtils {
     /// Jump the env by the given amount of ledgers. Assumes 5 seconds per ledger.
     fn jump(&self, ledgers: u32);
 
-    /// Set the ledger to the default LedgerInfo
+    /// Set the ledger to the default `LedgerInfo`
     ///
-    /// Time -> 1441065600 (Sept 1st, 2015 12:00:00 AM UTC)
-    /// Sequence -> 100
+    /// `Time` -> `1_441_065_600` (Sept 1st, 2015 12:00:00 AM UTC)
+    /// `Sequence` -> `100`
     fn set_default_info(&self);
 }
 
 impl EnvTestUtils for Env {
     fn jump(&self, ledgers: u32) {
         self.ledger().set(LedgerInfo {
-            timestamp: self.ledger().timestamp().saturating_add(ledgers as u64 * 5),
+            timestamp: self.ledger().timestamp().saturating_add(u64::from(ledgers) * 5),
             protocol_version: 23,
             sequence_number: self.ledger().sequence().saturating_add(ledgers),
             network_id: Default::default(),
@@ -32,7 +32,7 @@ impl EnvTestUtils for Env {
 
     fn set_default_info(&self) {
         self.ledger().set(LedgerInfo {
-            timestamp: 1441065600, // Sept 1st, 2015 12:00:00 AM UTC
+            timestamp: 1_441_065_600, // Sept 1st, 2015 12:00:00 AM UTC
             protocol_version: 23,
             sequence_number: 100,
             network_id: Default::default(),

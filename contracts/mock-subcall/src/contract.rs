@@ -12,6 +12,9 @@ pub enum ContractError {
 #[contract]
 pub struct SubcallContract;
 
+// `#[contractimpl]` requires entry-point arguments to be passed by value (Env, Address, etc.),
+// but clippy::pedantic flags them as `needless_pass_by_value`. Allow at the impl block.
+#[allow(clippy::needless_pass_by_value)]
 #[contractimpl]
 impl SubcallContract {
     pub fn initialize(e: Env, token: Address, governor: Address) {
@@ -31,7 +34,7 @@ impl SubcallContract {
 
         let token = storage::get_token(&e);
         let token_client = TokenClient::new(&e, &token);
-        token_client.transfer(&governor, &e.current_contract_address(), &amount);
+        token_client.transfer(&governor, e.current_contract_address(), &amount);
     }
 
     pub fn no_auth_sc(e: Env, amount: i128) {
@@ -39,7 +42,7 @@ impl SubcallContract {
 
         let token = storage::get_token(&e);
         let token_client = TokenClient::new(&e, &token);
-        token_client.transfer(&governor, &e.current_contract_address(), &amount);
+        token_client.transfer(&governor, e.current_contract_address(), &amount);
     }
 
     pub fn call_subcall(e: Env, subcall_address: Address, amount: i128, auth: bool) {

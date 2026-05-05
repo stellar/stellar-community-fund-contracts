@@ -57,7 +57,7 @@ pub trait Governor {
     /// * `proposal_id` - The id of the proposal to close
     ///
     /// ### Panics
-    /// * If the proposal_id is invalid
+    /// * If the `proposal_id` is invalid
     /// * If the proposal is not ready to be closed
     fn close(e: Env, proposal_id: u32);
 
@@ -67,7 +67,7 @@ pub trait Governor {
     /// * `proposal_id` - The id of the proposal to execute
     ///
     /// ### Panics
-    /// * If the proposal_id is invalid
+    /// * If the `proposal_id` is invalid
     /// * If the proposal is not ready to be executed
     fn execute(e: Env, proposal_id: u32);
 
@@ -104,7 +104,7 @@ pub trait Governor {
     /// * `proposal_id` - The id of the proposal to vote on
     ///
     /// ### Panics
-    /// * If the proposal_id is invalid
+    /// * If the `proposal_id` is invalid
     fn get_vote(e: Env, voter: Address, proposal_id: u32) -> Option<u32>;
 
     /// Get the vote count for a proposal.

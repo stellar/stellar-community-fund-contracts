@@ -36,7 +36,7 @@ pub fn set_is_init(e: &Env) {
 pub fn set_token(e: &Env, token: &Address) {
     e.storage()
         .instance()
-        .set::<Symbol, Address>(&TOKEN_KEY, &token);
+        .set::<Symbol, Address>(&TOKEN_KEY, token);
 }
 
 pub fn get_token(e: &Env) -> Address {
@@ -49,7 +49,7 @@ pub fn get_token(e: &Env) -> Address {
 pub fn set_governor(e: &Env, governor: &Address) {
     e.storage()
         .instance()
-        .set::<Symbol, Address>(&GOV_KEY, &governor);
+        .set::<Symbol, Address>(&GOV_KEY, governor);
 }
 
 pub fn get_governor(e: &Env) -> Address {

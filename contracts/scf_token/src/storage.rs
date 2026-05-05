@@ -30,7 +30,7 @@ pub(crate) fn read_all_addresses(env: &Env) -> Vec<Address> {
 }
 
 pub(crate) fn update_all_addresses(env: &Env, new_address: Address) {
-    let mut addresses = read_all_addresses(&env);
+    let mut addresses = read_all_addresses(env);
     if !addresses.contains(&new_address) {
         addresses.push_back(new_address);
         env.storage()
