@@ -25,9 +25,7 @@ impl ProposalConfig {
                 }
             }
             ProposalAction::Settings(ref settings) => require_valid_settings(e, settings),
-            ProposalAction::Upgrade(_) | ProposalAction::Council(_) | ProposalAction::Snapshot => {
-                ()
-            }
+            ProposalAction::Upgrade(_) | ProposalAction::Council(_) | ProposalAction::Snapshot => {}
         }
 
         ProposalConfig {
