@@ -2,11 +2,6 @@ use crate::Vote;
 use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-// use wasm_bindgen::JsValue;
-// use web_sys::{
-//     self,
-//     console::{self, log_1},
-// };
 
 const SMALLEST_DEFINED_QUORUM_SIZE: usize = 7;
 const MIN_QUORUM_SIZE: usize = 5;
@@ -71,7 +66,7 @@ fn calculate_quorum_consensus(
         bail!("User {} has quorum smaller than required {}", user, SMALLEST_DEFINED_QUORUM_SIZE)
     }
 
-    let valid_delegates: Vec<&String> = delegatees
+    let mut selected_delegatees: Vec<&String> = delegatees
         .iter()
         .filter(|delegatee| {
             let delegatee_vote = submission_votes.get(*delegatee).unwrap_or(&Vote::Abstain);
@@ -79,16 +74,9 @@ fn calculate_quorum_consensus(
         })
         .collect();
 
-    // use the full qourum user has defined
-    let selected_delegatees = valid_delegates;
-    let mut resolved_vote = Vote::Abstain;
-
-    while resolved_vote == Vote::Abstain {
-        if selected_delegatees.len() < MIN_QUORUM_SIZE {
-            break;
-        }
-        let mut votes_yes = 0;
-        let mut votes_no = 0;
+    while selected_delegatees.len() >= MIN_QUORUM_SIZE {
+        let mut votes_yes = 0u32;
+        let mut votes_no = 0u32;
         for &delegatee in &selected_delegatees {
             let delegatee_vote = submission_votes.get(delegatee).unwrap_or(&Vote::Abstain);
             match delegatee_vote {
@@ -99,289 +87,234 @@ fn calculate_quorum_consensus(
                 }
             };
         }
-        if votes_yes as f64 / (votes_yes + votes_no) as f64 > THRESHOLD {
-            resolved_vote = Vote::Yes
-        } else {
-            resolved_vote = Vote::No
+        let total = f64::from(votes_yes + votes_no);
+        if f64::from(votes_yes) / total > THRESHOLD {
+            return Ok(Vote::Yes);
         }
-
-        // With this calculation method Abstain will never occur. (assuming all delegates have voted)
-        // But if we were to use some different method where Abstain could occur,
-        // here we would pop one delegatee of selected_delegatees list, and
-        // repeat untill we get Yes/No or run out of delegatees (min 5)
-
-        // let _ = selected_delegatees.pop();
+        if f64::from(votes_no) / total > THRESHOLD {
+            return Ok(Vote::No);
+        }
+        // Neither side reached the threshold — drop the last delegate and retry.
+        selected_delegatees.pop();
     }
 
-    Ok(resolved_vote)
+    Ok(Vote::Abstain)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn expected_vote(submission_votes: &HashMap<String, Vote>) -> Vote {
-        let mut yes = 0;
-        let mut no = 0;
-        for vote in submission_votes.values() {
-            match vote {
-                Vote::Yes => yes += 1,
-                Vote::No => no += 1,
-                _ => {}
-            }
-        }
-        if yes as f64 / (yes + no) as f64 > THRESHOLD {
-            Vote::Yes
-        } else {
-            Vote::No
-        }
+
+    fn make_delegatees(n: usize) -> Vec<String> {
+        (1..=n).map(|i| format!("del{i}")).collect()
+    }
+
+    fn votes_from(delegatees: &[String], votes: &[Vote]) -> HashMap<String, Vote> {
+        assert_eq!(delegatees.len(), votes.len());
+        delegatees
+            .iter()
+            .cloned()
+            .zip(votes.iter().cloned())
+            .collect()
     }
 
     #[test]
-    fn calculate_quorum_consensus_yes() {
-        let delegatees: Vec<String> = vec![
-            "del1".to_string(),
-            "del2".to_string(),
-            "del3".to_string(),
-            "del4".to_string(),
-            "del5".to_string(),
-            "del6".to_string(),
-            "del7".to_string(),
-        ];
-        let mut submission_votes: HashMap<String, Vote> = HashMap::new();
-        submission_votes.insert("del1".to_string(), Vote::Yes);
-        submission_votes.insert("del2".to_string(), Vote::Yes);
-        submission_votes.insert("del3".to_string(), Vote::Yes);
-        submission_votes.insert("del4".to_string(), Vote::Yes);
-        submission_votes.insert("del5".to_string(), Vote::No);
-        submission_votes.insert("del6".to_string(), Vote::No);
-        submission_votes.insert("del7".to_string(), Vote::No);
+    fn resolves_yes_when_full_quorum_has_clear_yes_majority() {
+        // 6 Yes / 1 No → 6/7 ≈ 0.857 > 0.667, no popping needed.
+        let delegatees = make_delegatees(7);
+        let submission_votes = votes_from(
+            &delegatees,
+            &[Vote::Yes, Vote::Yes, Vote::Yes, Vote::Yes, Vote::Yes, Vote::Yes, Vote::No],
+        );
 
-        let resolved_vote =
+        let resolved =
             calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
-        let expected_vote = expected_vote(&submission_votes);
 
-        assert_eq!(resolved_vote, expected_vote)
+        assert_eq!(resolved, Vote::Yes);
     }
 
     #[test]
-    fn calculate_quorum_consensus_no() {
-        let delegatees: Vec<String> = vec![
-            "del1".to_string(),
-            "del2".to_string(),
-            "del3".to_string(),
-            "del4".to_string(),
-            "del5".to_string(),
-            "del6".to_string(),
-            "del7".to_string(),
-        ];
-        let mut submission_votes: HashMap<String, Vote> = HashMap::new();
-        submission_votes.insert("del1".to_string(), Vote::Yes);
-        submission_votes.insert("del2".to_string(), Vote::Yes);
-        submission_votes.insert("del3".to_string(), Vote::Yes);
-        submission_votes.insert("del4".to_string(), Vote::No);
-        submission_votes.insert("del5".to_string(), Vote::No);
-        submission_votes.insert("del6".to_string(), Vote::No);
-        submission_votes.insert("del7".to_string(), Vote::No);
+    fn resolves_no_when_full_quorum_has_clear_no_majority() {
+        // 1 Yes / 6 No → 6/7 ≈ 0.857 > 0.667, no popping needed.
+        let delegatees = make_delegatees(7);
+        let submission_votes = votes_from(
+            &delegatees,
+            &[Vote::Yes, Vote::No, Vote::No, Vote::No, Vote::No, Vote::No, Vote::No],
+        );
 
-        let resolved_vote =
+        let resolved =
             calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
-        let expected_vote = expected_vote(&submission_votes);
-        assert_eq!(resolved_vote, expected_vote)
+
+        assert_eq!(resolved, Vote::No);
     }
 
     #[test]
-    fn abstain_if_less_than_x_delegates_voted() {
-        let mut submission_votes = HashMap::new();
-
-        let user0 = String::from("user0");
-        let user1 = String::from("user1");
-        let user2 = String::from("user2");
-        let user3 = String::from("user3");
-        let user4 = String::from("user4");
-        let user5 = String::from("user5");
-        let user6 = String::from("user6");
-        let user7 = String::from("user7");
-
-        submission_votes.insert(user0.clone(), Vote::Delegate);
-        submission_votes.insert(user1.clone(), Vote::Yes);
-        submission_votes.insert(user2.clone(), Vote::Yes);
-        submission_votes.insert(user3.clone(), Vote::Yes);
-        submission_votes.insert(user4.clone(), Vote::Yes);
-
-        let delegates_for_user = vec![
-            user1.clone(),
-            user2.clone(),
-            user3.clone(),
-            user4.clone(),
-            user5.clone(),
-            user6.clone(),
-            user7.clone(),
-        ];
-        let resolved_vote =
-            calculate_quorum_consensus("user0", &delegates_for_user, &submission_votes).unwrap();
-
-        assert_eq!(resolved_vote, Vote::Abstain);
-    }
-
-    #[test]
-    fn quorum_size_to_small() {
-        let mut submission_votes = HashMap::new();
-
-        let user0 = String::from("user0");
-        let user1 = String::from("user1");
-        let user2 = String::from("user2");
-        let user3 = String::from("user3");
-        let user4 = String::from("user4");
-        let user5 = String::from("user5");
-        let user6 = String::from("user6");
-
-        submission_votes.insert(user0.clone(), Vote::Delegate);
-
-        let delegates_for_user = vec![
-            user1.clone(),
-            user2.clone(),
-            user3.clone(),
-            user4.clone(),
-            user5.clone(),
-            user6.clone(),
-        ];
-
-        let resolved_vote =
-            calculate_quorum_consensus("user0", &delegates_for_user, &submission_votes);
-
-        assert!(resolved_vote.is_err());
-    }
-
-    #[test]
-    fn resolve_category_delegate_yes() {
-        let mut submission_votes = HashMap::new();
-        let mut delegates_for_user = HashMap::new();
-
-        let user0 = String::from("user0");
-        let user1 = String::from("user1");
-        let user2 = String::from("user2");
-        let user3 = String::from("user3");
-        let user4 = String::from("user4");
-        let user5 = String::from("user5");
-        let user6 = String::from("user6");
-        let user7 = String::from("user7");
-
-        submission_votes.insert(user0.clone(), Vote::Delegate);
-        submission_votes.insert(user1.clone(), Vote::Yes);
-        submission_votes.insert(user2.clone(), Vote::Yes);
-        submission_votes.insert(user3.clone(), Vote::Yes);
-        submission_votes.insert(user4.clone(), Vote::Yes);
-        submission_votes.insert(user5.clone(), Vote::Yes);
-        submission_votes.insert(user6.clone(), Vote::Yes);
-        submission_votes.insert(user7.clone(), Vote::Yes);
-
-        delegates_for_user.insert(
-            user0.clone(),
-            DelegateesForUser::new(vec![
-                user1.clone(),
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-                user7.clone(),
-            ]),
+    fn resolves_yes_after_popping_trailing_dissenters() {
+        // 4 Yes / 3 No, dissenters at the tail.
+        // 7-wide:  4/7 ≈ 0.571  → pop No
+        // 6-wide:  4/6 ≈ 0.667  → not strictly greater, pop No
+        // 5-wide:  4/5 = 0.8    → Yes
+        let delegatees = make_delegatees(7);
+        let submission_votes = votes_from(
+            &delegatees,
+            &[Vote::Yes, Vote::Yes, Vote::Yes, Vote::Yes, Vote::No, Vote::No, Vote::No],
         );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let resolved =
+            calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
 
-        let expected_vote = expected_vote(&submission_votes);
-        assert_eq!(normalized_votes.get(&user0).unwrap(), &expected_vote);
+        assert_eq!(resolved, Vote::Yes);
     }
 
     #[test]
-    fn resolve_category_delegate_no() {
-        let mut submission_votes = HashMap::new();
-        let mut delegates_for_user = HashMap::new();
-
-        let user0 = String::from("user0");
-        let user1 = String::from("user1");
-        let user2 = String::from("user2");
-        let user3 = String::from("user3");
-        let user4 = String::from("user4");
-        let user5 = String::from("user5");
-        let user6 = String::from("user6");
-        let user7 = String::from("user7");
-
-        submission_votes.insert(user0.clone(), Vote::Delegate);
-        submission_votes.insert(user1.clone(), Vote::No);
-        submission_votes.insert(user2.clone(), Vote::No);
-        submission_votes.insert(user3.clone(), Vote::No);
-        submission_votes.insert(user4.clone(), Vote::No);
-        submission_votes.insert(user5.clone(), Vote::No);
-        submission_votes.insert(user6.clone(), Vote::No);
-        submission_votes.insert(user7.clone(), Vote::No);
-
-        delegates_for_user.insert(
-            user0.clone(),
-            DelegateesForUser::new(vec![
-                user1.clone(),
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-                user7.clone(),
-            ]),
+    fn resolves_no_after_popping_trailing_supporters() {
+        // 3 No / 4 Yes, dissenters at the tail.
+        // 7-wide:  4/7 ≈ 0.571 yes / 3/7 ≈ 0.429 no → pop Yes
+        // 6-wide:  3/6 = 0.5   yes / 3/6 = 0.5   no → pop Yes
+        // 5-wide:  2/5 = 0.4   yes / 3/5 = 0.6   no → still no consensus, pop Yes
+        // 4-wide < MIN_QUORUM_SIZE → Abstain.
+        // So we need a different layout to reach No: put No first.
+        let delegatees = make_delegatees(7);
+        let submission_votes = votes_from(
+            &delegatees,
+            &[Vote::No, Vote::No, Vote::No, Vote::No, Vote::Yes, Vote::Yes, Vote::Yes],
         );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let resolved =
+            calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
 
-        let expected_vote = expected_vote(&submission_votes);
-        assert_eq!(normalized_votes.get(&user0).unwrap(), &expected_vote);
+        assert_eq!(resolved, Vote::No);
     }
 
     #[test]
-    fn non_voting_delegates_are_skipped_in_quorum() {
-        let mut submission_votes = HashMap::new();
-        let mut delegates_for_user = HashMap::new();
-
-        let user0 = String::from("user0");
-        let user1 = String::from("user1");
-        let user2 = String::from("user2");
-        let user3 = String::from("user3");
-        let user4 = String::from("user4");
-        let user5 = String::from("user5");
-        let user6 = String::from("user6");
-        let user7 = String::from("user7");
-        let user8 = String::from("user8");
-        let user9 = String::from("user9");
-
-        submission_votes.insert(user0.clone(), Vote::Delegate);
-        submission_votes.insert(user1.clone(), Vote::Yes);
-        submission_votes.insert(user2.clone(), Vote::Yes);
-        submission_votes.insert(user3.clone(), Vote::Yes);
-        submission_votes.insert(user4.clone(), Vote::Yes);
-        submission_votes.insert(user5.clone(), Vote::No);
-        submission_votes.insert(user6.clone(), Vote::No);
-        submission_votes.insert(user7.clone(), Vote::No);
-
-        delegates_for_user.insert(
-            user0.clone(),
-            DelegateesForUser::new(vec![
-                user1.clone(),
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-                user7.clone(),
-                user8.clone(),
-                user9.clone(),
-            ]),
+    fn resolves_abstain_when_no_pop_reaches_threshold() {
+        // Alternating pattern keeps the split close at every iteration.
+        // del1=Yes, del2=No, del3=Yes, del4=No, del5=Yes, del6=No, del7=Yes
+        // 7-wide:  4Y/3N → 4/7 ≈ 0.571 → pop Yes (last)
+        // 6-wide:  3Y/3N → 3/6 = 0.500 → pop No
+        // 5-wide:  3Y/2N → 3/5 = 0.600 → pop Yes
+        // 4-wide < MIN_QUORUM_SIZE → Abstain.
+        let delegatees = make_delegatees(7);
+        let submission_votes = votes_from(
+            &delegatees,
+            &[Vote::Yes, Vote::No, Vote::Yes, Vote::No, Vote::Yes, Vote::No, Vote::Yes],
         );
 
-        let normalized_votes =
+        let resolved =
+            calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
+
+        assert_eq!(resolved, Vote::Abstain);
+    }
+
+    #[test]
+    fn resolves_abstain_when_too_few_delegates_actually_voted() {
+        // Only 4 of 7 delegates have a Yes/No vote — the rest are absent (treated as Abstain
+        // and filtered out). The filtered list starts below MIN_QUORUM_SIZE, so we never enter
+        // the loop body and the result is Abstain.
+        let delegatees = make_delegatees(7);
+        let mut submission_votes = HashMap::new();
+        submission_votes.insert(delegatees[0].clone(), Vote::Yes);
+        submission_votes.insert(delegatees[1].clone(), Vote::Yes);
+        submission_votes.insert(delegatees[2].clone(), Vote::Yes);
+        submission_votes.insert(delegatees[3].clone(), Vote::Yes);
+
+        let resolved =
+            calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
+
+        assert_eq!(resolved, Vote::Abstain);
+    }
+
+    #[test]
+    fn errors_when_user_defines_fewer_than_smallest_quorum_size() {
+        let delegatees = make_delegatees(SMALLEST_DEFINED_QUORUM_SIZE - 1);
+        let submission_votes = HashMap::new();
+
+        let result = calculate_quorum_consensus("user", &delegatees, &submission_votes);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn non_voting_delegates_are_skipped_so_pop_chain_can_still_resolve() {
+        // 9 delegates defined but only 7 cast Yes/No — the trailing 2 are filtered out,
+        // leaving the same 4Y/3N tail as the "resolves yes after popping" test.
+        let delegatees = make_delegatees(9);
+        let mut submission_votes = HashMap::new();
+        submission_votes.insert(delegatees[0].clone(), Vote::Yes);
+        submission_votes.insert(delegatees[1].clone(), Vote::Yes);
+        submission_votes.insert(delegatees[2].clone(), Vote::Yes);
+        submission_votes.insert(delegatees[3].clone(), Vote::Yes);
+        submission_votes.insert(delegatees[4].clone(), Vote::No);
+        submission_votes.insert(delegatees[5].clone(), Vote::No);
+        submission_votes.insert(delegatees[6].clone(), Vote::No);
+        // del8, del9 — no recorded vote, should be skipped.
+
+        let resolved =
+            calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
+
+        assert_eq!(resolved, Vote::Yes);
+    }
+
+    #[test]
+    fn normalize_votes_for_submission_resolves_unanimous_yes_delegate() {
+        let user0 = String::from("user0");
+        let delegatees = make_delegatees(7);
+
+        let mut submission_votes = HashMap::new();
+        submission_votes.insert(user0.clone(), Vote::Delegate);
+        for d in &delegatees {
+            submission_votes.insert(d.clone(), Vote::Yes);
+        }
+
+        let mut delegates_for_user = HashMap::new();
+        delegates_for_user.insert(user0.clone(), DelegateesForUser::new(delegatees));
+
+        let normalized =
             normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
 
-        let expected_vote = expected_vote(&submission_votes);
-        assert_eq!(normalized_votes.get(&user0).unwrap(), &expected_vote);
+        assert_eq!(normalized.get(&user0).unwrap(), &Vote::Yes);
+    }
+
+    #[test]
+    fn normalize_votes_for_submission_resolves_unanimous_no_delegate() {
+        let user0 = String::from("user0");
+        let delegatees = make_delegatees(7);
+
+        let mut submission_votes = HashMap::new();
+        submission_votes.insert(user0.clone(), Vote::Delegate);
+        for d in &delegatees {
+            submission_votes.insert(d.clone(), Vote::No);
+        }
+
+        let mut delegates_for_user = HashMap::new();
+        delegates_for_user.insert(user0.clone(), DelegateesForUser::new(delegatees));
+
+        let normalized =
+            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+
+        assert_eq!(normalized.get(&user0).unwrap(), &Vote::No);
+    }
+
+    #[test]
+    fn normalize_votes_for_submission_resolves_abstain_when_split() {
+        // Same alternating layout as `resolves_abstain_when_no_pop_reaches_threshold`,
+        // but invoked through normalize_votes_for_submission.
+        let user0 = String::from("user0");
+        let delegatees = make_delegatees(7);
+
+        let mut submission_votes = HashMap::new();
+        submission_votes.insert(user0.clone(), Vote::Delegate);
+        for (i, d) in delegatees.iter().enumerate() {
+            let v = if i % 2 == 0 { Vote::Yes } else { Vote::No };
+            submission_votes.insert(d.clone(), v);
+        }
+
+        let mut delegates_for_user = HashMap::new();
+        delegates_for_user.insert(user0.clone(), DelegateesForUser::new(delegatees));
+
+        let normalized =
+            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+
+        assert_eq!(normalized.get(&user0).unwrap(), &Vote::Abstain);
     }
 }
