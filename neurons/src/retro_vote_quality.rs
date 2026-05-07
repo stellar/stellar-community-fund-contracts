@@ -1,4 +1,5 @@
 use crate::neurons::Neuron;
+use crate::types::generalised_logistic_function;
 use crate::Vote;
 use std::collections::HashMap;
 
@@ -63,7 +64,8 @@ impl RetroVoteQualityNeuron {
                 }
             }
         }
-        total_bonus as f64 / FIXED_POINT_SCALING_FACTOR as f64
+        let raw_bonus = total_bonus as f64 / FIXED_POINT_SCALING_FACTOR as f64;
+        generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, raw_bonus)
     }
     fn resolve_delegated_vote(
         &self,
@@ -136,8 +138,19 @@ mod tests {
     const NOT_LIVE_MVP: &str = "Not live on Stellar within 6 months, MVP";
     const NOT_LIVE_TESTNET: &str = "Not live on Stellar within 6 months, Testnet";
 
-    // Build a neuron where each submission is registered under a single status so
-    // `lookup_tranche_status` is deterministic regardless of HashMap iteration order.
+    const FLOAT_EPS: f64 = 1e-12;
+
+    fn logistic_of(raw_bonus: f64) -> f64 {
+        generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, raw_bonus)
+    }
+
+    fn assert_close(actual: f64, expected: f64) {
+        assert!(
+            (actual - expected).abs() < FLOAT_EPS,
+            "expected {expected}, got {actual}"
+        );
+    }
+
     fn build_neuron(
         votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>,
         normalized_votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>,
@@ -194,7 +207,7 @@ mod tests {
             HashMap::new(),
             &[("sub1", "rec1", LIVE_WITHIN_6)],
         );
-        assert_eq!(neuron.run_user("alice"), 0.30);
+        assert_close(neuron.run_user("alice"), logistic_of(0.30));
     }
 
     #[test]
@@ -204,8 +217,9 @@ mod tests {
             HashMap::new(),
             &[("sub1", "rec1", LIVE_WITHIN_6)],
         );
-        assert_eq!(neuron.run_user("alice"), 0.0);
-        assert_eq!(neuron.run_user("bob"), 0.0);
+        let baseline = logistic_of(0.0);
+        assert_close(neuron.run_user("alice"), baseline);
+        assert_close(neuron.run_user("bob"), baseline);
     }
 
     #[test]
@@ -215,19 +229,19 @@ mod tests {
             votes(30, "sub1", &[("alice", Vote::Yes)]),
             &[("sub1", "rec1", LIVE_WITHIN_6)],
         );
-        // 30 / 2 = 15 -> 0.15
-        assert_eq!(neuron.run_user("alice"), 0.15);
+        // raw bonus: 30 / 2 = 15 -> 0.15, then logistic
+        assert_close(neuron.run_user("alice"), logistic_of(0.15));
     }
 
     #[test]
     fn delegate_resolving_to_yes_with_negative_status_halves_penalty_via_int_division() {
-        // -30 / 2 = -15 -> -0.15 (integer division on negatives in Rust truncates toward zero)
+        // raw bonus: -30 / 2 = -15 -> -0.15 (Rust integer division truncates toward zero)
         let neuron = build_neuron(
             votes(30, "sub1", &[("alice", Vote::Delegate)]),
             votes(30, "sub1", &[("alice", Vote::Yes)]),
             &[("sub1", "rec1", NOT_LIVE_AWARDED)],
         );
-        assert_eq!(neuron.run_user("alice"), -0.15);
+        assert_close(neuron.run_user("alice"), logistic_of(-0.15));
     }
 
     #[test]
@@ -242,8 +256,9 @@ mod tests {
             votes(30, "sub1", &[("alice", Vote::Abstain)]),
             &[("sub1", "rec1", LIVE_WITHIN_6)],
         );
-        assert_eq!(neuron_no.run_user("alice"), 0.0);
-        assert_eq!(neuron_abstain.run_user("alice"), 0.0);
+        let baseline = logistic_of(0.0);
+        assert_close(neuron_no.run_user("alice"), baseline);
+        assert_close(neuron_abstain.run_user("alice"), baseline);
     }
 
     #[test]
@@ -266,9 +281,10 @@ mod tests {
             votes(30, "sub1", &[("bob", Vote::Yes)]),
             &[("sub1", "rec1", LIVE_WITHIN_6)],
         );
-        assert_eq!(neuron_missing_round.run_user("alice"), 0.0);
-        assert_eq!(neuron_missing_submission.run_user("alice"), 0.0);
-        assert_eq!(neuron_missing_user.run_user("alice"), 0.0);
+        let baseline = logistic_of(0.0);
+        assert_close(neuron_missing_round.run_user("alice"), baseline);
+        assert_close(neuron_missing_submission.run_user("alice"), baseline);
+        assert_close(neuron_missing_user.run_user("alice"), baseline);
     }
 
     #[test]
@@ -282,7 +298,7 @@ mod tests {
             HashMap::new(), // empty tranche_status_map
             submissions_airtable_ids,
         );
-        assert_eq!(neuron.run_user("alice"), 0.0);
+        assert_close(neuron.run_user("alice"), logistic_of(0.0));
     }
 
     #[test]
@@ -294,7 +310,7 @@ mod tests {
             HashMap::from([(LIVE_WITHIN_6.to_string(), vec!["rec1".to_string()])]),
             HashMap::new(), // sub1 has no airtable_id mapping
         );
-        assert_eq!(neuron.run_user("alice"), 0.0);
+        assert_close(neuron.run_user("alice"), logistic_of(0.0));
     }
 
     #[test]
@@ -304,7 +320,7 @@ mod tests {
             HashMap::new(),
             &[("sub1", "rec1", NOT_LIVE_MVP)],
         );
-        assert_eq!(neuron.run_user("alice"), -0.20);
+        assert_close(neuron.run_user("alice"), logistic_of(-0.20));
     }
 
     #[test]
@@ -314,16 +330,18 @@ mod tests {
             HashMap::new(),
             &[("sub1", "rec1", LIVE_WITHIN_6)],
         );
-        assert_eq!(neuron.run_user("alice"), 0.30);
-        assert_eq!(neuron.run_user("bob"), 0.30);
-        assert_eq!(neuron.run_user("carol"), 0.0);
+        let yes_bonus = logistic_of(0.30);
+        let baseline = logistic_of(0.0);
+        assert_close(neuron.run_user("alice"), yes_bonus);
+        assert_close(neuron.run_user("bob"), yes_bonus);
+        assert_close(neuron.run_user("carol"), baseline);
     }
 
     #[test]
     fn bonuses_accumulate_across_rounds_and_submissions() {
         // round 30: sub1 Yes (+0.30), sub2 Delegate->Yes (+0.05, half of 0.10)
         // round 31: sub3 Yes (-0.30 awarded), sub4 Yes (-0.10 testnet)
-        // total = 0.30 + 0.05 - 0.30 - 0.10 = -0.05
+        // raw total = 0.30 + 0.05 - 0.30 - 0.10 = -0.05, then logistic
         let mut votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>> =
             HashMap::new();
         votes_per_round.insert(
@@ -363,15 +381,62 @@ mod tests {
                 ("sub4", "rec4", NOT_LIVE_TESTNET),
             ],
         );
-        let result = neuron.run_user("alice");
-        // Use a tolerance in case of f64 rounding from int->f64 division
-        assert!((result - (-0.05)).abs() < 1e-9, "got {result}");
+        assert_close(neuron.run_user("alice"), logistic_of(-0.05));
     }
 
     #[test]
-    fn run_user_with_empty_data_returns_zero() {
+    fn empty_data_returns_logistic_of_zero() {
         let neuron = build_neuron(HashMap::new(), HashMap::new(), &[]);
-        assert_eq!(neuron.run_user("alice"), 0.0);
+        assert_close(neuron.run_user("alice"), logistic_of(0.0));
+    }
+
+    #[test]
+    fn logistic_parameters_pinned() {
+        // Locks in the (a=0, k=5, c=1, q=4, b=1, nu=1, x_off=1) configuration so
+        // accidental parameter changes are caught even if `logistic_of` is updated.
+        // logistic(0) = 5 / (1 + 4 * exp(1)) ≈ 0.421119042004487
+        let neuron = build_neuron(HashMap::new(), HashMap::new(), &[]);
+        let result = neuron.run_user("alice");
+        assert!(
+            (result - 0.421_119_042_004_487).abs() < 1e-12,
+            "logistic_of(0) drifted: got {result}"
+        );
+    }
+
+    #[test]
+    fn logistic_is_monotonic_and_bounded() {
+        let mk = |sub_count: usize, status: &str| {
+            // build N submissions all with the same status, alice voting Yes on each
+            let mut sub_votes: HashMap<String, HashMap<String, Vote>> = HashMap::new();
+            let mut subs_to_status: Vec<(String, String, String)> = Vec::new();
+            for i in 0..sub_count {
+                let name = format!("sub{i}");
+                let rec = format!("rec{i}");
+                sub_votes.insert(
+                    name.clone(),
+                    HashMap::from([("alice".to_string(), Vote::Yes)]),
+                );
+                subs_to_status.push((name, rec, status.to_string()));
+            }
+            let votes_per_round = HashMap::from([(30u32, sub_votes)]);
+            let refs: Vec<(&str, &str, &str)> = subs_to_status
+                .iter()
+                .map(|(n, r, s)| (n.as_str(), r.as_str(), s.as_str()))
+                .collect();
+            build_neuron(votes_per_round, HashMap::new(), &refs).run_user("alice")
+        };
+        // More positive Yes votes => higher score, asymptoting at k=5.
+        let one = mk(1, LIVE_WITHIN_6);
+        let many = mk(50, LIVE_WITHIN_6); // raw = 50 * 0.30 = 15
+        let huge = mk(500, LIVE_WITHIN_6); // raw is large enough that f64 saturates at 5.0
+        assert!(one < many, "one={one} many={many}");
+        assert!(many <= huge, "many={many} huge={huge}");
+        // Bounded above by k=5 (saturation at 5.0 is fine — that's the asymptote).
+        assert!(huge <= 5.0, "huge={huge}");
+        assert!(many > 4.0, "many={many}"); // logistic_of(15) is already very close to k=5
+        // Bounded below by a=0 — even with all-negative votes the curve stays above 0.
+        let very_negative = mk(50, NOT_LIVE_AWARDED); // raw = 50 * -0.30 = -15
+        assert!(very_negative > 0.0, "very_negative={very_negative}");
     }
 
     #[test]
@@ -384,9 +449,10 @@ mod tests {
         let users = vec!["alice".to_string(), "bob".to_string(), "carol".to_string()];
         let result = neuron.calculate_result(&users);
         assert_eq!(result.len(), 3);
-        assert_eq!(result.get("alice"), Some(&0.30));
-        assert_eq!(result.get("bob"), Some(&0.0));
-        assert_eq!(result.get("carol"), Some(&0.0));
+        let baseline = logistic_of(0.0);
+        assert_close(*result.get("alice").unwrap(), logistic_of(0.30));
+        assert_close(*result.get("bob").unwrap(), baseline);
+        assert_close(*result.get("carol").unwrap(), baseline);
     }
 
     #[test]
