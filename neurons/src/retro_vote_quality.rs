@@ -145,10 +145,7 @@ mod tests {
     }
 
     fn assert_close(actual: f64, expected: f64) {
-        assert!(
-            (actual - expected).abs() < FLOAT_EPS,
-            "expected {expected}, got {actual}"
-        );
+        assert!((actual - expected).abs() < FLOAT_EPS, "expected {expected}, got {actual}");
     }
 
     fn build_neuron(
@@ -347,27 +344,15 @@ mod tests {
         votes_per_round.insert(
             30,
             HashMap::from([
-                (
-                    "sub1".to_string(),
-                    HashMap::from([("alice".to_string(), Vote::Yes)]),
-                ),
-                (
-                    "sub2".to_string(),
-                    HashMap::from([("alice".to_string(), Vote::Delegate)]),
-                ),
+                ("sub1".to_string(), HashMap::from([("alice".to_string(), Vote::Yes)])),
+                ("sub2".to_string(), HashMap::from([("alice".to_string(), Vote::Delegate)])),
             ]),
         );
         votes_per_round.insert(
             31,
             HashMap::from([
-                (
-                    "sub3".to_string(),
-                    HashMap::from([("alice".to_string(), Vote::Yes)]),
-                ),
-                (
-                    "sub4".to_string(),
-                    HashMap::from([("alice".to_string(), Vote::Yes)]),
-                ),
+                ("sub3".to_string(), HashMap::from([("alice".to_string(), Vote::Yes)])),
+                ("sub4".to_string(), HashMap::from([("alice".to_string(), Vote::Yes)])),
             ]),
         );
         let normalized = votes(30, "sub2", &[("alice", Vote::Yes)]);
@@ -412,10 +397,7 @@ mod tests {
             for i in 0..sub_count {
                 let name = format!("sub{i}");
                 let rec = format!("rec{i}");
-                sub_votes.insert(
-                    name.clone(),
-                    HashMap::from([("alice".to_string(), Vote::Yes)]),
-                );
+                sub_votes.insert(name.clone(), HashMap::from([("alice".to_string(), Vote::Yes)]));
                 subs_to_status.push((name, rec, status.to_string()));
             }
             let votes_per_round = HashMap::from([(30u32, sub_votes)]);
@@ -434,7 +416,7 @@ mod tests {
         // Bounded above by k=5 (saturation at 5.0 is fine — that's the asymptote).
         assert!(huge <= 5.0, "huge={huge}");
         assert!(many > 4.0, "many={many}"); // logistic_of(15) is already very close to k=5
-        // Bounded below by a=0 — even with all-negative votes the curve stays above 0.
+                                            // Bounded below by a=0 — even with all-negative votes the curve stays above 0.
         let very_negative = mk(50, NOT_LIVE_AWARDED); // raw = 50 * -0.30 = -15
         assert!(very_negative > 0.0, "very_negative={very_negative}");
     }
