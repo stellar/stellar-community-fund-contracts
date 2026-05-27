@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 const DELEGATED_VOTE_DENOMINATOR: i32 = 2;
 const FIXED_POINT_SCALING_FACTOR: i32 = 100; // *10 to mitigate float precission loss, and *10 to allow integer division
+const ZERO_SNAP_THRESHOLD: f64 = 0.001; // float-noise floor: |output| <= this collapses to 0
 #[derive(Clone, Debug)]
 pub struct RetroVoteQualityNeuron {
     votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, // round -> submission -> user -> vote (Yes/No/Abstain/Delegate)
@@ -65,7 +66,12 @@ impl RetroVoteQualityNeuron {
             }
         }
         let raw_bonus = total_bonus as f64 / FIXED_POINT_SCALING_FACTOR as f64;
-        generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, raw_bonus)
+        // Mirror the curve around 0: run |raw| through the logistic (baseline-shifted
+        // so raw=0 maps to 0) and flip the sign for negative raw bonuses, so penalties
+        // produce symmetric negative scores instead of being clipped at the a=0 floor.
+        let magnitude = logistic(raw_bonus.abs()) - logistic(0.0);
+        let signed = if raw_bonus < 0.0 { -magnitude } else { magnitude };
+        if signed.abs() <= ZERO_SNAP_THRESHOLD { 0.0 } else { signed }
     }
     fn resolve_delegated_vote(
         &self,
@@ -100,6 +106,9 @@ impl RetroVoteQualityNeuron {
         }
         None
     }
+}
+fn logistic(raw_bonus: f64) -> f64 {
+    generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, raw_bonus)
 }
 fn tranche_status_to_bonus(tranche_status: &str) -> i32 {
     match tranche_status {
@@ -141,7 +150,11 @@ mod tests {
     const FLOAT_EPS: f64 = 1e-12;
 
     fn logistic_of(raw_bonus: f64) -> f64 {
-        generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, raw_bonus)
+        // Mirrors the production formula: logistic(|raw|) - logistic(0), negated
+        // for negative raw, so raw=0 maps to 0 and penalties stay symmetric.
+        let f = |x| generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, x);
+        let magnitude = f(raw_bonus.abs()) - f(0.0);
+        if raw_bonus < 0.0 { -magnitude } else { magnitude }
     }
 
     fn assert_close(actual: f64, expected: f64) {
@@ -379,12 +392,15 @@ mod tests {
     fn logistic_parameters_pinned() {
         // Locks in the (a=0, k=5, c=1, q=4, b=1, nu=1, x_off=1) configuration so
         // accidental parameter changes are caught even if `logistic_of` is updated.
-        // logistic(0) = 5 / (1 + 4 * exp(1)) ≈ 0.421119042004487
+        // Raw logistic(0) = 5 / (1 + 4 * exp(1)) ≈ 0.421119042004487; production
+        // subtracts that baseline so a voter with no contributions scores 0.
         let neuron = build_neuron(HashMap::new(), HashMap::new(), &[]);
         let result = neuron.run_user("alice");
+        assert!(result.abs() < 1e-12, "expected 0 for empty contributions, got {result}");
+        let raw_baseline = generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, 0.0);
         assert!(
-            (result - 0.421_119_042_004_487).abs() < 1e-12,
-            "logistic_of(0) drifted: got {result}"
+            (raw_baseline - 0.421_119_042_004_487).abs() < 1e-12,
+            "logistic baseline drifted: got {raw_baseline}"
         );
     }
 
@@ -413,12 +429,13 @@ mod tests {
         let huge = mk(500, LIVE_WITHIN_6); // raw is large enough that f64 saturates at 5.0
         assert!(one < many, "one={one} many={many}");
         assert!(many <= huge, "many={many} huge={huge}");
-        // Bounded above by k=5 (saturation at 5.0 is fine — that's the asymptote).
+        // Bounded above by k=5 minus the baseline subtraction (~0.421).
         assert!(huge <= 5.0, "huge={huge}");
         assert!(many > 4.0, "many={many}"); // logistic_of(15) is already very close to k=5
-                                            // Bounded below by a=0 — even with all-negative votes the curve stays above 0.
+                                            // Penalties mirror the positive side: bounded below by ~-(k - baseline).
         let very_negative = mk(50, NOT_LIVE_AWARDED); // raw = 50 * -0.30 = -15
-        assert!(very_negative > 0.0, "very_negative={very_negative}");
+        assert!(very_negative >= -5.0, "very_negative={very_negative}");
+        assert!(very_negative < -4.0, "very_negative={very_negative}");
     }
 
     #[test]
