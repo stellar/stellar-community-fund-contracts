@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 const DELEGATED_VOTE_DENOMINATOR: i32 = 2;
 const FIXED_POINT_SCALING_FACTOR: i32 = 100; // *10 to mitigate float precission loss, and *10 to allow integer division
-const ZERO_SNAP_THRESHOLD: f64 = 0.001; // float-noise floor: |output| <= this collapses to 0
 #[derive(Clone, Debug)]
 pub struct RetroVoteQualityNeuron {
     votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, // round -> submission -> user -> vote (Yes/No/Abstain/Delegate)
@@ -66,12 +65,7 @@ impl RetroVoteQualityNeuron {
             }
         }
         let raw_bonus = total_bonus as f64 / FIXED_POINT_SCALING_FACTOR as f64;
-        // Mirror the curve around 0: run |raw| through the logistic (baseline-shifted
-        // so raw=0 maps to 0) and flip the sign for negative raw bonuses, so penalties
-        // produce symmetric negative scores instead of being clipped at the a=0 floor.
-        let magnitude = logistic(raw_bonus.abs()) - logistic(0.0);
-        let signed = if raw_bonus < 0.0 { -magnitude } else { magnitude };
-        if signed.abs() <= ZERO_SNAP_THRESHOLD { 0.0 } else { signed }
+        generalised_logistic_function(-5.0, 5.0, 1.0, 1.0, 0.4, 1.0, 0.0, raw_bonus)
     }
     fn resolve_delegated_vote(
         &self,
@@ -107,9 +101,7 @@ impl RetroVoteQualityNeuron {
         None
     }
 }
-fn logistic(raw_bonus: f64) -> f64 {
-    generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, raw_bonus)
-}
+
 fn tranche_status_to_bonus(tranche_status: &str) -> i32 {
     match tranche_status {
         "Live on Stellar within 6 months" => 30,               // 0.3
@@ -150,11 +142,7 @@ mod tests {
     const FLOAT_EPS: f64 = 1e-12;
 
     fn logistic_of(raw_bonus: f64) -> f64 {
-        // Mirrors the production formula: logistic(|raw|) - logistic(0), negated
-        // for negative raw, so raw=0 maps to 0 and penalties stay symmetric.
-        let f = |x| generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, x);
-        let magnitude = f(raw_bonus.abs()) - f(0.0);
-        if raw_bonus < 0.0 { -magnitude } else { magnitude }
+        generalised_logistic_function(-5.0, 5.0, 1.0, 1.0, 0.4, 1.0, 0.0, raw_bonus)
     }
 
     fn assert_close(actual: f64, expected: f64) {
@@ -397,7 +385,7 @@ mod tests {
         let neuron = build_neuron(HashMap::new(), HashMap::new(), &[]);
         let result = neuron.run_user("alice");
         assert!(result.abs() < 1e-12, "expected 0 for empty contributions, got {result}");
-        let raw_baseline = generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, 0.0);
+        let raw_baseline = generalised_logistic_function(-5.0, 5.0, 1.0, 1.0, 0.4, 1.0, 0.0, 0.0);
         assert!(
             (raw_baseline - 0.421_119_042_004_487).abs() < 1e-12,
             "logistic baseline drifted: got {raw_baseline}"
