@@ -65,7 +65,7 @@ impl RetroVoteQualityNeuron {
             }
         }
         let raw_bonus = total_bonus as f64 / FIXED_POINT_SCALING_FACTOR as f64;
-        generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, raw_bonus)
+        generalised_logistic_function(-5.0, 5.0, 1.0, 1.0, 0.4, 1.0, 0.0, raw_bonus)
     }
     fn resolve_delegated_vote(
         &self,
@@ -141,7 +141,7 @@ mod tests {
     const FLOAT_EPS: f64 = 1e-12;
 
     fn logistic_of(raw_bonus: f64) -> f64 {
-        generalised_logistic_function(0.0, 5.0, 1.0, 4.0, 1.0, 1.0, 1.0, raw_bonus)
+        generalised_logistic_function(-5.0, 5.0, 1.0, 1.0, 0.4, 1.0, 0.0, raw_bonus)
     }
 
     fn assert_close(actual: f64, expected: f64) {
