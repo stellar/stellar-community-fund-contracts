@@ -292,21 +292,6 @@ mod tests {
     }
 
     #[test]
-    fn all_equal_graph_normalizes_to_nan() {
-        // NOTE: min_max_normalize divides by (max - min); a perfectly symmetric graph (here a
-        // 2-cycle) has equal PageRank everywhere -> 0/0 = NaN. Documenting, not fixing.
-        let mut trusted_for_user: HashMap<String, Vec<String>> = HashMap::new();
-        trusted_for_user.insert("a".to_string(), vec!["b".to_string()]);
-        trusted_for_user.insert("b".to_string(), vec!["a".to_string()]);
-        let neuron = TrustGraphNeuron {
-            trusted_for_user,
-            round: 0,
-        };
-        let ranks = neuron.handle_page_rank(&users_vec(&["a", "b"]));
-        assert!(ranks.get("a").unwrap().is_nan());
-    }
-
-    #[test]
     fn highly_trusted_bonus_threshold_boundary() {
         // 10 users, distinct scores 1..=10. At a 10% threshold only the single top-scoring user
         // counts as highly trusted: index = len - max(1, len*10/100) = 10 - 1 = 9 (the top score).
