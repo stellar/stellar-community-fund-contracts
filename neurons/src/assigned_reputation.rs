@@ -149,4 +149,45 @@ mod tests {
         assert_eq!(resut.get("user2").unwrap(), &3.0);
         assert_eq!(resut.get("user3").unwrap(), &1.0);
     }
+
+    #[test]
+    #[should_panic(expected = "called `Option::unwrap()` on a `None` value")]
+    fn missing_reputation_user_panics() {
+        // NOTE: calculate_result does `.get(user).unwrap()` on users_reputation; a user missing
+        // from that map panics. Documenting current behavior, not fixing.
+        let neuron = AssignedReputationNeuron::from_data(HashMap::new(), HashMap::new());
+        let _ = neuron.calculate_result(&["ghost".to_string()]);
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Option::unwrap()` on a `None` value")]
+    fn missing_discord_roles_user_panics() {
+        // NOTE: `.get(user).unwrap()` on users_discord_roles also panics for a missing user.
+        let mut reputation = HashMap::new();
+        reputation.insert("alice".to_string(), ReputationTier::Pilot);
+        let neuron = AssignedReputationNeuron::from_data(reputation, HashMap::new());
+        let _ = neuron.calculate_result(&["alice".to_string()]);
+    }
+
+    #[test]
+    fn multiple_roles_sum_with_reputation() {
+        // confirms discord_roles_bonus SUMS across the whole vec (not just the first role)
+        // and that the reputation bonus is added on top.
+        let mut reputation = HashMap::new();
+        reputation.insert("alice".to_string(), ReputationTier::Navigator); // 2.0
+        let mut roles = HashMap::new();
+        roles.insert(
+            "alice".to_string(),
+            vec![
+                "SDF".to_string(),                    // 1.0
+                "West Africa Ambassador".to_string(), // 0.5
+                "Europe Ambassador".to_string(),      // 0.5
+                "unrecognized role".to_string(),      // 0.0
+            ],
+        );
+        let neuron = AssignedReputationNeuron::from_data(reputation, roles);
+        let result = neuron.calculate_result(&["alice".to_string()]);
+        // 2.0 + (1.0 + 0.5 + 0.5 + 0.0) == 4.0; exact f64 sum, so an epsilon compare is safe.
+        assert!((result.get("alice").unwrap() - 4.0).abs() < 1e-9);
+    }
 }

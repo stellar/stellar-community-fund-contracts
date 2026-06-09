@@ -158,4 +158,163 @@ mod tests {
         let result = calculate_active_votes_ratio("user1", &votes);
         assert_eq!(result, ACTIVE_VOTES_MIN_RATIO)
     }
+
+    // ---- Behavioral scenario tests for `calculate_bonus` / `calculate_result` ----
+    //
+    // Expected values are re-derived through the same `generalised_logistic_function`
+    // calls the production code uses (see `round_weight` / `final_squash` below), so the
+    // assertions document the math instead of pasting opaque floats.
+    //
+    // Round-number note: `round < 32` is a data-availability cutoff. Rounds < 32 take the
+    // raw-weight path; rounds >= 32 take the active-ratio path and contribute 0 unless a
+    // matching `votes_per_round` entry exists. The weight/recency/participation tests below
+    // therefore use rounds < 32 with `current_round = 38`.
+
+    const EPS: f64 = 1e-9;
+
+    fn assert_close(actual: f64, expected: f64) {
+        assert!((actual - expected).abs() < EPS, "expected {expected}, got {actual}");
+    }
+
+    // Per-round importance weight: logistic(0,1,1,1,1,4, current_round-8) applied to `round`.
+    fn round_weight(current_round: f64, round: f64) -> f64 {
+        generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, current_round - 8.0, round)
+    }
+
+    // Final squash applied to the summed weights: logistic(0,1,1,1,1,1,5).
+    fn final_squash(sum: f64) -> f64 {
+        generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 5.0, sum)
+    }
+
+    fn history(entries: &[(&str, &[u32])]) -> HashMap<String, Vec<u32>> {
+        entries.iter().map(|(u, rounds)| ((*u).to_string(), rounds.to_vec())).collect()
+    }
+
+    // Build a `votes_per_round` map: one round, one user, N submissions each with the given vote.
+    fn votes_for_round(
+        round: u32,
+        user: &str,
+        per_submission: &[Vote],
+    ) -> HashMap<u32, HashMap<String, HashMap<String, Vote>>> {
+        let mut submissions: HashMap<String, HashMap<String, Vote>> = HashMap::new();
+        for (i, vote) in per_submission.iter().enumerate() {
+            let mut sub = HashMap::new();
+            sub.insert(user.to_string(), vote.clone());
+            submissions.insert(format!("submission{i}"), sub);
+        }
+        HashMap::from([(round, submissions)])
+    }
+
+    #[test]
+    fn empty_history_returns_zero() {
+        let neuron =
+            PriorVotingHistoryNeuron::from_data(history(&[("emptyvec", &[])]), HashMap::new(), 38);
+        // user absent from the map entirely
+        assert_close(neuron.calculate_bonus("ghost".to_string()), 0.0);
+        // user present but with no rounds
+        assert_close(neuron.calculate_bonus("emptyvec".to_string()), 0.0);
+    }
+
+    #[test]
+    fn single_recent_round_bonus() {
+        // round 31 < 32 -> raw-weight path; current_round 38 keeps `current_round - 8` safe.
+        let neuron =
+            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[31])]), HashMap::new(), 38);
+        let expected = final_squash(round_weight(38.0, 31.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn more_recent_rounds_beat_older_rounds() {
+        // same count (1), different recency; the round weight is monotonic in the round number.
+        let neuron = PriorVotingHistoryNeuron::from_data(
+            history(&[("older", &[29]), ("newer", &[31])]),
+            HashMap::new(),
+            38,
+        );
+        let older = neuron.calculate_bonus("older".to_string());
+        let newer = neuron.calculate_bonus("newer".to_string());
+        assert!(newer > older, "more recent ({newer}) should exceed older ({older})");
+    }
+
+    #[test]
+    fn bonus_increases_with_participation_count() {
+        // "voted in 3 recent rounds -> bigger bonus": A in [29], B in [29,30,31], all < 32.
+        let neuron = PriorVotingHistoryNeuron::from_data(
+            history(&[("a", &[29]), ("b", &[29, 30, 31])]),
+            HashMap::new(),
+            38,
+        );
+        let a = neuron.calculate_bonus("a".to_string());
+        let b = neuron.calculate_bonus("b".to_string());
+        let expected_b =
+            final_squash(round_weight(38.0, 29.0) + round_weight(38.0, 30.0) + round_weight(38.0, 31.0));
+        assert_close(b, expected_b);
+        assert!(b > a, "3-round user ({b}) should exceed 1-round user ({a})");
+    }
+
+    #[test]
+    fn post_32_round_scales_by_active_ratio() {
+        // round 35 >= 32 with a votes entry: 3 active (Yes/No) of 4 submissions -> ratio 0.75.
+        let votes = votes_for_round(35, "alice", &[Vote::Yes, Vote::Yes, Vote::No, Vote::Delegate]);
+        let neuron =
+            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
+        let expected = final_squash(round_weight(38.0, 35.0) * 0.75);
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn post_32_round_without_votes_contributes_nothing() {
+        // same round 35 but no votes_per_round entry -> the round adds nothing; sum stays 0.
+        let neuron =
+            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), HashMap::new(), 38);
+        assert_close(neuron.calculate_bonus("alice".to_string()), final_squash(0.0));
+    }
+
+    #[test]
+    fn active_ratio_floor_applies_in_bonus() {
+        // 1 active of 5 -> true ratio 0.2, floored to ACTIVE_VOTES_MIN_RATIO (0.5).
+        let votes = votes_for_round(
+            35,
+            "alice",
+            &[Vote::Yes, Vote::Delegate, Vote::Delegate, Vote::Delegate, Vote::Delegate],
+        );
+        let neuron =
+            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
+        let expected = final_squash(round_weight(38.0, 35.0) * ACTIVE_VOTES_MIN_RATIO);
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn calculate_result_maps_all_users() {
+        let neuron = PriorVotingHistoryNeuron::from_data(
+            history(&[("a", &[29]), ("b", &[30, 31])]),
+            HashMap::new(),
+            38,
+        );
+        let users = vec!["a".to_string(), "b".to_string(), "c".to_string()];
+        let result = neuron.calculate_result(&users);
+        assert_eq!(result.len(), 3);
+        for u in &users {
+            assert_close(*result.get(u).unwrap(), neuron.calculate_bonus(u.clone()));
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "attempt to subtract with overflow")]
+    fn current_round_below_offset_underflows() {
+        // NOTE: `current_round - ROUND_IMPORTANCE_DECAY_OFFSET` is u32 subtraction; a
+        // current_round < 8 underflows and panics in debug builds. Documenting, not fixing.
+        let neuron =
+            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[3])]), HashMap::new(), 5);
+        let _ = neuron.calculate_bonus("alice".to_string());
+    }
+
+    #[test]
+    fn active_votes_ratio_empty_submissions() {
+        // NOTE: empty submission map -> 0.0/0.0 = NaN, then NaN.max(0.5) returns 0.5
+        // (f64::max ignores NaN). Characterizing current behavior.
+        let votes: HashMap<String, HashMap<String, Vote>> = HashMap::new();
+        assert_close(calculate_active_votes_ratio("user1", &votes), 0.5);
+    }
 }

@@ -246,4 +246,127 @@ mod tests {
         assert_f64_near!(result.get("D").unwrap(), &0.0);
         assert_f64_near!(result.get("E").unwrap(), &0.0);
     }
+
+    fn users_vec(names: &[&str]) -> Vec<String> {
+        names.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    #[test]
+    fn more_trusters_means_higher_pagerank() {
+        // Single population so the node set (and the normalization base) is fixed: three targets
+        // trusted by 1, 5 and 10 distinct users respectively. PageRank is relative, so this is the
+        // honest framing of "trusted by more users -> higher score".
+        let mut trusted_for_user: HashMap<String, Vec<String>> = HashMap::new();
+        for (target, count) in [("target1", 1), ("target5", 5), ("target10", 10)] {
+            for i in 0..count {
+                trusted_for_user.insert(format!("{target}_truster{i}"), vec![target.to_string()]);
+            }
+        }
+        let neuron = TrustGraphNeuron {
+            trusted_for_user,
+            round: 0,
+        };
+        let ranks = neuron.handle_page_rank(&users_vec(&["target1", "target5", "target10"]));
+        let r1 = ranks.get("target1").unwrap();
+        let r5 = ranks.get("target5").unwrap();
+        let r10 = ranks.get("target10").unwrap();
+        assert!(r10 > r5, "10 trusters ({r10}) should beat 5 ({r5})");
+        assert!(r5 > r1, "5 trusters ({r5}) should beat 1 ({r1})");
+    }
+
+    #[test]
+    fn min_max_normalization_bounds() {
+        // A clear hub: u1,u2,u3 all trust `hub`. After normalization the unique max is ~1.0
+        // and the (equal) trusters are the min at ~0.0.
+        let mut trusted_for_user: HashMap<String, Vec<String>> = HashMap::new();
+        trusted_for_user.insert("u1".to_string(), vec!["hub".to_string()]);
+        trusted_for_user.insert("u2".to_string(), vec!["hub".to_string()]);
+        trusted_for_user.insert("u3".to_string(), vec!["hub".to_string()]);
+        let neuron = TrustGraphNeuron {
+            trusted_for_user,
+            round: 0,
+        };
+        let ranks = neuron.handle_page_rank(&users_vec(&["hub", "u1", "u2", "u3"]));
+        assert_f64_near!(ranks.get("hub").unwrap(), &1.0);
+        assert_f64_near!(ranks.get("u1").unwrap(), &0.0);
+    }
+
+    #[test]
+    fn all_equal_graph_normalizes_to_nan() {
+        // NOTE: min_max_normalize divides by (max - min); a perfectly symmetric graph (here a
+        // 2-cycle) has equal PageRank everywhere -> 0/0 = NaN. Documenting, not fixing.
+        let mut trusted_for_user: HashMap<String, Vec<String>> = HashMap::new();
+        trusted_for_user.insert("a".to_string(), vec!["b".to_string()]);
+        trusted_for_user.insert("b".to_string(), vec!["a".to_string()]);
+        let neuron = TrustGraphNeuron {
+            trusted_for_user,
+            round: 0,
+        };
+        let ranks = neuron.handle_page_rank(&users_vec(&["a", "b"]));
+        assert!(ranks.get("a").unwrap().is_nan());
+    }
+
+    #[test]
+    fn highly_trusted_bonus_threshold_boundary() {
+        // 10 users, distinct scores 1..=10. At a 10% threshold only the single top-scoring user
+        // counts as highly trusted: index = len - max(1, len*10/100) = 10 - 1 = 9 (the top score).
+        let mut trust_map: HashMap<String, f64> = HashMap::new();
+        for i in 1..=10 {
+            trust_map.insert(format!("u{i}"), f64::from(i));
+        }
+        // top user u10 trusts u1,u2; u9 (NOT highly trusted at 10%) trusts u3.
+        let mut trusted_for_user: HashMap<String, Vec<String>> = HashMap::new();
+        trusted_for_user.insert("u10".to_string(), vec!["u1".to_string(), "u2".to_string()]);
+        trusted_for_user.insert("u9".to_string(), vec!["u3".to_string()]);
+        let neuron = TrustGraphNeuron {
+            trusted_for_user,
+            round: 0,
+        };
+
+        let with_bonus = neuron.handle_highly_trusted_bonus(trust_map, 10, 15.0);
+
+        // u1,u2 trusted by highly-trusted u10 -> +15% of their own score
+        assert_f64_near!(with_bonus.get("u1").unwrap(), &(1.0 * 1.15));
+        assert_f64_near!(with_bonus.get("u2").unwrap(), &(2.0 * 1.15));
+        // u3 trusted only by u9 (below threshold) -> unchanged
+        assert_f64_near!(with_bonus.get("u3").unwrap(), &3.0);
+        // u10 itself untouched
+        assert_f64_near!(with_bonus.get("u10").unwrap(), &10.0);
+    }
+
+    #[test]
+    fn calculate_result_full_pipeline() {
+        let mut trusted_for_user = HashMap::new();
+        trusted_for_user.insert("A".to_string(), vec!["B".to_string(), "C".to_string()]);
+        trusted_for_user.insert("B".to_string(), vec!["A".to_string()]);
+        trusted_for_user.insert("C".to_string(), vec!["A".to_string(), "B".to_string()]);
+        trusted_for_user.insert("D".to_string(), vec!["A".to_string()]);
+        trusted_for_user.insert("E".to_string(), vec![]);
+        let neuron = TrustGraphNeuron {
+            trusted_for_user,
+            round: 0,
+        };
+        let users = users_vec(&["A", "B", "C", "D", "E"]);
+
+        let via_public = neuron.calculate_result(&users);
+        let manual = neuron.handle_highly_trusted_bonus(
+            neuron.handle_page_rank(&users),
+            HIGHLY_TRUSTED_PERCENT_THRESHOLD,
+            HIGHLY_TRUSTED_PERCENT_BONUS,
+        );
+
+        assert_eq!(via_public.len(), manual.len());
+        for (k, v) in &manual {
+            assert_f64_near!(via_public.get(k).unwrap(), v);
+        }
+    }
+
+    #[test]
+    fn name_includes_round() {
+        let neuron = TrustGraphNeuron {
+            trusted_for_user: HashMap::new(),
+            round: 42,
+        };
+        assert_eq!(neuron.name(), "trust_graph_neuron_42");
+    }
 }
