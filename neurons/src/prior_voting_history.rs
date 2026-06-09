@@ -261,8 +261,9 @@ mod tests {
         );
         let a = neuron.calculate_bonus("a".to_string());
         let b = neuron.calculate_bonus("b".to_string());
-        let expected_b =
-            final_squash(round_weight(38.0, 29.0) + round_weight(38.0, 30.0) + round_weight(38.0, 31.0));
+        let expected_b = final_squash(
+            round_weight(38.0, 29.0) + round_weight(38.0, 30.0) + round_weight(38.0, 31.0),
+        );
         assert_close(b, expected_b);
         assert!(b > a, "3-round user ({b}) should exceed 1-round user ({a})");
     }
@@ -271,8 +272,7 @@ mod tests {
     fn post_32_round_scales_by_active_ratio() {
         // round 35 >= 32 with a votes entry: 3 active (Yes/No) of 4 submissions -> ratio 0.75.
         let votes = votes_for_round(35, "alice", &[Vote::Yes, Vote::Yes, Vote::No, Vote::Delegate]);
-        let neuron =
-            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
         let expected = final_squash(round_weight(38.0, 35.0) * 0.75);
         assert_close(neuron.calculate_bonus("alice".to_string()), expected);
     }
@@ -291,10 +291,15 @@ mod tests {
         let votes = votes_for_round(
             35,
             "alice",
-            &[Vote::Yes, Vote::Delegate, Vote::Delegate, Vote::Delegate, Vote::Delegate],
+            &[
+                Vote::Yes,
+                Vote::Delegate,
+                Vote::Delegate,
+                Vote::Delegate,
+                Vote::Delegate,
+            ],
         );
-        let neuron =
-            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
         let expected = final_squash(round_weight(38.0, 35.0) * ACTIVE_VOTES_MIN_RATIO);
         assert_close(neuron.calculate_bonus("alice".to_string()), expected);
     }

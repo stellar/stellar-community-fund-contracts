@@ -116,14 +116,16 @@ mod tests {
 
     #[test]
     fn trust_unchanged() {
-        let neuron = TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.8)], &[("alice", 0.8)]));
+        let neuron =
+            TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.8)], &[("alice", 0.8)]));
         let out = neuron.calculate_result(&[]);
         assert_close(*out.get("alice").unwrap(), trust_logistic(100.0) * 0.8 / 100.0);
     }
 
     #[test]
     fn trust_increased_gives_higher_outcome() {
-        let neuron = TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.5)], &[("alice", 0.8)]));
+        let neuron =
+            TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.5)], &[("alice", 0.8)]));
         let out = neuron.calculate_result(&[]);
         let got = *out.get("alice").unwrap();
         assert_close(got, expected_outcome(0.5, 0.8));
@@ -133,7 +135,8 @@ mod tests {
 
     #[test]
     fn trust_decreased_applies_penalty() {
-        let neuron = TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.8)], &[("alice", 0.5)]));
+        let neuron =
+            TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.8)], &[("alice", 0.5)]));
         let out = neuron.calculate_result(&[]);
         let got = *out.get("alice").unwrap();
         assert_close(got, expected_outcome(0.8, 0.5));
@@ -143,7 +146,8 @@ mod tests {
 
     #[test]
     fn severe_trust_loss() {
-        let neuron = TrustHistoryNeuron::from_data(30, results(30, &[("alice", 1.0)], &[("alice", 0.1)]));
+        let neuron =
+            TrustHistoryNeuron::from_data(30, results(30, &[("alice", 1.0)], &[("alice", 0.1)]));
         let out = neuron.calculate_result(&[]);
         assert_close(*out.get("alice").unwrap(), expected_outcome(1.0, 0.1));
         // diff_percent = 10 is far left of the curve midpoint (70) -> near the floor (a = 30)
@@ -152,7 +156,8 @@ mod tests {
 
     #[test]
     fn previous_zero_current_zero_returns_zero() {
-        let neuron = TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.0)], &[("alice", 0.0)]));
+        let neuron =
+            TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.0)], &[("alice", 0.0)]));
         let out = neuron.calculate_result(&[]);
         // diff_percent is NaN -> the NaN branch returns 0.0
         assert_close(*out.get("alice").unwrap(), 0.0);
@@ -160,7 +165,8 @@ mod tests {
 
     #[test]
     fn previous_zero_current_positive_returns_current() {
-        let neuron = TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.0)], &[("alice", 0.7)]));
+        let neuron =
+            TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.0)], &[("alice", 0.7)]));
         let out = neuron.calculate_result(&[]);
         // diff_percent is +inf -> the infinite branch returns current_trust as-is
         assert_close(*out.get("alice").unwrap(), 0.7);
@@ -168,7 +174,8 @@ mod tests {
 
     #[test]
     fn current_zero_previous_positive_is_zero() {
-        let neuron = TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.6)], &[("alice", 0.0)]));
+        let neuron =
+            TrustHistoryNeuron::from_data(30, results(30, &[("alice", 0.6)], &[("alice", 0.0)]));
         let out = neuron.calculate_result(&[]);
         // diff_percent = 0 (finite) -> else branch -> logistic(...,0) * 0 / 100 == 0
         assert_close(*out.get("alice").unwrap(), 0.0);
@@ -226,8 +233,10 @@ mod tests {
         .map(|s| (*s).to_string())
         .collect();
 
-        let prev = TrustGraphNeuron::from_data(build_edges(&trusters_prev), 29).calculate_result(&users);
-        let curr = TrustGraphNeuron::from_data(build_edges(&trusters_curr), 30).calculate_result(&users);
+        let prev =
+            TrustGraphNeuron::from_data(build_edges(&trusters_prev), 29).calculate_result(&users);
+        let curr =
+            TrustGraphNeuron::from_data(build_edges(&trusters_curr), 30).calculate_result(&users);
 
         // stage 1 sanity: the target gains normalized PageRank as more users trust it
         let prev_rank = *prev.get(&target).unwrap();
