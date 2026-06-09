@@ -207,3 +207,50 @@ fn calculate_neuron_results(
 fn to_fixed_point_decimal(val: f64) -> i128 {
     (val * DECIMALS as f64) as i128
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // End-to-end orchestration: feed JSON strings through `run_neurons` and assert the four
+    // named neurons each appear in the output with fixed-point-decimal string values.
+    //
+    // The trust graph is kept minimal and self-consistent (bob trusts alice; alice trusts nobody)
+    // so the highly-trusted bonus never references an absent user (which would hit the wasm-only
+    // console path and panic in a native test) and the score sort never sees NaN.
+    #[test]
+    fn run_neurons_outputs_all_four_named_neurons() {
+        let result = run_neurons(
+            30,
+            r#"["alice","bob"]"#,
+            r#"{"alice":[29],"bob":[30]}"#,
+            r#"{"alice":2,"bob":0}"#,
+            r#"{"alice":["SDF"],"bob":[]}"#,
+            r#"{"29":{"bob":["alice"]},"30":{"bob":["alice"]}}"#,
+            "{}",
+            "{}",
+            "{}",
+            "{}",
+        )
+        .expect("run_neurons should succeed");
+
+        let parsed: HashMap<String, HashMap<String, String>> =
+            serde_json::from_str(&result).expect("output should be valid JSON");
+
+        for name in [
+            "prior_voting_history_neuron",
+            "assigned_reputation_neuron",
+            "trust_history_neuron",
+            "retro_vote_quality_neuron",
+        ] {
+            let entry = parsed.get(name).unwrap_or_else(|| panic!("missing neuron {name}"));
+            assert!(entry.contains_key("alice"), "{name} missing alice");
+            assert!(entry.contains_key("bob"), "{name} missing bob");
+        }
+
+        // assigned_reputation is deterministic: alice = Navigator(2.0) + SDF role(1.0) = 3.0.
+        let rep = &parsed["assigned_reputation_neuron"];
+        assert_eq!(rep["alice"], to_fixed_point_decimal(3.0).to_string());
+        assert_eq!(rep["bob"], to_fixed_point_decimal(0.0).to_string());
+    }
+}
