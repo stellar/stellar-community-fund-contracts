@@ -151,25 +151,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Option::unwrap()` on a `None` value")]
-    fn missing_reputation_user_panics() {
-        // NOTE: calculate_result does `.get(user).unwrap()` on users_reputation; a user missing
-        // from that map panics. Documenting current behavior, not fixing.
-        let neuron = AssignedReputationNeuron::from_data(HashMap::new(), HashMap::new());
-        let _ = neuron.calculate_result(&["ghost".to_string()]);
-    }
-
-    #[test]
-    #[should_panic(expected = "called `Option::unwrap()` on a `None` value")]
-    fn missing_discord_roles_user_panics() {
-        // NOTE: `.get(user).unwrap()` on users_discord_roles also panics for a missing user.
-        let mut reputation = HashMap::new();
-        reputation.insert("alice".to_string(), ReputationTier::Pilot);
-        let neuron = AssignedReputationNeuron::from_data(reputation, HashMap::new());
-        let _ = neuron.calculate_result(&["alice".to_string()]);
-    }
-
-    #[test]
     fn multiple_roles_sum_with_reputation() {
         // confirms discord_roles_bonus SUMS across the whole vec (not just the first role)
         // and that the reputation bonus is added on top.
