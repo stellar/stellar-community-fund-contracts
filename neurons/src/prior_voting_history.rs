@@ -31,6 +31,13 @@ impl PriorVotingHistoryNeuron {
         }
     }
 
+    /// Computes the prior-voting-history bonus for a single user.
+    ///
+    /// # Panics
+    ///
+    /// Panics with `"history bonus offset is bigger than current round"` if `current_round` is
+    /// smaller than `ROUND_IMPORTANCE_DECAY_OFFSET` (for example after a round reset to 0), which
+    /// would otherwise underflow the round-importance offset subtraction.
     pub fn calculate_bonus(&self, user: String) -> f64 {
         // console::log_1(&JsValue::from_str(&format!("USER: {user} ")));
         let rounds_participated =
@@ -38,6 +45,13 @@ impl PriorVotingHistoryNeuron {
         if rounds_participated.len().eq(&0) {
             return 0.0;
         }
+        // `current_round - ROUND_IMPORTANCE_DECAY_OFFSET` below is u32 subtraction. With overflow
+        // checks off (the release wasm build) a `current_round` below the offset would silently
+        // wrap to a huge value instead of erroring; guard it so a round reset fails loudly.
+        assert!(
+            self.current_round >= ROUND_IMPORTANCE_DECAY_OFFSET,
+            "history bonus offset is bigger than current round"
+        );
         // calculate weights sum
         let mut rounds_weights_sum = 0.0;
         for round in rounds_participated {
@@ -301,10 +315,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "attempt to subtract with overflow")]
-    fn current_round_below_offset_underflows() {
-        // NOTE: `current_round - ROUND_IMPORTANCE_DECAY_OFFSET` is u32 subtraction; a
-        // current_round < 8 underflows and panics in debug builds. Documenting, not fixing.
+    #[should_panic(expected = "history bonus offset is bigger than current round")]
+    fn current_round_below_offset_panics() {
+        // A current_round below ROUND_IMPORTANCE_DECAY_OFFSET (e.g. after a round reset to 0) would
+        // underflow the u32 offset subtraction and silently wrap in the release wasm build, so
+        // calculate_bonus guards it with an explicit assert. Holds in both debug and release.
         let neuron =
             PriorVotingHistoryNeuron::from_data(history(&[("alice", &[3])]), HashMap::new(), 5);
         let _ = neuron.calculate_bonus("alice".to_string());
