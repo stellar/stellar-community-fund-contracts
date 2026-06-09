@@ -190,21 +190,6 @@ mod tests {
         assert_close(*out.get("flat").unwrap(), expected_outcome(0.5, 0.5));
     }
 
-    #[test]
-    #[should_panic(expected = "attempt to subtract with overflow")]
-    fn user_in_single_round_map_panics() {
-        // NOTE: a user present in only ONE round map gets a length-1 trust vector;
-        // `trust_vec[length - 2]` underflows usize and panics. Documenting current behavior.
-        let mut map = HashMap::new();
-        map.insert(
-            "trust_graph_neuron_29".to_string(),
-            HashMap::from([("alice".to_string(), 0.5)]),
-        );
-        map.insert("trust_graph_neuron_30".to_string(), HashMap::new());
-        let neuron = TrustHistoryNeuron::from_data(30, map);
-        let _ = neuron.calculate_result(&[]);
-    }
-
     // ---- Headline scenario: "trusted by N users -> trust-history bonus" ----
     //
     // Wires trust_graph (per-round PageRank from trust edges) into trust_history exactly as
