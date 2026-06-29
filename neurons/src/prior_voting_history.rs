@@ -83,7 +83,10 @@ impl PriorVotingHistoryNeuron {
             }
         }
         // pass the value into logistic curve
-        generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 5.0, rounds_weights_sum)
+        // a = -k/exp(b*x_off) ensures f(0) = 0 exactly; k = 3.0 scales output to [0, 3]
+        const K: f64 = 3.0;
+        const A: f64 = -K / 148.413_159_102_576_6; // exp(5.0) precomputed for const
+        generalised_logistic_function(A, K, 1.0, 1.0, 1.0, 1.0, 5.0, rounds_weights_sum)
     }
 }
 
@@ -195,9 +198,13 @@ mod tests {
         generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, current_round - 8.0, round)
     }
 
-    // Final squash applied to the summed weights: logistic(0,1,1,1,1,1,5).
+    // Final squash applied to the summed weights: scaled to [0, 3] with f(0)=0 exactly.
     fn final_squash(sum: f64) -> f64 {
-        generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 5.0, sum)
+        const K: f64 = 3.0;
+        const B: f64 = 1.0;
+        const X_OFF: f64 = 5.0;
+        const A: f64 = -K / 148.413_159_102_576_6; // exp(5.0)
+        generalised_logistic_function(A, K, 1.0, 1.0, B, 1.0, X_OFF, sum)
     }
 
     fn history(entries: &[(&str, &[u32])]) -> HashMap<String, Vec<u32>> {
