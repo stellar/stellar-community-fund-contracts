@@ -143,6 +143,9 @@ fn calculate_page_rank(
     page_ranks
 }
 
+// Scale factor for min-max normalization output (0 to SCALE)
+const NORMALIZATION_SCALE: f64 = 3.0;
+
 fn min_max_normalize_result(result: HashMap<String, f64>) -> HashMap<String, f64> {
     let min = result.values().copied().reduce(f64::min).unwrap();
     let max = result.values().copied().reduce(f64::max).unwrap();
@@ -150,7 +153,7 @@ fn min_max_normalize_result(result: HashMap<String, f64>) -> HashMap<String, f64
     result
         .into_iter()
         .map(|(key, value)| {
-            let new_value = (value - min) / (max - min);
+            let new_value = ((value - min) / (max - min)) * NORMALIZATION_SCALE;
             (key, new_value)
         })
         .collect()
@@ -215,8 +218,9 @@ mod tests {
 
         let with_bonus = trust_graph_neuron.handle_highly_trusted_bonus(result, 1, 100.0);
 
-        assert_f64_near!(with_bonus.get("B").unwrap(), &1.408);
-        assert_f64_near!(with_bonus.get("C").unwrap(), &0.931);
+        // PageRank normalized to 0-3, then 100% bonus applied
+        assert_f64_near!(with_bonus.get("B").unwrap(), &4.226);
+        assert_f64_near!(with_bonus.get("C").unwrap(), &2.794);
     }
 
     #[test]
@@ -240,9 +244,10 @@ mod tests {
                 .collect::<Vec<_>>(),
         );
 
-        assert_f64_near!(result.get("A").unwrap(), &1.0);
-        assert_f64_near!(result.get("B").unwrap(), &0.704);
-        assert_f64_near!(result.get("C").unwrap(), &0.465);
+        // PageRank normalized to 0-3 range
+        assert_f64_near!(result.get("A").unwrap(), &3.0);
+        assert_f64_near!(result.get("B").unwrap(), &2.112);
+        assert_f64_near!(result.get("C").unwrap(), &1.397);
         assert_f64_near!(result.get("D").unwrap(), &0.0);
         assert_f64_near!(result.get("E").unwrap(), &0.0);
     }
@@ -276,8 +281,8 @@ mod tests {
 
     #[test]
     fn min_max_normalization_bounds() {
-        // A clear hub: u1,u2,u3 all trust `hub`. After normalization the unique max is ~1.0
-        // and the (equal) trusters are the min at ~0.0.
+        // A clear hub: u1,u2,u3 all trust `hub`. After normalization the unique max is 3.0
+        // and the (equal) trusters are the min at 0.0.
         let mut trusted_for_user: HashMap<String, Vec<String>> = HashMap::new();
         trusted_for_user.insert("u1".to_string(), vec!["hub".to_string()]);
         trusted_for_user.insert("u2".to_string(), vec!["hub".to_string()]);
@@ -287,7 +292,7 @@ mod tests {
             round: 0,
         };
         let ranks = neuron.handle_page_rank(&users_vec(&["hub", "u1", "u2", "u3"]));
-        assert_f64_near!(ranks.get("hub").unwrap(), &1.0);
+        assert_f64_near!(ranks.get("hub").unwrap(), &3.0);
         assert_f64_near!(ranks.get("u1").unwrap(), &0.0);
     }
 
