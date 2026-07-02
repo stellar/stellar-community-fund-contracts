@@ -35,10 +35,8 @@ impl Neuron for TrustDiffNeuron {
     }
 
     fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
-        let mut trust_diff_map: HashMap<String, f64> = HashMap::new();
+        let mut trust_diff_map: HashMap<String, f64> = users.iter().map(|user| (user.to_string(), 0.0)).collect();
         for user in users {
-            // trust_diff_map.insert(user.to_string(), 0.0);
-            println!("user {}", user);
             // if this user doesn't have trust list for this round, skip this iteration completly
             // it implicates they couldn't have actively removed trust from someone.
             let current_trust_list = match self.trusted_for_user_per_round.get(&self.round) {
@@ -56,8 +54,11 @@ impl Neuron for TrustDiffNeuron {
             };
             // iterate over who this user trusted in previous round
             previous_trust_list.iter().for_each(|trusted_user| {
-                if !current_trust_list.contains(trusted_user) && users.contains(trusted_user) {
-                    trust_diff_map.entry(trusted_user.to_string()).and_modify(|value| *value -= 1.0).or_insert(-1.0);
+                if !current_trust_list.contains(trusted_user) {
+                    // only users present in the input slice are tracked in the output map
+                    if let Some(value) = trust_diff_map.get_mut(trusted_user) {
+                        *value -= 1.0;
+                    }
                 }
             });
         }
@@ -75,6 +76,14 @@ mod tests {
 
     fn trust_list(names: &[&str]) -> Vec<String> {
         names.iter().map(|x| x.to_string()).collect()
+    }
+
+    fn expected_result(user_names: &[&str], overrides: &[(&str, f64)]) -> HashMap<String, f64> {
+        let mut result: HashMap<String, f64> = user_names.iter().map(|name| (name.to_string(), 0.0)).collect();
+        for (name, value) in overrides {
+            result.insert(name.to_string(), *value);
+        }
+        result
     }
 
     #[test]
@@ -98,8 +107,9 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let user_list = &["alice", "tom", "bob", "andy", "john", "adam"];
 
-        assert_eq!(neuron.calculate_result(&users(&["alice", "tom", "bob", "andy", "john", "adam"])), HashMap::new());
+        assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
     }
 
     #[test]
@@ -123,8 +133,9 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let user_list = &["alice", "tom", "bob", "andy", "john", "adam"];
 
-        assert_eq!(neuron.calculate_result(&users(&["alice", "tom", "bob", "andy", "john", "adam"])), HashMap::new());
+        assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
     }
 
     #[test]
@@ -148,10 +159,12 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let mut expected = HashMap::new();
-        expected.insert("andy".to_string(), -2.0);
-        expected.insert("bob".to_string(), -1.0);
-        assert_eq!(neuron.calculate_result(&users(&["alice", "tom", "bob", "andy", "john"])), expected);
+        let user_list = &["alice", "tom", "bob", "andy", "john"];
+
+        assert_eq!(
+            neuron.calculate_result(&users(user_list)),
+            expected_result(user_list, &[("andy", -2.0), ("bob", -1.0)])
+        );
     }
 
     #[test]
@@ -176,13 +189,14 @@ mod tests {
     }
 
     #[test]
-    fn empty_trust_data_returns_empty_result() {
+    fn empty_trust_data_returns_all_users_with_zero() {
         let neuron = TrustDiffNeuron::from_data(44, HashMap::new());
-        assert_eq!(neuron.calculate_result(&users(&["alice", "bob"])), HashMap::new());
+        let user_list = &["alice", "bob"];
+        assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
     }
 
     #[test]
-    fn user_without_current_round_trust_list_is_skipped() {
+    fn user_without_current_round_trust_list_still_in_output() {
         let mut trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>> = HashMap::new();
 
         let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
@@ -195,8 +209,9 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie"]));
-        assert_eq!(result, HashMap::new());
+        let user_list = &["alice", "bob", "charlie"];
+        let result = neuron.calculate_result(&users(user_list));
+        assert_eq!(result, expected_result(user_list, &[]));
     }
 
     #[test]
@@ -213,11 +228,10 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie", "newuser"]));
+        let user_list = &["alice", "bob", "charlie", "newuser"];
+        let result = neuron.calculate_result(&users(user_list));
 
-        let mut expected = HashMap::new();
-        expected.insert("charlie".to_string(), -1.0);
-        assert_eq!(result, expected);
+        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
     }
 
     #[test]
@@ -233,8 +247,9 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob"]));
-        assert_eq!(result, HashMap::new());
+        let user_list = &["alice", "bob"];
+        let result = neuron.calculate_result(&users(user_list));
+        assert_eq!(result, expected_result(user_list, &[]));
     }
 
     #[test]
@@ -254,11 +269,10 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie", "dave", "eve"]));
+        let user_list = &["alice", "bob", "charlie", "dave", "eve"];
+        let result = neuron.calculate_result(&users(user_list));
 
-        let mut expected = HashMap::new();
-        expected.insert("eve".to_string(), -3.0);
-        assert_eq!(result, expected);
+        assert_eq!(result, expected_result(user_list, &[("eve", -3.0)]));
     }
 
     #[test]
@@ -274,11 +288,10 @@ mod tests {
         trusted_for_user_per_round.insert(40, trust_40);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie"]));
+        let user_list = &["alice", "bob", "charlie"];
+        let result = neuron.calculate_result(&users(user_list));
 
-        let mut expected = HashMap::new();
-        expected.insert("charlie".to_string(), -1.0);
-        assert_eq!(result, expected);
+        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
     }
 
     #[test]
@@ -298,11 +311,10 @@ mod tests {
         trusted_for_user_per_round.insert(42, trust_42);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie", "dave"]));
+        let user_list = &["alice", "bob", "charlie", "dave"];
+        let result = neuron.calculate_result(&users(user_list));
 
-        let mut expected = HashMap::new();
-        expected.insert("charlie".to_string(), -1.0);
-        assert_eq!(result, expected);
+        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
     }
 
     #[test]
@@ -318,8 +330,9 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie"]));
-        assert_eq!(result, HashMap::new());
+        let user_list = &["alice", "bob", "charlie"];
+        let result = neuron.calculate_result(&users(user_list));
+        assert_eq!(result, expected_result(user_list, &[]));
     }
 
     #[test]
@@ -331,8 +344,9 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie"]));
-        assert_eq!(result, HashMap::new());
+        let user_list = &["alice", "bob", "charlie"];
+        let result = neuron.calculate_result(&users(user_list));
+        assert_eq!(result, expected_result(user_list, &[]));
     }
 
     #[test]
@@ -348,11 +362,10 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie", "dave"]));
+        let user_list = &["alice", "bob", "charlie", "dave"];
+        let result = neuron.calculate_result(&users(user_list));
 
-        let mut expected = HashMap::new();
-        expected.insert("charlie".to_string(), -1.0);
-        assert_eq!(result, expected);
+        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
     }
 
     #[test]
@@ -368,11 +381,36 @@ mod tests {
         trusted_for_user_per_round.insert(43, trust_43);
 
         let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
-        let result = neuron.calculate_result(&users(&["alice", "bob", "charlie", "unknown_user"]));
+        let user_list = &["alice", "bob", "charlie", "unknown_user"];
+        let result = neuron.calculate_result(&users(user_list));
 
-        let mut expected = HashMap::new();
-        expected.insert("charlie".to_string(), -1.0);
-        assert_eq!(result, expected);
+        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
     }
 
+    #[test]
+    fn all_users_appear_in_output_even_with_zero_change() {
+        let mut trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>> = HashMap::new();
+
+        let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
+        trust_44.insert("alice".to_string(), trust_list(&["bob"]));
+        trusted_for_user_per_round.insert(44, trust_44);
+
+        let mut trust_43: HashMap<String, Vec<String>> = HashMap::new();
+        trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
+        trusted_for_user_per_round.insert(43, trust_43);
+
+        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let user_list = &["alice", "bob", "charlie", "dave", "eve"];
+        let result = neuron.calculate_result(&users(user_list));
+
+        assert_eq!(result.len(), 5);
+        for name in user_list {
+            assert!(result.contains_key(*name));
+        }
+        assert_eq!(result["charlie"], -1.0);
+        assert_eq!(result["alice"], 0.0);
+        assert_eq!(result["bob"], 0.0);
+        assert_eq!(result["dave"], 0.0);
+        assert_eq!(result["eve"], 0.0);
+    }
 }
