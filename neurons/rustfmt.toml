@@ -1,3 +1,3 @@
-max_width = 100
-fn_call_width = 100
+max_width = 200
+fn_call_width = 150
 chain_width = 100

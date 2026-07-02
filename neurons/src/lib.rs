@@ -5,6 +5,7 @@ pub mod quorum;
 pub mod retro_vote_quality;
 pub mod trust_graph;
 pub mod trust_history;
+pub mod trust_diff;
 pub mod types;
 use assigned_reputation::{AssignedReputationNeuron, ReputationTier};
 use neurons::Neuron;
