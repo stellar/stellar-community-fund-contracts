@@ -1,6 +1,6 @@
 use soroban_sdk::{
-        testutils::{Address as _, MockAuth, MockAuthInvoke},
-        vec, Address, Env, IntoVal, Map, String, Vec, I256,
+    testutils::{Address as _, MockAuth, MockAuthInvoke},
+    vec, Address, Env, IntoVal, Map, String, Vec, I256,
 };
 
 use governance::types::{Vote, VotingSystemError};
