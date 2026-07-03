@@ -373,11 +373,11 @@ mod test {
             )
             .unwrap_or_else(|_| {
                 let mut map = Map::new(env);
-                map.set(address.to_string(), I256::from_i32(env, 0));
+                map.set(address.clone(), I256::from_i32(env, 0));
                 Ok(map)
             })
             .unwrap();
-        result.set(address.to_string(), I256::from_i128(env, new_balance));
+        result.set(address.clone(), I256::from_i128(env, new_balance));
 
         governance_client.set_neuron_result(
             &soroban_sdk::String::from_str(env, "0"),

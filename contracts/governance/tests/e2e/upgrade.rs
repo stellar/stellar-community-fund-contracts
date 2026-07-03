@@ -1,5 +1,8 @@
 use crate::e2e::common::contract_utils::deploy_contract;
-use soroban_sdk::{Env, Map, String, I256};
+use soroban_sdk::{
+    testutils::{Address as _},
+    Address, Env, I256, Map, String
+};
 
 mod mock_contract {
     soroban_sdk::contractimport!(file = "../target/wasm32v1-none/release/mocks.wasm");
@@ -30,8 +33,8 @@ fn storage_is_retained_after_upgrade() {
 
     // Store data using old impl
     let mut result = Map::new(&env);
-    result.set(String::from_str(&env, "user1"), I256::from_i32(&env, 100));
-    result.set(String::from_str(&env, "user2"), I256::from_i32(&env, 200));
+    result.set(Address::generate(&env), I256::from_i32(&env, 100));
+    result.set(Address::generate(&env), I256::from_i32(&env, 200));
     env.mock_all_auths();
 
     contract_client.set_neuron_result(

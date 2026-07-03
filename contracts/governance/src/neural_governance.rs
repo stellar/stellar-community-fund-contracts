@@ -2,7 +2,7 @@
 use crate::fixed_mul_floor::fixed_mul_floor;
 
 // use soroban_fixed_point_math::SorobanFixedPoint;
-use soroban_sdk::{contracttype, Env, Map, String, Vec, I256};
+use soroban_sdk::{contracttype, Address, Env, Map, String, Vec, I256};
 
 pub mod traits;
 
@@ -64,10 +64,10 @@ impl NGQ {
 
 pub(crate) fn aggregate_result(
     env: &Env,
-    result: Map<String, Vec<I256>>,
+    result: Map<Address, Vec<I256>>,
     layer_aggregator: LayerAggregator,
     decimals: I256,
-) -> Map<String, I256> {
+) -> Map<Address, I256> {
     let mut aggregated_result = Map::new(env);
     for (user, res) in result {
         let res = match layer_aggregator {
@@ -86,7 +86,7 @@ pub(crate) fn aggregate_result(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::vec;
+    use soroban_sdk::{testutils::Address as _, vec};
 
     #[test]
     fn creating_neuron() {
@@ -127,9 +127,9 @@ mod tests {
     fn aggregate_empty() {
         let env = Env::default();
 
-        let user1 = String::from_str(&env, "user1");
+        let user1 = Address::generate(&env);
 
-        let mut result: Map<String, Vec<I256>> = Map::new(&env);
+        let mut result: Map<Address, Vec<I256>> = Map::new(&env);
         result.set(user1.clone(), vec![&env]);
 
         let aggregated = aggregate_result(
@@ -145,10 +145,10 @@ mod tests {
     fn aggregate_sum() {
         let env = Env::default();
 
-        let user1 = String::from_str(&env, "user1");
-        let user2 = String::from_str(&env, "user2");
+        let user1 = Address::generate(&env);
+        let user2 = Address::generate(&env);
 
-        let mut result: Map<String, Vec<I256>> = Map::new(&env);
+        let mut result: Map<Address, Vec<I256>> = Map::new(&env);
         result.set(
             user1.clone(),
             vec![&env, I256::from_i128(&env, 1), I256::from_i128(&env, 2)],
@@ -174,10 +174,10 @@ mod tests {
     fn aggregate_product() {
         let env = Env::default();
 
-        let user1 = String::from_str(&env, "user1");
-        let user2 = String::from_str(&env, "user2");
+        let user1 = Address::generate(&env);
+        let user2 = Address::generate(&env);
 
-        let mut result: Map<String, Vec<I256>> = Map::new(&env);
+        let mut result: Map<Address, Vec<I256>> = Map::new(&env);
         result.set(
             user1.clone(),
             vec![&env, I256::from_i128(&env, 1), I256::from_i128(&env, 2)],
