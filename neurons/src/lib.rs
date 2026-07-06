@@ -4,8 +4,7 @@ pub mod prior_voting_history;
 pub mod quorum;
 pub mod retro_vote_quality;
 pub mod trust_graph;
-pub mod trust_history;
-pub mod trust_diff;
+pub mod trust_loss;
 pub mod types;
 use assigned_reputation::{AssignedReputationNeuron, ReputationTier};
 use neurons::Neuron;
@@ -13,11 +12,10 @@ use prior_voting_history::PriorVotingHistoryNeuron;
 use quorum::{normalize_votes, DelegateesForUser};
 use std::collections::HashMap;
 use trust_graph::TrustGraphNeuron;
-use trust_history::TrustHistoryNeuron;
 use types::{Vote, DECIMALS};
 use wasm_bindgen::prelude::*;
 
-use crate::retro_vote_quality::RetroVoteQualityNeuron;
+use crate::{retro_vote_quality::RetroVoteQualityNeuron, trust_loss::TrustLossNeuron};
 
 #[wasm_bindgen]
 pub fn run_neurons(
@@ -107,45 +105,40 @@ pub fn run_neurons(
                 ))
             }
         };
-    // create neurons
+
+    // Voting History
     let prior_voting_history_neuron = PriorVotingHistoryNeuron::from_data(
         previous_rounds_for_users,
         votes_per_round.clone(),
         current_round,
     );
+    // Assigned Reputation
+    let assigned_reputation_neuron = AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);
 
-    let assigned_reputation_neuron =
-        AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);
+    // Trust Graph
+    let trusted_for_user_current_round = trusted_for_user_per_round.get(&current_round).unwrap();
+    let trust_graph_neuron = TrustGraphNeuron::from_data(trusted_for_user_current_round.clone());
 
-    // prepare and run trust neurons for previous rounds
-    let mut trust_graph_neurons: Vec<Box<dyn Neuron>> = vec![];
-    trusted_for_user_per_round.iter().for_each(|(round, trusted_for_user)| {
-        if *round == current_round || *round == current_round - 1 {
-            trust_graph_neurons
-                .push(Box::new(TrustGraphNeuron::from_data(trusted_for_user.clone(), *round)));
-        }
-    });
+    // Trust Loss
+    let trust_loss_neuron = TrustLossNeuron::from_data(current_round, trusted_for_user_per_round);
 
-    let trust_graph_neurons_results: HashMap<String, HashMap<String, f64>> =
-        calculate_trust_neuron_results(&users_base, trust_graph_neurons);
-
-    let trust_history_neuron =
-        TrustHistoryNeuron::from_data(current_round as usize, trust_graph_neurons_results);
-
+    // Retro Vote Quality
     let retro_vote_quality_neuron = RetroVoteQualityNeuron::from_data(
         votes_per_round,
         normalized_votes_per_round,
         tranche_status_map,
         submissions_airtable_ids,
     );
-    // run all neurons
+
+    // Run all neurons
     let results = calculate_neuron_results(
         &users_base,
         vec![
             Box::new(prior_voting_history_neuron),
             Box::new(assigned_reputation_neuron),
-            Box::new(trust_history_neuron),
             Box::new(retro_vote_quality_neuron),
+            Box::new(trust_graph_neuron),
+            Box::new(trust_loss_neuron)
         ],
     );
 
@@ -172,19 +165,6 @@ pub fn run_votes_normalization(votes: &str, delegatees_for_user: &str) -> Result
         Err(err) => return Err(format!("error normalizing votes {}", err.to_string())),
     };
     Ok(serde_json::to_string_pretty(&normalized_votes).unwrap())
-}
-
-fn calculate_trust_neuron_results(
-    users: &[String],
-    neurons: Vec<Box<dyn Neuron>>,
-) -> HashMap<String, HashMap<String, f64>> {
-    let mut results: HashMap<String, HashMap<String, f64>> = HashMap::new();
-    for neuron in neurons {
-        // TODO maybe add fixed point decimal like in calculate_neuron_results()
-        let result = neuron.calculate_result(users);
-        results.insert(neuron.name(), result);
-    }
-    results
 }
 
 fn calculate_neuron_results(

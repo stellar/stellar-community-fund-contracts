@@ -12,14 +12,12 @@ const HIGHLY_TRUSTED_PERCENT_BONUS: f64 = 15.0;
 #[derive(Clone, Debug)]
 pub struct TrustGraphNeuron {
     trusted_for_user: HashMap<String, Vec<String>>,
-    round: u32,
 }
 
 impl TrustGraphNeuron {
-    pub fn from_data(trusted_for_user: HashMap<String, Vec<String>>, round: u32) -> Self {
+    pub fn from_data(trusted_for_user: HashMap<String, Vec<String>>) -> Self {
         Self {
             trusted_for_user,
-            round,
         }
     }
 
@@ -100,7 +98,7 @@ impl TrustGraphNeuron {
 
 impl Neuron for TrustGraphNeuron {
     fn name(&self) -> String {
-        format!("trust_graph_neuron_{}", self.round)
+        format!("trust_graph_neuron")
     }
     fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
         let page_rank_result = self.handle_page_rank(users);
@@ -109,7 +107,6 @@ impl Neuron for TrustGraphNeuron {
             HIGHLY_TRUSTED_PERCENT_THRESHOLD,
             HIGHLY_TRUSTED_PERCENT_BONUS,
         );
-        // TODO maybe move here history bonus instead of json files
         highly_trusted_bonus_result
     }
 }
@@ -206,7 +203,6 @@ mod tests {
 
         let trust_graph_neuron = TrustGraphNeuron {
             trusted_for_user,
-            round: 0,
         };
 
         let result = trust_graph_neuron.handle_page_rank(
@@ -234,7 +230,6 @@ mod tests {
 
         let trust_graph_neuron = TrustGraphNeuron {
             trusted_for_user,
-            round: 0,
         };
 
         let result = trust_graph_neuron.handle_page_rank(
@@ -269,7 +264,6 @@ mod tests {
         }
         let neuron = TrustGraphNeuron {
             trusted_for_user,
-            round: 0,
         };
         let ranks = neuron.handle_page_rank(&users_vec(&["target1", "target5", "target10"]));
         let r1 = ranks.get("target1").unwrap();
@@ -289,7 +283,6 @@ mod tests {
         trusted_for_user.insert("u3".to_string(), vec!["hub".to_string()]);
         let neuron = TrustGraphNeuron {
             trusted_for_user,
-            round: 0,
         };
         let ranks = neuron.handle_page_rank(&users_vec(&["hub", "u1", "u2", "u3"]));
         assert_f64_near!(ranks.get("hub").unwrap(), &3.0);
@@ -310,7 +303,6 @@ mod tests {
         trusted_for_user.insert("u9".to_string(), vec!["u3".to_string()]);
         let neuron = TrustGraphNeuron {
             trusted_for_user,
-            round: 0,
         };
 
         let with_bonus = neuron.handle_highly_trusted_bonus(trust_map, 10, 15.0);
@@ -334,7 +326,6 @@ mod tests {
         trusted_for_user.insert("E".to_string(), vec![]);
         let neuron = TrustGraphNeuron {
             trusted_for_user,
-            round: 0,
         };
         let users = users_vec(&["A", "B", "C", "D", "E"]);
 
@@ -352,11 +343,10 @@ mod tests {
     }
 
     #[test]
-    fn name_includes_round() {
+    fn name_returns_correct_value() {
         let neuron = TrustGraphNeuron {
             trusted_for_user: HashMap::new(),
-            round: 42,
         };
-        assert_eq!(neuron.name(), "trust_graph_neuron_42");
+        assert_eq!(neuron.name(), "trust_graph_neuron");
     }
 }

@@ -4,12 +4,12 @@ use std::collections::HashMap;
 const HOW_DEEP: u32 = 32;
 
 #[derive(Clone, Debug)]
-pub struct TrustDiffNeuron {
+pub struct TrustLossNeuron {
     round: u32,
     trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>>,
 }
 
-impl TrustDiffNeuron {
+impl TrustLossNeuron {
     pub fn from_data(round: u32, trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>>) -> Self {
         Self { round, trusted_for_user_per_round }
     }
@@ -29,9 +29,9 @@ impl TrustDiffNeuron {
     }
 }
 
-impl Neuron for TrustDiffNeuron {
+impl Neuron for TrustLossNeuron {
     fn name(&self) -> String {
-        format!("trust_diff_neuron")
+        format!("trust_loss_neuron")
     }
 
     fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
@@ -106,7 +106,7 @@ mod tests {
         trust_43.insert("john".to_string(), trust_list(&["tom", "bob", "alice", "andy"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "tom", "bob", "andy", "john", "adam"];
 
         assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
@@ -132,7 +132,7 @@ mod tests {
         trust_43.insert("john".to_string(), trust_list(&["tom", "bob", "alice", "andy"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "tom", "bob", "andy", "john", "adam"];
 
         assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
@@ -158,7 +158,7 @@ mod tests {
         trust_43.insert("john".to_string(), trust_list(&["tom", "bob", "alice", "andy"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "tom", "bob", "andy", "john"];
 
         assert_eq!(
@@ -169,8 +169,8 @@ mod tests {
 
     #[test]
     fn name_returns_correct_value() {
-        let neuron = TrustDiffNeuron::from_data(44, HashMap::new());
-        assert_eq!(neuron.name(), "trust_diff_neuron");
+        let neuron = TrustLossNeuron::from_data(44, HashMap::new());
+        assert_eq!(neuron.name(), "trust_loss_neuron");
     }
 
     #[test]
@@ -184,13 +184,13 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         assert_eq!(neuron.calculate_result(&[]), HashMap::new());
     }
 
     #[test]
     fn empty_trust_data_returns_all_users_with_zero() {
-        let neuron = TrustDiffNeuron::from_data(44, HashMap::new());
+        let neuron = TrustLossNeuron::from_data(44, HashMap::new());
         let user_list = &["alice", "bob"];
         assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
     }
@@ -208,7 +208,7 @@ mod tests {
         trust_43.insert("charlie".to_string(), trust_list(&["bob", "alice"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie"];
         let result = neuron.calculate_result(&users(user_list));
         assert_eq!(result, expected_result(user_list, &[]));
@@ -227,7 +227,7 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "newuser"];
         let result = neuron.calculate_result(&users(user_list));
 
@@ -246,7 +246,7 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "outsider"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob"];
         let result = neuron.calculate_result(&users(user_list));
         assert_eq!(result, expected_result(user_list, &[]));
@@ -268,7 +268,7 @@ mod tests {
         trust_43.insert("dave".to_string(), trust_list(&["bob", "eve"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "dave", "eve"];
         let result = neuron.calculate_result(&users(user_list));
 
@@ -287,7 +287,7 @@ mod tests {
         trust_40.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(40, trust_40);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie"];
         let result = neuron.calculate_result(&users(user_list));
 
@@ -310,7 +310,7 @@ mod tests {
         trust_42.insert("alice".to_string(), trust_list(&["bob", "charlie", "dave"]));
         trusted_for_user_per_round.insert(42, trust_42);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "dave"];
         let result = neuron.calculate_result(&users(user_list));
 
@@ -329,7 +329,7 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&[]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie"];
         let result = neuron.calculate_result(&users(user_list));
         assert_eq!(result, expected_result(user_list, &[]));
@@ -343,7 +343,7 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie"];
         let result = neuron.calculate_result(&users(user_list));
         assert_eq!(result, expected_result(user_list, &[]));
@@ -361,7 +361,7 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "dave"];
         let result = neuron.calculate_result(&users(user_list));
 
@@ -380,7 +380,7 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "unknown_user"];
         let result = neuron.calculate_result(&users(user_list));
 
@@ -399,7 +399,7 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustDiffNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "dave", "eve"];
         let result = neuron.calculate_result(&users(user_list));
 
