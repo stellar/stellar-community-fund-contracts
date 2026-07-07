@@ -135,7 +135,7 @@ impl GovernorFixture<'_> {
             )
             .unwrap_or_else(|_| Ok(Map::new(self.env)))
             .unwrap();
-        result.set(addr.to_string(), nqg_value);
+        result.set(addr.clone(), nqg_value);
 
         self.governance.set_neuron_result(
             &String::from_str(self.env, "0"),

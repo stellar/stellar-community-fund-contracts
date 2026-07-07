@@ -1,5 +1,7 @@
-use soroban_sdk::testutils::{MockAuth, MockAuthInvoke};
-use soroban_sdk::{vec, Env, IntoVal, Map, String, Vec, I256};
+use soroban_sdk::{
+    testutils::{Address as _, MockAuth, MockAuthInvoke},
+    vec, Address, Env, IntoVal, Map, String, Vec, I256,
+};
 
 use governance::types::{Vote, VotingSystemError};
 use governance::{LayerAggregator, DECIMALS};
@@ -25,9 +27,9 @@ fn voting_data_upload() {
     ));
     contract_client.add_layer(&raw_neurons, &LayerAggregator::Sum);
 
-    let user1 = String::from_str(&env, "user1");
-    let user2 = String::from_str(&env, "user2");
-    let user3 = String::from_str(&env, "user3");
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
+    let user3 = Address::generate(&env);
     let submission1 = String::from_str(&env, "submission1");
     let submission2 = String::from_str(&env, "submission2");
 
@@ -148,7 +150,7 @@ fn tally_submission_requires_admin() {
         (submission.clone(), String::from_str(&env, "Applications")),
     ]);
 
-    let user = String::from_str(&env, "user1");
+    let user = Address::generate(&env);
     let mut votes = Map::new(&env);
     votes.set(user.clone(), Vote::Yes);
     env.mock_auths(&[MockAuth {
@@ -278,8 +280,8 @@ fn set_bump_round_flow() {
     contract_client.set_current_round(&25);
 
     let submission = String::from_str(&env, "sub1");
-    let user1 = String::from_str(&env, "user1");
-    let user2 = String::from_str(&env, "user2");
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
     let neuron0 = String::from_str(&env, "0");
     let layer0 = String::from_str(&env, "0");
 
@@ -409,8 +411,8 @@ fn get_voting_power_for_user() {
 
     contract_client.set_current_round(&25);
 
-    let user1 = String::from_str(&env, "user1");
-    let user2 = String::from_str(&env, "user2");
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
     let neuron0 = String::from_str(&env, "0");
     let neuron1 = String::from_str(&env, "1");
     let layer0 = String::from_str(&env, "0");
@@ -463,7 +465,7 @@ fn get_voting_power_for_user() {
     // Verify error is returned for invalid user
     assert_eq!(
         contract_client
-            .try_get_voting_power_for_user(&String::from_str(&env, "Random user"))
+            .try_get_voting_power_for_user(&Address::generate(&env))
             .unwrap_err()
             .unwrap(),
         VotingSystemError::NGQResultForVoterMissing

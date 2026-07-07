@@ -117,7 +117,7 @@ fn voting_power_for_user(
     governance_client: &governance::Client,
     address: &Address,
 ) -> I256 {
-    let voting_power: I256 = governance_client.get_voting_power_for_user(&address.to_string());
+    let voting_power: I256 = governance_client.get_voting_power_for_user(&address);
     if voting_power >= I256::from_i32(env, 0) {
         voting_power
     } else {

@@ -1,4 +1,4 @@
-use soroban_sdk::{Env, Map, String, Vec, I256};
+use soroban_sdk::{Address, Env, Map, String, Vec, I256};
 
 use crate::neural_governance::{Layer, Neuron, NGQ};
 use crate::storage::key_data::{
@@ -60,7 +60,7 @@ pub(crate) fn read_neuron_result(
     layer_id: &String,
     neuron_id: &String,
     round: u32,
-) -> ContractResult<Map<String, I256>> {
+) -> ContractResult<Map<Address, I256>> {
     let key = get_neuron_result_key(layer_id, neuron_id, round);
     env.storage()
         .temporary()
@@ -73,7 +73,7 @@ pub(crate) fn write_neuron_result(
     layer_id: &String,
     neuron_id: &String,
     round: u32,
-    result: &Map<String, I256>,
+    result: &Map<Address, I256>,
 ) {
     let key = get_neuron_result_key(layer_id, neuron_id, round);
     env.storage().temporary().set(&key, result);
@@ -83,7 +83,7 @@ pub(crate) fn read_submission_votes(
     env: &Env,
     submission_id: &String,
     round: u32,
-) -> ContractResult<Map<String, Vote>> {
+) -> ContractResult<Map<Address, Vote>> {
     let key = get_submission_votes_key(submission_id, round);
     env.storage()
         .persistent()
@@ -95,7 +95,7 @@ pub(crate) fn write_submission_votes(
     env: &Env,
     submission_id: &String,
     round: u32,
-    votes: &Map<String, Vote>,
+    votes: &Map<Address, Vote>,
 ) {
     let key = get_submission_votes_key(submission_id, round);
     env.storage().persistent().set(&key, votes);
@@ -127,7 +127,7 @@ pub(crate) fn write_neural_governance(env: &Env, neural_governance: NGQ) {
         .set(&DataKey::NeuralGovernance, &neural_governance);
 }
 
-pub(crate) fn read_voting_powers(env: &Env, round: u32) -> ContractResult<Map<String, I256>> {
+pub(crate) fn read_voting_powers(env: &Env, round: u32) -> ContractResult<Map<Address, I256>> {
     let key = get_voting_powers_key(round);
     env.storage()
         .persistent()
@@ -135,7 +135,7 @@ pub(crate) fn read_voting_powers(env: &Env, round: u32) -> ContractResult<Map<St
         .ok_or(VotingSystemError::VotingPowersNotSet)
 }
 
-pub(crate) fn write_voting_powers(env: &Env, round: u32, voting_powers: &Map<String, I256>) {
+pub(crate) fn write_voting_powers(env: &Env, round: u32, voting_powers: &Map<Address, I256>) {
     let key = get_voting_powers_key(round);
     env.storage().persistent().set(&key, voting_powers);
 }

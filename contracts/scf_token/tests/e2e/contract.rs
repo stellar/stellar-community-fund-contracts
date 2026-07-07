@@ -19,7 +19,7 @@ fn updating_balances() {
 
     let address = Address::generate(&env);
     let mut result = Map::new(&env);
-    result.set(address.to_string(), I256::from_i128(&env, 10_i128.pow(18)));
+    result.set(address.clone(), I256::from_i128(&env, 10_i128.pow(18)));
 
     governance_client.set_neuron_result(
         &String::from_str(&env, "0"),

@@ -127,7 +127,7 @@ impl VotingSystem {
     pub fn set_votes_for_submission(
         env: &Env,
         submission_id: String,
-        votes: Map<String, Vote>,
+        votes: Map<Address, Vote>,
     ) -> Result<(), VotingSystemError> {
         require_admin(env);
 
@@ -148,7 +148,7 @@ impl VotingSystem {
         env: &Env,
         submission_id: String,
         round: u32,
-    ) -> Result<Map<String, Vote>, VotingSystemError> {
+    ) -> Result<Map<Address, Vote>, VotingSystemError> {
         read_submission_votes(env, &submission_id, round)
     }
 
@@ -156,7 +156,7 @@ impl VotingSystem {
     pub fn get_votes_for_submission(
         env: &Env,
         submission_id: String,
-    ) -> Result<Map<String, Vote>, VotingSystemError> {
+    ) -> Result<Map<Address, Vote>, VotingSystemError> {
         Self::get_votes_for_submission_round(env, submission_id, Self::get_current_round(env))
     }
 
@@ -211,7 +211,7 @@ impl VotingSystem {
         read_tally_results(env, round)
     }
 
-    pub fn get_voting_power_for_user(env: Env, user: String) -> Result<I256, VotingSystemError> {
+    pub fn get_voting_power_for_user(env: Env, user: Address) -> Result<I256, VotingSystemError> {
         match read_voting_powers(&env, Self::get_current_round(&env)) {
             Ok(voting_powers) => {
                 if let Some(voting_power) = voting_powers.get(user) {
@@ -298,7 +298,7 @@ impl Governance for VotingSystem {
         layer_id: String,
         neuron_id: String,
         round: u32,
-    ) -> Result<Map<String, I256>, VotingSystemError> {
+    ) -> Result<Map<Address, I256>, VotingSystemError> {
         read_neuron_result(env, &layer_id, &neuron_id, round)
     }
 
@@ -306,11 +306,16 @@ impl Governance for VotingSystem {
         env: &Env,
         layer_id: String,
         neuron_id: String,
-    ) -> Result<Map<String, I256>, VotingSystemError> {
+    ) -> Result<Map<Address, I256>, VotingSystemError> {
         Self::get_neuron_result_round(env, layer_id, neuron_id, Self::get_current_round(env))
     }
 
-    fn set_neuron_result(env: Env, layer_id: String, neuron_id: String, result: Map<String, I256>) {
+    fn set_neuron_result(
+        env: Env,
+        layer_id: String,
+        neuron_id: String,
+        result: Map<Address, I256>,
+    ) {
         require_admin(&env);
 
         write_neuron_result(
@@ -328,9 +333,9 @@ impl Governance for VotingSystem {
     fn get_layer_result(
         env: Env,
         layer_id: String,
-    ) -> Result<Map<String, I256>, VotingSystemError> {
+    ) -> Result<Map<Address, I256>, VotingSystemError> {
         let layer = read_layer(&env, &layer_id)?;
-        let mut result: Map<String, Vec<I256>> = Map::new(&env);
+        let mut result: Map<Address, Vec<I256>> = Map::new(&env);
 
         for neuron_id in layer.neurons {
             let neuron_result = Self::get_neuron_result(&env, layer_id.clone(), neuron_id.clone())?;
@@ -355,7 +360,7 @@ impl Governance for VotingSystem {
         require_admin(&env);
 
         let neural_governance = read_neural_governance(&env).unwrap();
-        let mut result: Map<String, I256> = Map::new(&env);
+        let mut result: Map<Address, I256> = Map::new(&env);
         for layer_id in neural_governance.layers {
             let layer_result = VotingSystem::get_layer_result(env.clone(), layer_id)?;
             for (key, value) in layer_result {
@@ -370,7 +375,7 @@ impl Governance for VotingSystem {
         Ok(())
     }
 
-    fn get_voting_powers(env: Env) -> Result<Map<String, I256>, VotingSystemError> {
+    fn get_voting_powers(env: Env) -> Result<Map<Address, I256>, VotingSystemError> {
         read_voting_powers(&env, Self::get_current_round(&env))
     }
 
@@ -406,7 +411,7 @@ fn create_or_update_layer(
     write_neural_governance(&env, neural_governance);
 }
 
-fn weigh_neuron_result(env: &Env, weight: &I256, result: Map<String, I256>) -> Map<String, I256> {
+fn weigh_neuron_result(env: &Env, weight: &I256, result: Map<Address, I256>) -> Map<Address, I256> {
     let mut scaled = Map::new(env);
 
     for (key, value) in result {

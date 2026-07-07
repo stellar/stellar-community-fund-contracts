@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Env, Map, String, I256};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Map, String, I256};
 
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -25,7 +25,7 @@ impl MockContract {
         true
     }
 
-    pub fn get_stored_neuron_result(env: &Env) -> Map<String, I256> {
+    pub fn get_stored_neuron_result(env: &Env) -> Map<Address, I256> {
         let key = DataKey::NeuronResultKey(NeuronResultKeyData {
             layer_id: String::from_str(env, "0"),
             neuron_id: String::from_str(env, "0"),
