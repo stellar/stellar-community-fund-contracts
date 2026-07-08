@@ -78,8 +78,13 @@ fn calculate_quorum_consensus(
             matches!(delegatee_vote, Vote::Yes | Vote::No)
         })
         .collect();
+    
+    // this will never trigger under normal conditions, only if voting data would be incorrect with delegates votes other than yes/no
+    if valid_delegates.len() < SMALLEST_DEFINED_QUORUM_SIZE {
+        bail!("User {} has valid delegates length smaller than required {}", user, SMALLEST_DEFINED_QUORUM_SIZE)
+    }
 
-    // use the full qourum user has defined
+    // start with the full qourum user has defined
     let selected_delegatees = valid_delegates;
     let mut resolved_vote = Vote::Abstain;
 
