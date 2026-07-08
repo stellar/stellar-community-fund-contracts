@@ -196,6 +196,8 @@ mod tests {
         submission_votes.insert(user2.clone(), Vote::Yes);
         submission_votes.insert(user3.clone(), Vote::Yes);
         submission_votes.insert(user4.clone(), Vote::Yes);
+        submission_votes.insert(user5.clone(), Vote::Yes);
+        submission_votes.insert(user6.clone(), Vote::Yes);
 
         let delegates_for_user = vec![user1.clone(), user2.clone(), user3.clone(), user4.clone(), user5.clone(), user6.clone(), user7.clone()];
         let resolved_vote = calculate_quorum_consensus("user0", &delegates_for_user, &submission_votes);
