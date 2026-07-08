@@ -161,10 +161,7 @@ mod tests {
         let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "tom", "bob", "andy", "john"];
 
-        assert_eq!(
-            neuron.calculate_result(&users(user_list)),
-            expected_result(user_list, &[("andy", -2.0), ("bob", -1.0)])
-        );
+        assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[("andy", -2.0), ("bob", -1.0)]));
     }
 
     #[test]

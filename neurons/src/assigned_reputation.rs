@@ -19,10 +19,7 @@ pub struct AssignedReputationNeuron {
 }
 
 impl AssignedReputationNeuron {
-    pub fn from_data(
-        users_reputation: HashMap<String, ReputationTier>,
-        users_discord_roles: HashMap<String, Vec<String>>,
-    ) -> Self {
+    pub fn from_data(users_reputation: HashMap<String, ReputationTier>, users_discord_roles: HashMap<String, Vec<String>>) -> Self {
         Self {
             users_reputation,
             users_discord_roles,
@@ -119,28 +116,16 @@ mod tests {
 
     #[test]
     fn neuron_run() {
-        let users: Vec<String> = vec![
-            "user1".to_string(),
-            "user2".to_string(),
-            "user3".to_string(),
-        ];
+        let users: Vec<String> = vec!["user1".to_string(), "user2".to_string(), "user3".to_string()];
         let mut users_reputation: HashMap<String, ReputationTier> = HashMap::new();
         users_reputation.insert("user1".to_string(), ReputationTier::Navigator);
         users_reputation.insert("user2".to_string(), ReputationTier::Pilot);
         users_reputation.insert("user3".to_string(), ReputationTier::Verified);
 
         let mut users_discord_roles: HashMap<String, Vec<String>> = HashMap::new();
-        users_discord_roles.insert(
-            "user1".to_string(),
-            vec![
-                "SDF".to_string(),
-                "SCF Project".to_string(),
-                "Moderator".to_string(),
-            ],
-        );
+        users_discord_roles.insert("user1".to_string(), vec!["SDF".to_string(), "SCF Project".to_string(), "Moderator".to_string()]);
         users_discord_roles.insert("user2".to_string(), vec![]);
-        users_discord_roles
-            .insert("user3".to_string(), vec!["Public Good Contributor".to_string()]);
+        users_discord_roles.insert("user3".to_string(), vec!["Public Good Contributor".to_string()]);
 
         let neuron = AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);
         let resut = neuron.calculate_result(&users);

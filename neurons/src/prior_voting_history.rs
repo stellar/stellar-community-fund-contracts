@@ -19,11 +19,7 @@ pub struct PriorVotingHistoryNeuron {
 }
 
 impl PriorVotingHistoryNeuron {
-    pub fn from_data(
-        users_round_history: HashMap<String, Vec<u32>>,
-        votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>,
-        current_round: u32,
-    ) -> Self {
+    pub fn from_data(users_round_history: HashMap<String, Vec<u32>>, votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, current_round: u32) -> Self {
         Self {
             users_round_history,
             votes_per_round,
@@ -40,25 +36,20 @@ impl PriorVotingHistoryNeuron {
     /// would otherwise underflow the round-importance offset subtraction.
     pub fn calculate_bonus(&self, user: String) -> f64 {
         // console::log_1(&JsValue::from_str(&format!("USER: {user} ")));
-        let rounds_participated =
-            self.users_round_history.get(&user).cloned().unwrap_or_else(Vec::new);
+        let rounds_participated = self.users_round_history.get(&user).cloned().unwrap_or_else(Vec::new);
         if rounds_participated.len().eq(&0) {
             return 0.0;
         }
         // `current_round - ROUND_IMPORTANCE_DECAY_OFFSET` below is u32 subtraction. With overflow
         // checks off (the release wasm build) a `current_round` below the offset would silently
         // wrap to a huge value instead of erroring; guard it so a round reset fails loudly.
-        assert!(
-            self.current_round >= ROUND_IMPORTANCE_DECAY_OFFSET,
-            "history bonus offset is bigger than current round"
-        );
+        assert!(self.current_round >= ROUND_IMPORTANCE_DECAY_OFFSET, "history bonus offset is bigger than current round");
         // calculate weights sum
         let mut rounds_weights_sum = 0.0;
         for round in rounds_participated {
             // console::log_1(&JsValue::from_str(&format!("ROUND: {round} /rounds_participated")));
             let x_offset: f64 = (self.current_round - ROUND_IMPORTANCE_DECAY_OFFSET) as f64;
-            let round_weight: f64 =
-                generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, x_offset, round as f64);
+            let round_weight: f64 = generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, x_offset, round as f64);
             // console::log_1(&JsValue::from_str(&format!("weight {round_weight}")));
             if round < ACTIVE_VOTES_HISTORY_OLDEST_ROUND {
                 rounds_weights_sum += round_weight;
@@ -133,16 +124,11 @@ mod tests {
 
     #[test]
     fn active_votes_ratio() {
-        let submission1_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Yes)]);
-        let submission2_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Yes)]);
-        let submission3_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::No)]);
-        let submission4_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Delegate)]);
-        let submission5_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Delegate)]);
+        let submission1_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Yes)]);
+        let submission2_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Yes)]);
+        let submission3_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::No)]);
+        let submission4_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Delegate)]);
+        let submission5_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Delegate)]);
         let votes: HashMap<String, HashMap<String, Vote>> = HashMap::from([
             ("submission1".to_string(), submission1_votes),
             ("submission2".to_string(), submission2_votes),
@@ -155,16 +141,11 @@ mod tests {
     }
     #[test]
     fn active_votes_ratio_no_less_than_cap() {
-        let submission1_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Yes)]);
-        let submission2_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Delegate)]);
-        let submission3_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Delegate)]);
-        let submission4_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Delegate)]);
-        let submission5_votes: HashMap<String, Vote> =
-            HashMap::from([("user1".to_string(), Vote::Delegate)]);
+        let submission1_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Yes)]);
+        let submission2_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Delegate)]);
+        let submission3_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Delegate)]);
+        let submission4_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Delegate)]);
+        let submission5_votes: HashMap<String, Vote> = HashMap::from([("user1".to_string(), Vote::Delegate)]);
         let votes: HashMap<String, HashMap<String, Vote>> = HashMap::from([
             ("submission1".to_string(), submission1_votes),
             ("submission2".to_string(), submission2_votes),
@@ -212,11 +193,7 @@ mod tests {
     }
 
     // Build a `votes_per_round` map: one round, one user, N submissions each with the given vote.
-    fn votes_for_round(
-        round: u32,
-        user: &str,
-        per_submission: &[Vote],
-    ) -> HashMap<u32, HashMap<String, HashMap<String, Vote>>> {
+    fn votes_for_round(round: u32, user: &str, per_submission: &[Vote]) -> HashMap<u32, HashMap<String, HashMap<String, Vote>>> {
         let mut submissions: HashMap<String, HashMap<String, Vote>> = HashMap::new();
         for (i, vote) in per_submission.iter().enumerate() {
             let mut sub = HashMap::new();
@@ -228,8 +205,7 @@ mod tests {
 
     #[test]
     fn empty_history_returns_zero() {
-        let neuron =
-            PriorVotingHistoryNeuron::from_data(history(&[("emptyvec", &[])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("emptyvec", &[])]), HashMap::new(), 38);
         // user absent from the map entirely
         assert_close(neuron.calculate_bonus("ghost".to_string()), 0.0);
         // user present but with no rounds
@@ -239,8 +215,7 @@ mod tests {
     #[test]
     fn single_recent_round_bonus() {
         // round 31 < 32 -> raw-weight path; current_round 38 keeps `current_round - 8` safe.
-        let neuron =
-            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[31])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[31])]), HashMap::new(), 38);
         let expected = final_squash(round_weight(38.0, 31.0));
         assert_close(neuron.calculate_bonus("alice".to_string()), expected);
     }
@@ -248,11 +223,7 @@ mod tests {
     #[test]
     fn more_recent_rounds_beat_older_rounds() {
         // same count (1), different recency; the round weight is monotonic in the round number.
-        let neuron = PriorVotingHistoryNeuron::from_data(
-            history(&[("older", &[29]), ("newer", &[31])]),
-            HashMap::new(),
-            38,
-        );
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("older", &[29]), ("newer", &[31])]), HashMap::new(), 38);
         let older = neuron.calculate_bonus("older".to_string());
         let newer = neuron.calculate_bonus("newer".to_string());
         assert!(newer > older, "more recent ({newer}) should exceed older ({older})");
@@ -261,16 +232,10 @@ mod tests {
     #[test]
     fn bonus_increases_with_participation_count() {
         // "voted in 3 recent rounds -> bigger bonus": A in [29], B in [29,30,31], all < 32.
-        let neuron = PriorVotingHistoryNeuron::from_data(
-            history(&[("a", &[29]), ("b", &[29, 30, 31])]),
-            HashMap::new(),
-            38,
-        );
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("a", &[29]), ("b", &[29, 30, 31])]), HashMap::new(), 38);
         let a = neuron.calculate_bonus("a".to_string());
         let b = neuron.calculate_bonus("b".to_string());
-        let expected_b = final_squash(
-            round_weight(38.0, 29.0) + round_weight(38.0, 30.0) + round_weight(38.0, 31.0),
-        );
+        let expected_b = final_squash(round_weight(38.0, 29.0) + round_weight(38.0, 30.0) + round_weight(38.0, 31.0));
         assert_close(b, expected_b);
         assert!(b > a, "3-round user ({b}) should exceed 1-round user ({a})");
     }
@@ -287,25 +252,14 @@ mod tests {
     #[test]
     fn post_32_round_without_votes_contributes_nothing() {
         // same round 35 but no votes_per_round entry -> the round adds nothing; sum stays 0.
-        let neuron =
-            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), HashMap::new(), 38);
         assert_close(neuron.calculate_bonus("alice".to_string()), final_squash(0.0));
     }
 
     #[test]
     fn active_ratio_floor_applies_in_bonus() {
         // 1 active of 5 -> true ratio 0.2, floored to ACTIVE_VOTES_MIN_RATIO (0.5).
-        let votes = votes_for_round(
-            35,
-            "alice",
-            &[
-                Vote::Yes,
-                Vote::Delegate,
-                Vote::Delegate,
-                Vote::Delegate,
-                Vote::Delegate,
-            ],
-        );
+        let votes = votes_for_round(35, "alice", &[Vote::Yes, Vote::Delegate, Vote::Delegate, Vote::Delegate, Vote::Delegate]);
         let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
         let expected = final_squash(round_weight(38.0, 35.0) * ACTIVE_VOTES_MIN_RATIO);
         assert_close(neuron.calculate_bonus("alice".to_string()), expected);
@@ -313,11 +267,7 @@ mod tests {
 
     #[test]
     fn calculate_result_maps_all_users() {
-        let neuron = PriorVotingHistoryNeuron::from_data(
-            history(&[("a", &[29]), ("b", &[30, 31])]),
-            HashMap::new(),
-            38,
-        );
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("a", &[29]), ("b", &[30, 31])]), HashMap::new(), 38);
         let users = vec!["a".to_string(), "b".to_string(), "c".to_string()];
         let result = neuron.calculate_result(&users);
         assert_eq!(result.len(), 3);
@@ -332,8 +282,7 @@ mod tests {
         // A current_round below ROUND_IMPORTANCE_DECAY_OFFSET (e.g. after a round reset to 0) would
         // underflow the u32 offset subtraction and silently wrap in the release wasm build, so
         // calculate_bonus guards it with an explicit assert. Holds in both debug and release.
-        let neuron =
-            PriorVotingHistoryNeuron::from_data(history(&[("alice", &[3])]), HashMap::new(), 5);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[3])]), HashMap::new(), 5);
         let _ = neuron.calculate_bonus("alice".to_string());
     }
 

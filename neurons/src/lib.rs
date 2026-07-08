@@ -36,82 +36,42 @@ pub fn run_neurons(
         Ok(users_base) => users_base,
         Err(err) => return Err(format!("users_base json parsing error {}", err.to_string())),
     };
-    let normalized_votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>> =
-        match serde_json::from_str(normalized_votes_per_round) {
-            Ok(normalized_votes_per_round) => normalized_votes_per_round,
-            Err(err) => {
-                return Err(format!(
-                    "normalized_votes_per_round json parsing error {}",
-                    err.to_string()
-                ))
-            }
-        };
-    let tranche_status_map: HashMap<String, Vec<String>> =
-        match serde_json::from_str(tranche_status_map) {
-            Ok(tranche_status_map) => tranche_status_map,
-            Err(err) => {
-                return Err(format!("tranche_status_map json parsing error {}", err.to_string()))
-            }
-        };
-    let submissions_airtable_ids: HashMap<String, String> =
-        match serde_json::from_str(submissions_airtable_ids) {
-            Ok(submissions_airtable_ids) => submissions_airtable_ids,
-            Err(err) => {
-                return Err(format!(
-                    "submissions_airtable_ids json parsing error {}",
-                    err.to_string()
-                ))
-            }
-        };
+    let normalized_votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>> = match serde_json::from_str(normalized_votes_per_round) {
+        Ok(normalized_votes_per_round) => normalized_votes_per_round,
+        Err(err) => return Err(format!("normalized_votes_per_round json parsing error {}", err.to_string())),
+    };
+    let tranche_status_map: HashMap<String, Vec<String>> = match serde_json::from_str(tranche_status_map) {
+        Ok(tranche_status_map) => tranche_status_map,
+        Err(err) => return Err(format!("tranche_status_map json parsing error {}", err.to_string())),
+    };
+    let submissions_airtable_ids: HashMap<String, String> = match serde_json::from_str(submissions_airtable_ids) {
+        Ok(submissions_airtable_ids) => submissions_airtable_ids,
+        Err(err) => return Err(format!("submissions_airtable_ids json parsing error {}", err.to_string())),
+    };
 
-    let previous_rounds_for_users: HashMap<String, Vec<u32>> =
-        match serde_json::from_str(previous_rounds_for_users) {
-            Ok(previous_rounds_for_users) => previous_rounds_for_users,
-            Err(err) => {
-                return Err(format!(
-                    "previous_rounds_for_users json parsing error {}",
-                    err.to_string()
-                ))
-            }
-        };
-    let votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>> =
-        match serde_json::from_str(votes_per_round) {
-            Ok(votes_per_round) => votes_per_round,
-            Err(err) => {
-                return Err(format!("votes_per_round json parsing error {}", err.to_string()))
-            }
-        };
-    let users_reputation: HashMap<String, ReputationTier> =
-        match serde_json::from_str(users_reputation) {
-            Ok(users_reputation) => users_reputation,
-            Err(err) => {
-                return Err(format!("users_reputation json parsing error {}", err.to_string()))
-            }
-        };
-    let users_discord_roles: HashMap<String, Vec<String>> =
-        match serde_json::from_str(users_discord_roles) {
-            Ok(users_discord_roles) => users_discord_roles,
-            Err(err) => {
-                return Err(format!("users_discord_roles json parsing error {}", err.to_string()))
-            }
-        };
-    let trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>> =
-        match serde_json::from_str(trusted_for_user_per_round) {
-            Ok(trusted_for_user_per_round) => trusted_for_user_per_round,
-            Err(err) => {
-                return Err(format!(
-                    "trusted_for_user_per_round json parsing error {}",
-                    err.to_string()
-                ))
-            }
-        };
+    let previous_rounds_for_users: HashMap<String, Vec<u32>> = match serde_json::from_str(previous_rounds_for_users) {
+        Ok(previous_rounds_for_users) => previous_rounds_for_users,
+        Err(err) => return Err(format!("previous_rounds_for_users json parsing error {}", err.to_string())),
+    };
+    let votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>> = match serde_json::from_str(votes_per_round) {
+        Ok(votes_per_round) => votes_per_round,
+        Err(err) => return Err(format!("votes_per_round json parsing error {}", err.to_string())),
+    };
+    let users_reputation: HashMap<String, ReputationTier> = match serde_json::from_str(users_reputation) {
+        Ok(users_reputation) => users_reputation,
+        Err(err) => return Err(format!("users_reputation json parsing error {}", err.to_string())),
+    };
+    let users_discord_roles: HashMap<String, Vec<String>> = match serde_json::from_str(users_discord_roles) {
+        Ok(users_discord_roles) => users_discord_roles,
+        Err(err) => return Err(format!("users_discord_roles json parsing error {}", err.to_string())),
+    };
+    let trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>> = match serde_json::from_str(trusted_for_user_per_round) {
+        Ok(trusted_for_user_per_round) => trusted_for_user_per_round,
+        Err(err) => return Err(format!("trusted_for_user_per_round json parsing error {}", err.to_string())),
+    };
 
     // Voting History
-    let prior_voting_history_neuron = PriorVotingHistoryNeuron::from_data(
-        previous_rounds_for_users,
-        votes_per_round.clone(),
-        current_round,
-    );
+    let prior_voting_history_neuron = PriorVotingHistoryNeuron::from_data(previous_rounds_for_users, votes_per_round.clone(), current_round);
     // Assigned Reputation
     let assigned_reputation_neuron = AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);
 
@@ -123,12 +83,7 @@ pub fn run_neurons(
     let trust_loss_neuron = TrustLossNeuron::from_data(current_round, trusted_for_user_per_round);
 
     // Retro Vote Quality
-    let retro_vote_quality_neuron = RetroVoteQualityNeuron::from_data(
-        votes_per_round,
-        normalized_votes_per_round,
-        tranche_status_map,
-        submissions_airtable_ids,
-    );
+    let retro_vote_quality_neuron = RetroVoteQualityNeuron::from_data(votes_per_round, normalized_votes_per_round, tranche_status_map, submissions_airtable_ids);
 
     // Run all neurons
     let results = calculate_neuron_results(
@@ -138,7 +93,7 @@ pub fn run_neurons(
             Box::new(assigned_reputation_neuron),
             Box::new(retro_vote_quality_neuron),
             Box::new(trust_graph_neuron),
-            Box::new(trust_loss_neuron)
+            Box::new(trust_loss_neuron),
         ],
     );
 
@@ -152,13 +107,10 @@ pub fn run_votes_normalization(votes: &str, delegatees_for_user: &str) -> Result
         Err(err) => return Err(format!("votes json parsing error {}", err.to_string())),
     };
 
-    let delegatees_for_user: HashMap<String, DelegateesForUser> =
-        match serde_json::from_str(delegatees_for_user) {
-            Ok(delegatees_for_user) => delegatees_for_user,
-            Err(err) => {
-                return Err(format!("delegatees_for_user json parsing error {}", err.to_string()))
-            }
-        };
+    let delegatees_for_user: HashMap<String, DelegateesForUser> = match serde_json::from_str(delegatees_for_user) {
+        Ok(delegatees_for_user) => delegatees_for_user,
+        Err(err) => return Err(format!("delegatees_for_user json parsing error {}", err.to_string())),
+    };
 
     let normalized_votes = match normalize_votes(votes, &delegatees_for_user) {
         Ok(normalized_votes) => normalized_votes,
@@ -167,18 +119,12 @@ pub fn run_votes_normalization(votes: &str, delegatees_for_user: &str) -> Result
     Ok(serde_json::to_string_pretty(&normalized_votes).unwrap())
 }
 
-fn calculate_neuron_results(
-    users: &[String],
-    neurons: Vec<Box<dyn Neuron>>,
-) -> HashMap<String, HashMap<String, String>> {
+fn calculate_neuron_results(users: &[String], neurons: Vec<Box<dyn Neuron>>) -> HashMap<String, HashMap<String, String>> {
     let mut results: HashMap<String, HashMap<String, String>> = HashMap::new();
     for neuron in neurons {
         println!("running {}", neuron.name());
         let result = neuron.calculate_result(users);
-        let result: HashMap<String, String> = result
-            .into_iter()
-            .map(|(key, value)| (key, to_fixed_point_decimal(value).to_string()))
-            .collect();
+        let result: HashMap<String, String> = result.into_iter().map(|(key, value)| (key, to_fixed_point_decimal(value).to_string())).collect();
         results.insert(neuron.name(), result);
     }
     results
@@ -193,14 +139,14 @@ fn to_fixed_point_decimal(val: f64) -> i128 {
 mod tests {
     use super::*;
 
-    // End-to-end orchestration: feed JSON strings through `run_neurons` and assert the four
+    // End-to-end orchestration: feed JSON strings through `run_neurons` and assert the five
     // named neurons each appear in the output with fixed-point-decimal string values.
     //
     // The trust graph is kept minimal and self-consistent (bob trusts alice; alice trusts nobody)
     // so the highly-trusted bonus never references an absent user (which would hit the wasm-only
     // console path and panic in a native test) and the score sort never sees NaN.
     #[test]
-    fn run_neurons_outputs_all_four_named_neurons() {
+    fn run_neurons_outputs_all_five_named_neurons() {
         let result = run_neurons(
             30,
             r#"["alice","bob"]"#,
@@ -215,13 +161,13 @@ mod tests {
         )
         .expect("run_neurons should succeed");
 
-        let parsed: HashMap<String, HashMap<String, String>> =
-            serde_json::from_str(&result).expect("output should be valid JSON");
+        let parsed: HashMap<String, HashMap<String, String>> = serde_json::from_str(&result).expect("output should be valid JSON");
 
         for name in [
             "prior_voting_history_neuron",
             "assigned_reputation_neuron",
-            "trust_history_neuron",
+            "trust_graph_neuron",
+            "trust_loss_neuron",
             "retro_vote_quality_neuron",
         ] {
             let entry = parsed.get(name).unwrap_or_else(|| panic!("missing neuron {name}"));

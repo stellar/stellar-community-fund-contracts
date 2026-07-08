@@ -16,9 +16,7 @@ pub struct TrustGraphNeuron {
 
 impl TrustGraphNeuron {
     pub fn from_data(trusted_for_user: HashMap<String, Vec<String>>) -> Self {
-        Self {
-            trusted_for_user,
-        }
+        Self { trusted_for_user }
     }
 
     fn handle_page_rank(&self, users: &[String]) -> HashMap<String, f64> {
@@ -45,12 +43,7 @@ impl TrustGraphNeuron {
         result
     }
 
-    fn handle_highly_trusted_bonus(
-        &self,
-        trust_map: HashMap<String, f64>,
-        percent_threshold: usize,
-        percent_bonus: f64,
-    ) -> HashMap<String, f64> {
+    fn handle_highly_trusted_bonus(&self, trust_map: HashMap<String, f64>, percent_threshold: usize, percent_bonus: f64) -> HashMap<String, f64> {
         // ADDITIONAL BONUS if you're trusted by highly trusted user
         let mut result_with_bonus: HashMap<String, f64> = trust_map.clone();
 
@@ -71,9 +64,7 @@ impl TrustGraphNeuron {
                                 *res += (*res / 100.0) * percent_bonus;
                             }
                             None => {
-                                console::log_1(&JsValue::from_str(&format!(
-                                    "handle_highly_trusted_bonus missing: {u}"
-                                )));
+                                console::log_1(&JsValue::from_str(&format!("handle_highly_trusted_bonus missing: {u}")));
                             }
                         }
                     }
@@ -102,22 +93,13 @@ impl Neuron for TrustGraphNeuron {
     }
     fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
         let page_rank_result = self.handle_page_rank(users);
-        let highly_trusted_bonus_result = self.handle_highly_trusted_bonus(
-            page_rank_result,
-            HIGHLY_TRUSTED_PERCENT_THRESHOLD,
-            HIGHLY_TRUSTED_PERCENT_BONUS,
-        );
+        let highly_trusted_bonus_result = self.handle_highly_trusted_bonus(page_rank_result, HIGHLY_TRUSTED_PERCENT_THRESHOLD, HIGHLY_TRUSTED_PERCENT_BONUS);
         highly_trusted_bonus_result
     }
 }
 
 #[allow(clippy::cast_precision_loss)]
-fn calculate_page_rank(
-    nodes: &Vec<String>,
-    edges: &Vec<(String, Vec<String>)>,
-    iterations: u32,
-    damping_factor: f64,
-) -> HashMap<String, f64> {
+fn calculate_page_rank(nodes: &Vec<String>, edges: &Vec<(String, Vec<String>)>, iterations: u32, damping_factor: f64) -> HashMap<String, f64> {
     let mut page_ranks: HashMap<String, f64> = HashMap::new();
     for node in nodes {
         page_ranks.insert(node.clone(), 1.0 / nodes.len() as f64);
@@ -160,8 +142,7 @@ fn calculate_high_trust_value(trust_map: &HashMap<String, f64>, percent_threshol
     let mut trust_scores_sorted: Vec<f64> = trust_map.values().cloned().collect();
     trust_scores_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-    let target_index =
-        trust_scores_sorted.len() - ((trust_scores_sorted.len() * percent_threshold) / 100).max(1);
+    let target_index = trust_scores_sorted.len() - ((trust_scores_sorted.len() * percent_threshold) / 100).max(1);
 
     trust_scores_sorted.get(target_index).unwrap().to_owned()
 }
@@ -201,16 +182,9 @@ mod tests {
         trusted_for_user.insert("D".to_string(), vec!["A".to_string()]);
         trusted_for_user.insert("E".to_string(), vec![]);
 
-        let trust_graph_neuron = TrustGraphNeuron {
-            trusted_for_user,
-        };
+        let trust_graph_neuron = TrustGraphNeuron { trusted_for_user };
 
-        let result = trust_graph_neuron.handle_page_rank(
-            &["A", "B", "C", "D", "E"]
-                .into_iter()
-                .map(std::string::ToString::to_string)
-                .collect::<Vec<_>>(),
-        );
+        let result = trust_graph_neuron.handle_page_rank(&["A", "B", "C", "D", "E"].into_iter().map(std::string::ToString::to_string).collect::<Vec<_>>());
 
         let with_bonus = trust_graph_neuron.handle_highly_trusted_bonus(result, 1, 100.0);
 
@@ -228,16 +202,9 @@ mod tests {
         trusted_for_user.insert("D".to_string(), vec!["A".to_string()]);
         trusted_for_user.insert("E".to_string(), vec![]);
 
-        let trust_graph_neuron = TrustGraphNeuron {
-            trusted_for_user,
-        };
+        let trust_graph_neuron = TrustGraphNeuron { trusted_for_user };
 
-        let result = trust_graph_neuron.handle_page_rank(
-            &["A", "B", "C", "D", "E"]
-                .into_iter()
-                .map(std::string::ToString::to_string)
-                .collect::<Vec<_>>(),
-        );
+        let result = trust_graph_neuron.handle_page_rank(&["A", "B", "C", "D", "E"].into_iter().map(std::string::ToString::to_string).collect::<Vec<_>>());
 
         // PageRank normalized to 0-3 range
         assert_f64_near!(result.get("A").unwrap(), &3.0);
@@ -262,9 +229,7 @@ mod tests {
                 trusted_for_user.insert(format!("{target}_truster{i}"), vec![target.to_string()]);
             }
         }
-        let neuron = TrustGraphNeuron {
-            trusted_for_user,
-        };
+        let neuron = TrustGraphNeuron { trusted_for_user };
         let ranks = neuron.handle_page_rank(&users_vec(&["target1", "target5", "target10"]));
         let r1 = ranks.get("target1").unwrap();
         let r5 = ranks.get("target5").unwrap();
@@ -281,9 +246,7 @@ mod tests {
         trusted_for_user.insert("u1".to_string(), vec!["hub".to_string()]);
         trusted_for_user.insert("u2".to_string(), vec!["hub".to_string()]);
         trusted_for_user.insert("u3".to_string(), vec!["hub".to_string()]);
-        let neuron = TrustGraphNeuron {
-            trusted_for_user,
-        };
+        let neuron = TrustGraphNeuron { trusted_for_user };
         let ranks = neuron.handle_page_rank(&users_vec(&["hub", "u1", "u2", "u3"]));
         assert_f64_near!(ranks.get("hub").unwrap(), &3.0);
         assert_f64_near!(ranks.get("u1").unwrap(), &0.0);
@@ -301,9 +264,7 @@ mod tests {
         let mut trusted_for_user: HashMap<String, Vec<String>> = HashMap::new();
         trusted_for_user.insert("u10".to_string(), vec!["u1".to_string(), "u2".to_string()]);
         trusted_for_user.insert("u9".to_string(), vec!["u3".to_string()]);
-        let neuron = TrustGraphNeuron {
-            trusted_for_user,
-        };
+        let neuron = TrustGraphNeuron { trusted_for_user };
 
         let with_bonus = neuron.handle_highly_trusted_bonus(trust_map, 10, 15.0);
 
@@ -324,17 +285,11 @@ mod tests {
         trusted_for_user.insert("C".to_string(), vec!["A".to_string(), "B".to_string()]);
         trusted_for_user.insert("D".to_string(), vec!["A".to_string()]);
         trusted_for_user.insert("E".to_string(), vec![]);
-        let neuron = TrustGraphNeuron {
-            trusted_for_user,
-        };
+        let neuron = TrustGraphNeuron { trusted_for_user };
         let users = users_vec(&["A", "B", "C", "D", "E"]);
 
         let via_public = neuron.calculate_result(&users);
-        let manual = neuron.handle_highly_trusted_bonus(
-            neuron.handle_page_rank(&users),
-            HIGHLY_TRUSTED_PERCENT_THRESHOLD,
-            HIGHLY_TRUSTED_PERCENT_BONUS,
-        );
+        let manual = neuron.handle_highly_trusted_bonus(neuron.handle_page_rank(&users), HIGHLY_TRUSTED_PERCENT_THRESHOLD, HIGHLY_TRUSTED_PERCENT_BONUS);
 
         assert_eq!(via_public.len(), manual.len());
         for (k, v) in &manual {
@@ -344,9 +299,7 @@ mod tests {
 
     #[test]
     fn name_returns_correct_value() {
-        let neuron = TrustGraphNeuron {
-            trusted_for_user: HashMap::new(),
-        };
+        let neuron = TrustGraphNeuron { trusted_for_user: HashMap::new() };
         assert_eq!(neuron.name(), "trust_graph_neuron");
     }
 }
