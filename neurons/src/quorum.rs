@@ -26,34 +26,24 @@ impl DelegateesForUser {
 }
 
 #[allow(clippy::implicit_hasher, clippy::missing_panics_doc)]
-pub fn normalize_votes(
-    votes: HashMap<String, HashMap<String, Vote>>,
-    delegatees_for_user: &HashMap<String, DelegateesForUser>,
-) -> Result<HashMap<String, HashMap<String, Vote>>> {
+pub fn normalize_votes(votes: HashMap<String, HashMap<String, Vote>>, delegatees_for_user: &HashMap<String, DelegateesForUser>) -> Result<HashMap<String, HashMap<String, Vote>>> {
     votes
         .into_iter()
         .map(|(submission_name, submission_votes)| {
-            let submission_votes =
-                normalize_votes_for_submission(&submission_votes, delegatees_for_user)?;
+            let submission_votes = normalize_votes_for_submission(&submission_votes, delegatees_for_user)?;
             Ok((submission_name, submission_votes))
         })
         .collect::<Result<_>>()
 }
 
-fn normalize_votes_for_submission(
-    submission_votes: &HashMap<String, Vote>,
-    delegatees_for_user: &HashMap<String, DelegateesForUser>,
-) -> Result<HashMap<String, Vote>> {
+fn normalize_votes_for_submission(submission_votes: &HashMap<String, Vote>, delegatees_for_user: &HashMap<String, DelegateesForUser>) -> Result<HashMap<String, Vote>> {
     submission_votes
         .clone()
         .into_iter()
         .map(|(user, vote)| {
             if vote == Vote::Delegate {
-                let delegatees = delegatees_for_user
-                    .get(&user)
-                    .ok_or_else(|| anyhow!("Delegatees missing for user {user}"))?;
-                let normalized_vote =
-                    calculate_quorum_consensus(&user, &delegatees.delegatees, submission_votes)?;
+                let delegatees = delegatees_for_user.get(&user).ok_or_else(|| anyhow!("Delegatees missing for user {user}"))?;
+                let normalized_vote = calculate_quorum_consensus(&user, &delegatees.delegatees, submission_votes)?;
                 Ok((user, normalized_vote))
             } else {
                 Ok((user, vote))
@@ -62,11 +52,7 @@ fn normalize_votes_for_submission(
         .collect::<Result<_>>()
 }
 
-fn calculate_quorum_consensus(
-    user: &str,
-    delegatees: &[String],
-    submission_votes: &HashMap<String, Vote>,
-) -> Result<Vote> {
+fn calculate_quorum_consensus(user: &str, delegatees: &[String], submission_votes: &HashMap<String, Vote>) -> Result<Vote> {
     if delegatees.len() < SMALLEST_DEFINED_QUORUM_SIZE {
         bail!("User {} has quorum smaller than required {}", user, SMALLEST_DEFINED_QUORUM_SIZE)
     }
@@ -79,7 +65,12 @@ fn calculate_quorum_consensus(
         })
         .collect();
 
-    // use the full qourum user has defined
+    // this will never trigger under normal conditions, only if voting data would be incorrect with delegates votes other than yes/no
+    if valid_delegates.len() < SMALLEST_DEFINED_QUORUM_SIZE {
+        bail!("User {} has valid delegates length smaller than required {}", user, SMALLEST_DEFINED_QUORUM_SIZE)
+    }
+
+    // start with the full qourum user has defined
     let selected_delegatees = valid_delegates;
     let mut resolved_vote = Vote::Abstain;
 
@@ -156,8 +147,7 @@ mod tests {
         submission_votes.insert("del6".to_string(), Vote::No);
         submission_votes.insert("del7".to_string(), Vote::No);
 
-        let resolved_vote =
-            calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
+        let resolved_vote = calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
         let expected_vote = expected_vote(&submission_votes);
 
         assert_eq!(resolved_vote, expected_vote)
@@ -183,14 +173,13 @@ mod tests {
         submission_votes.insert("del6".to_string(), Vote::No);
         submission_votes.insert("del7".to_string(), Vote::No);
 
-        let resolved_vote =
-            calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
+        let resolved_vote = calculate_quorum_consensus("user", &delegatees, &submission_votes).unwrap();
         let expected_vote = expected_vote(&submission_votes);
         assert_eq!(resolved_vote, expected_vote)
     }
 
     #[test]
-    fn abstain_if_less_than_x_delegates_voted() {
+    fn fail_if_less_than_x_delegates_voted() {
         let mut submission_votes = HashMap::new();
 
         let user0 = String::from("user0");
@@ -207,20 +196,13 @@ mod tests {
         submission_votes.insert(user2.clone(), Vote::Yes);
         submission_votes.insert(user3.clone(), Vote::Yes);
         submission_votes.insert(user4.clone(), Vote::Yes);
+        submission_votes.insert(user5.clone(), Vote::Yes);
+        submission_votes.insert(user6.clone(), Vote::Yes);
 
-        let delegates_for_user = vec![
-            user1.clone(),
-            user2.clone(),
-            user3.clone(),
-            user4.clone(),
-            user5.clone(),
-            user6.clone(),
-            user7.clone(),
-        ];
-        let resolved_vote =
-            calculate_quorum_consensus("user0", &delegates_for_user, &submission_votes).unwrap();
+        let delegates_for_user = vec![user1.clone(), user2.clone(), user3.clone(), user4.clone(), user5.clone(), user6.clone(), user7.clone()];
+        let resolved_vote = calculate_quorum_consensus("user0", &delegates_for_user, &submission_votes);
 
-        assert_eq!(resolved_vote, Vote::Abstain);
+        assert_eq!(resolved_vote.unwrap_err().to_string(), "User user0 has valid delegates length smaller than required 7");
     }
 
     #[test]
@@ -237,17 +219,9 @@ mod tests {
 
         submission_votes.insert(user0.clone(), Vote::Delegate);
 
-        let delegates_for_user = vec![
-            user1.clone(),
-            user2.clone(),
-            user3.clone(),
-            user4.clone(),
-            user5.clone(),
-            user6.clone(),
-        ];
+        let delegates_for_user = vec![user1.clone(), user2.clone(), user3.clone(), user4.clone(), user5.clone(), user6.clone()];
 
-        let resolved_vote =
-            calculate_quorum_consensus("user0", &delegates_for_user, &submission_votes);
+        let resolved_vote = calculate_quorum_consensus("user0", &delegates_for_user, &submission_votes);
 
         assert!(resolved_vote.is_err());
     }
@@ -275,21 +249,9 @@ mod tests {
         submission_votes.insert(user6.clone(), Vote::Yes);
         submission_votes.insert(user7.clone(), Vote::Yes);
 
-        delegates_for_user.insert(
-            user0.clone(),
-            DelegateesForUser::new(vec![
-                user1.clone(),
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-                user7.clone(),
-            ]),
-        );
+        delegates_for_user.insert(user0.clone(), DelegateesForUser::new(vec![user1.clone(), user2.clone(), user3.clone(), user4.clone(), user5.clone(), user6.clone(), user7.clone()]));
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
 
         let expected_vote = expected_vote(&submission_votes);
         assert_eq!(normalized_votes.get(&user0).unwrap(), &expected_vote);
@@ -318,21 +280,9 @@ mod tests {
         submission_votes.insert(user6.clone(), Vote::No);
         submission_votes.insert(user7.clone(), Vote::No);
 
-        delegates_for_user.insert(
-            user0.clone(),
-            DelegateesForUser::new(vec![
-                user1.clone(),
-                user2.clone(),
-                user3.clone(),
-                user4.clone(),
-                user5.clone(),
-                user6.clone(),
-                user7.clone(),
-            ]),
-        );
+        delegates_for_user.insert(user0.clone(), DelegateesForUser::new(vec![user1.clone(), user2.clone(), user3.clone(), user4.clone(), user5.clone(), user6.clone(), user7.clone()]));
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
 
         let expected_vote = expected_vote(&submission_votes);
         assert_eq!(normalized_votes.get(&user0).unwrap(), &expected_vote);
@@ -378,8 +328,7 @@ mod tests {
             ]),
         );
 
-        let normalized_votes =
-            normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
+        let normalized_votes = normalize_votes_for_submission(&submission_votes, &delegates_for_user).unwrap();
 
         let expected_vote = expected_vote(&submission_votes);
         assert_eq!(normalized_votes.get(&user0).unwrap(), &expected_vote);

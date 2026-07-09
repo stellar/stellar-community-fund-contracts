@@ -21,11 +21,7 @@ pub struct Submission {
 impl Submission {
     #[must_use]
     pub fn new(name: String, category: SubmissionCategory, project_name: String) -> Self {
-        Self {
-            name,
-            category,
-            project_name,
-        }
+        Self { name, category, project_name }
     }
 }
 
@@ -37,16 +33,7 @@ pub enum Vote {
     Abstain,
 }
 
-pub(crate) fn generalised_logistic_function(
-    a: f64,
-    k: f64,
-    c: f64,
-    q: f64,
-    b: f64,
-    nu: f64,
-    x_off: f64,
-    x: f64,
-) -> f64 {
+pub(crate) fn generalised_logistic_function(a: f64, k: f64, c: f64, q: f64, b: f64, nu: f64, x_off: f64, x: f64) -> f64 {
     a + (k - a) / (f64::powf(c + q * f64::exp(-b * (x - x_off)), 1.0 / nu))
 }
 
@@ -67,24 +54,15 @@ mod tests {
         assert_close(generalised_logistic_function(-5.0, 5.0, 1.0, 1.0, 0.4, 1.0, 0.0, 0.0), 0.0);
         // prior per-round set at its midpoint: 0 + 1/(1+1)^(1/4)
         let expected = 1.0 / 2.0_f64.powf(1.0 / 4.0);
-        assert_close(
-            generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, 30.0, 30.0),
-            expected,
-        );
+        assert_close(generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, 30.0, 30.0), expected);
     }
 
     #[test]
     fn asymptotes() {
         // every production param set uses c = 1, so x -> +inf gives k and x -> -inf gives a.
         let big = 1e6;
-        assert_close(
-            generalised_logistic_function(30.0, 100.0, 1.0, 1.0, 0.2, 3.0, 70.0, big),
-            100.0,
-        );
-        assert_close(
-            generalised_logistic_function(30.0, 100.0, 1.0, 1.0, 0.2, 3.0, 70.0, -big),
-            30.0,
-        );
+        assert_close(generalised_logistic_function(30.0, 100.0, 1.0, 1.0, 0.2, 3.0, 70.0, big), 100.0);
+        assert_close(generalised_logistic_function(30.0, 100.0, 1.0, 1.0, 0.2, 3.0, 70.0, -big), 30.0);
     }
 
     #[test]
@@ -109,9 +87,6 @@ mod tests {
         assert_close(retro(-2.0), 5.0 * (-0.4_f64).tanh());
         // trust set at its midpoint (x_off = 70): 30 + 70/(2)^(1/3)
         let expected = 30.0 + 70.0 / 2.0_f64.powf(1.0 / 3.0);
-        assert_close(
-            generalised_logistic_function(30.0, 100.0, 1.0, 1.0, 0.2, 3.0, 70.0, 70.0),
-            expected,
-        );
+        assert_close(generalised_logistic_function(30.0, 100.0, 1.0, 1.0, 0.2, 3.0, 70.0, 70.0), expected);
     }
 }
