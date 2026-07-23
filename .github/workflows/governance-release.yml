@@ -3,7 +3,7 @@ name: Build and Release Governance Contract
 on:
   push:
     tags:
-      - 'governance-v*'
+      - 'v*'
 
 jobs:
   release-governance:
