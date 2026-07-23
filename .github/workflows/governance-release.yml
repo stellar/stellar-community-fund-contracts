@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release-governance:
     uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@main
