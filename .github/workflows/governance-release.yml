@@ -20,3 +20,17 @@ jobs:
       package: 'governance'
     secrets:
       release_token: ${{ secrets.GITHUB_TOKEN }}
+
+  delete-trigger-tag:
+    needs: release-governance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete trigger tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            --method DELETE \
+            "repos/${GITHUB_REPOSITORY}/git/refs/tags/${GITHUB_REF_NAME}"
