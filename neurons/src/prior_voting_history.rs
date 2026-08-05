@@ -46,34 +46,24 @@ impl PriorVotingHistoryNeuron {
         assert!(self.current_round >= ROUND_IMPORTANCE_DECAY_OFFSET, "history bonus offset is bigger than current round");
         // console::log_1(&JsValue::from_str(&format!("USER: {user} ")));
 
-        // New implementation:
-        // 1. loop over all rounds up to current
-        // 2. calculate weight for round
-        // 3. if user was a submitter in this round or round < 32 count as 100% active voting
-        //    else if user participated in voting calculate active votes ratio
+        // 1. loop over all rounds up to current (a submitter couldn't vote in their own round,
+        //    so that round may be missing from their voting history)
+        // 2. if user had a submission in this round count it as 100% active voting
+        // 3. otherwise only rounds the user participated in contribute: full weight before
+        //    round 32 (no vote data), active-votes ratio from 32 onwards
         let rounds_participated = self.users_round_history.get(&user).cloned().unwrap_or_else(Vec::new);
         let x_offset: f64 = (self.current_round - ROUND_IMPORTANCE_DECAY_OFFSET) as f64;
         let mut rounds_weights_sum = 0.0;
         for round in OLDEST_ROUND..=self.current_round {
             let round_weight: f64 = generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, x_offset, round as f64);
-            if self.submitters_per_round.get(&round).is_some_and(|s| s.contains(&user)) || round < ACTIVE_VOTES_HISTORY_OLDEST_ROUND {
+            if self.submitters_per_round.get(&round).is_some_and(|s| s.contains(&user)) {
                 rounds_weights_sum += round_weight;
-            } else {
-                if rounds_participated.contains(&round) {
-                    match self.votes_per_round.get(&round) {
-                        Some(votes) => {
-                            // multiply weight by ratio of active votes in given round
-                            rounds_weights_sum += round_weight * calculate_active_votes_ratio(&user, votes);;
-                            // console::log_1(&JsValue::from_str(&format!(
-                            //     "raw: {round_weight} with ratio: {with_ratio}"
-                            // )));
-                        }
-                        None => {
-                            // console::log_1(&JsValue::from_str(&format!(
-                            //     "missing votes for {user} from this {round} round"
-                            // )));
-                        }
-                    }
+            } else if rounds_participated.contains(&round) {
+                if round < ACTIVE_VOTES_HISTORY_OLDEST_ROUND {
+                    rounds_weights_sum += round_weight;
+                } else if let Some(votes) = self.votes_per_round.get(&round) {
+                    // multiply weight by ratio of active votes in given round
+                    rounds_weights_sum += round_weight * calculate_active_votes_ratio(&user, votes);
                 }
             }
         }
