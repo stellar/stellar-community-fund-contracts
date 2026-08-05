@@ -252,6 +252,26 @@ mod tests {
     }
 
     #[test]
+    fn submitter_round_missing_from_voting_history_still_counts() {
+        // The realistic submitter case: alice submitted in 35, so she couldn't vote that round
+        // and 35 never entered her voting history. The submission must still count as 100% active.
+        let submitters = HashMap::from([(35, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[30])]), HashMap::new(), submitters, 38);
+        let expected = final_squash(round_weight(38.0, 30.0) + round_weight(38.0, 35.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn submitter_with_no_voting_history_gets_full_weight() {
+        // A first-time participant whose only activity is a submission: absent from
+        // users_round_history entirely, yet the submission round must still count.
+        let submitters = HashMap::from([(35, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(HashMap::new(), HashMap::new(), submitters, 38);
+        let expected = final_squash(round_weight(38.0, 35.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
     fn mixed_history_voted_in_earlier_round_submitter_in_later_round() {
         // voted normally in 33, had a project in 35 (couldn't vote there).
         let votes = votes_for_round(33, "alice", &[Vote::Yes, Vote::Yes, Vote::No, Vote::Delegate]);
