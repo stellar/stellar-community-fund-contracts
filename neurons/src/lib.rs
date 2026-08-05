@@ -10,7 +10,7 @@ use assigned_reputation::{AssignedReputationNeuron, ReputationTier};
 use neurons::Neuron;
 use prior_voting_history::PriorVotingHistoryNeuron;
 use quorum::{normalize_votes, DelegateesForUser};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use trust_graph::TrustGraphNeuron;
 use types::{Vote, DECIMALS};
 use wasm_bindgen::prelude::*;
@@ -29,6 +29,7 @@ pub fn run_neurons(
     normalized_votes_per_round: &str,
     tranche_status_map: &str,
     submissions_airtable_ids: &str,
+    submitters_per_round: &str,
 ) -> Result<String, String> {
     // parse all data
     // depending on which file is passed here, different users-base will be run through neurons
@@ -69,9 +70,13 @@ pub fn run_neurons(
         Ok(trusted_for_user_per_round) => trusted_for_user_per_round,
         Err(err) => return Err(format!("trusted_for_user_per_round json parsing error {}", err.to_string())),
     };
+    let submitters_per_round: HashMap<u32, HashSet<String>> = match serde_json::from_str(submitters_per_round) {
+        Ok(submitters_per_round) => submitters_per_round,
+        Err(err) => return Err(format!("submitters_per_round json parsing error {}", err.to_string())),
+    };
 
     // Voting History
-    let prior_voting_history_neuron = PriorVotingHistoryNeuron::from_data(previous_rounds_for_users, votes_per_round.clone(), current_round);
+    let prior_voting_history_neuron = PriorVotingHistoryNeuron::from_data(previous_rounds_for_users, votes_per_round.clone(), submitters_per_round, current_round);
     // Assigned Reputation
     let assigned_reputation_neuron = AssignedReputationNeuron::from_data(users_reputation, users_discord_roles);
 
@@ -154,6 +159,7 @@ mod tests {
             r#"{"alice":2,"bob":0}"#,
             r#"{"alice":["SDF"],"bob":[]}"#,
             r#"{"29":{"bob":["alice"]},"30":{"bob":["alice"]}}"#,
+            "{}",
             "{}",
             "{}",
             "{}",

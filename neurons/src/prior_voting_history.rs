@@ -2,12 +2,13 @@ use crate::neurons::Neuron;
 use crate::types::generalised_logistic_function;
 use crate::Vote;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 // use wasm_bindgen::JsValue;
 // use web_sys::{self, console};
 const ROUND_IMPORTANCE_DECAY_OFFSET: u32 = 8;
 const ACTIVE_VOTES_HISTORY_OLDEST_ROUND: u32 = 32; // we dont have data from rounds before 32
 const ACTIVE_VOTES_MIN_RATIO: f64 = 0.5; // lowest possible ratio of active votes
+const OLDEST_ROUND: u32 = 1;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,14 +16,21 @@ const ACTIVE_VOTES_MIN_RATIO: f64 = 0.5; // lowest possible ratio of active vote
 pub struct PriorVotingHistoryNeuron {
     users_round_history: HashMap<String, Vec<u32>>,
     votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, // round -> submission -> user -> vote
+    submitters_per_round: HashMap<u32, HashSet<String>>,                   // round -> users who had a submission that round
     current_round: u32,
 }
 
 impl PriorVotingHistoryNeuron {
-    pub fn from_data(users_round_history: HashMap<String, Vec<u32>>, votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>, current_round: u32) -> Self {
+    pub fn from_data(
+        users_round_history: HashMap<String, Vec<u32>>,
+        votes_per_round: HashMap<u32, HashMap<String, HashMap<String, Vote>>>,
+        submitters_per_round: HashMap<u32, HashSet<String>>,
+        current_round: u32,
+    ) -> Self {
         Self {
             users_round_history,
             votes_per_round,
+            submitters_per_round,
             current_round,
         }
     }
@@ -35,41 +43,27 @@ impl PriorVotingHistoryNeuron {
     /// smaller than `ROUND_IMPORTANCE_DECAY_OFFSET` (for example after a round reset to 0), which
     /// would otherwise underflow the round-importance offset subtraction.
     pub fn calculate_bonus(&self, user: String) -> f64 {
-        // console::log_1(&JsValue::from_str(&format!("USER: {user} ")));
-        let rounds_participated = self.users_round_history.get(&user).cloned().unwrap_or_else(Vec::new);
-        if rounds_participated.len().eq(&0) {
-            return 0.0;
-        }
-        // `current_round - ROUND_IMPORTANCE_DECAY_OFFSET` below is u32 subtraction. With overflow
-        // checks off (the release wasm build) a `current_round` below the offset would silently
-        // wrap to a huge value instead of erroring; guard it so a round reset fails loudly.
         assert!(self.current_round >= ROUND_IMPORTANCE_DECAY_OFFSET, "history bonus offset is bigger than current round");
-        // calculate weights sum
+        // console::log_1(&JsValue::from_str(&format!("USER: {user} ")));
+
+        // 1. loop over all rounds up to current (a submitter couldn't vote in their own round,
+        //    so that round may be missing from their voting history)
+        // 2. if user had a submission in this round count it as 100% active voting
+        // 3. otherwise only rounds the user participated in contribute: full weight before
+        //    round 32 (no vote data), active-votes ratio from 32 onwards
+        let rounds_participated = self.users_round_history.get(&user).cloned().unwrap_or_else(Vec::new);
+        let x_offset: f64 = (self.current_round - ROUND_IMPORTANCE_DECAY_OFFSET) as f64;
         let mut rounds_weights_sum = 0.0;
-        for round in rounds_participated {
-            // console::log_1(&JsValue::from_str(&format!("ROUND: {round} /rounds_participated")));
-            let x_offset: f64 = (self.current_round - ROUND_IMPORTANCE_DECAY_OFFSET) as f64;
+        for round in OLDEST_ROUND..=self.current_round {
             let round_weight: f64 = generalised_logistic_function(0.0, 1.0, 1.0, 1.0, 1.0, 4.0, x_offset, round as f64);
-            // console::log_1(&JsValue::from_str(&format!("weight {round_weight}")));
-            if round < ACTIVE_VOTES_HISTORY_OLDEST_ROUND {
+            if self.submitters_per_round.get(&round).is_some_and(|s| s.contains(&user)) {
                 rounds_weights_sum += round_weight;
-                // console::log_1(&JsValue::from_str(&format!("PRE 32")));
-            } else {
-                // get votes from given round
-                match self.votes_per_round.get(&round) {
-                    Some(votes) => {
-                        // multiply weight by ratio of active votes in given round
-                        let with_ratio = round_weight * calculate_active_votes_ratio(&user, votes);
-                        rounds_weights_sum += with_ratio;
-                        // console::log_1(&JsValue::from_str(&format!(
-                        //     "raw: {round_weight} with ratio: {with_ratio}"
-                        // )));
-                    }
-                    None => {
-                        // console::log_1(&JsValue::from_str(&format!(
-                        //     "missing votes for {user} from this {round} round"
-                        // )));
-                    }
+            } else if rounds_participated.contains(&round) {
+                if round < ACTIVE_VOTES_HISTORY_OLDEST_ROUND {
+                    rounds_weights_sum += round_weight;
+                } else if let Some(votes) = self.votes_per_round.get(&round) {
+                    // multiply weight by ratio of active votes in given round
+                    rounds_weights_sum += round_weight * calculate_active_votes_ratio(&user, votes);
                 }
             }
         }
@@ -205,7 +199,7 @@ mod tests {
 
     #[test]
     fn empty_history_returns_zero() {
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("emptyvec", &[])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("emptyvec", &[])]), HashMap::new(), HashMap::new(), 38);
         // user absent from the map entirely
         assert_close(neuron.calculate_bonus("ghost".to_string()), 0.0);
         // user present but with no rounds
@@ -215,7 +209,7 @@ mod tests {
     #[test]
     fn single_recent_round_bonus() {
         // round 31 < 32 -> raw-weight path; current_round 38 keeps `current_round - 8` safe.
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[31])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[31])]), HashMap::new(), HashMap::new(), 38);
         let expected = final_squash(round_weight(38.0, 31.0));
         assert_close(neuron.calculate_bonus("alice".to_string()), expected);
     }
@@ -223,7 +217,7 @@ mod tests {
     #[test]
     fn more_recent_rounds_beat_older_rounds() {
         // same count (1), different recency; the round weight is monotonic in the round number.
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("older", &[29]), ("newer", &[31])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("older", &[29]), ("newer", &[31])]), HashMap::new(), HashMap::new(), 38);
         let older = neuron.calculate_bonus("older".to_string());
         let newer = neuron.calculate_bonus("newer".to_string());
         assert!(newer > older, "more recent ({newer}) should exceed older ({older})");
@@ -232,7 +226,7 @@ mod tests {
     #[test]
     fn bonus_increases_with_participation_count() {
         // "voted in 3 recent rounds -> bigger bonus": A in [29], B in [29,30,31], all < 32.
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("a", &[29]), ("b", &[29, 30, 31])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("a", &[29]), ("b", &[29, 30, 31])]), HashMap::new(), HashMap::new(), 38);
         let a = neuron.calculate_bonus("a".to_string());
         let b = neuron.calculate_bonus("b".to_string());
         let expected_b = final_squash(round_weight(38.0, 29.0) + round_weight(38.0, 30.0) + round_weight(38.0, 31.0));
@@ -244,15 +238,100 @@ mod tests {
     fn post_32_round_scales_by_active_ratio() {
         // round 35 >= 32 with a votes entry: 3 active (Yes/No) of 4 submissions -> ratio 0.75.
         let votes = votes_for_round(35, "alice", &[Vote::Yes, Vote::Yes, Vote::No, Vote::Delegate]);
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, HashMap::new(), 38);
         let expected = final_squash(round_weight(38.0, 35.0) * 0.75);
         assert_close(neuron.calculate_bonus("alice".to_string()), expected);
     }
 
     #[test]
+    fn post_32_round_submitter_gets_full_weight_despite_missing_votes() {
+        let submitters = HashMap::from([(35, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), HashMap::new(), submitters, 38);
+        let expected = final_squash(round_weight(38.0, 35.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn submitter_round_missing_from_voting_history_still_counts() {
+        // The realistic submitter case: alice submitted in 35, so she couldn't vote that round
+        // and 35 never entered her voting history. The submission must still count as 100% active.
+        let submitters = HashMap::from([(35, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[30])]), HashMap::new(), submitters, 38);
+        let expected = final_squash(round_weight(38.0, 30.0) + round_weight(38.0, 35.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn submitter_with_no_voting_history_gets_full_weight() {
+        // A first-time participant whose only activity is a submission: absent from
+        // users_round_history entirely, yet the submission round must still count.
+        let submitters = HashMap::from([(35, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(HashMap::new(), HashMap::new(), submitters, 38);
+        let expected = final_squash(round_weight(38.0, 35.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn mixed_history_voted_in_earlier_round_submitter_in_later_round() {
+        // voted normally in 33, had a project in 35 (couldn't vote there).
+        let votes = votes_for_round(33, "alice", &[Vote::Yes, Vote::Yes, Vote::No, Vote::Delegate]);
+        let submitters = HashMap::from([(35, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[33, 35])]), votes, submitters, 38);
+        let expected = final_squash(round_weight(38.0, 33.0) * 0.75 + round_weight(38.0, 35.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn mixed_history_submitter_in_earlier_round_voted_in_later_round() {
+        // user had a project in 34, voted normally in 36.
+        let votes = votes_for_round(36, "alice", &[Vote::Yes, Vote::Yes]);
+        let submitters = HashMap::from([(34, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[34, 36])]), votes, submitters, 38);
+        let expected = final_squash(round_weight(38.0, 34.0) + round_weight(38.0, 36.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn mixed_history_three_rounds_submitter_only_in_the_middle() {
+        // 33: voted (0.75), 34: submission (full weight), 35: no votes and not a submitter (0).
+        let votes = votes_for_round(33, "alice", &[Vote::Yes, Vote::Yes, Vote::No, Vote::Delegate]);
+        let submitters = HashMap::from([(34, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[33, 34, 35])]), votes, submitters, 38);
+        let expected = final_squash(round_weight(38.0, 33.0) * 0.75 + round_weight(38.0, 34.0));
+        assert_close(neuron.calculate_bonus("alice".to_string()), expected);
+    }
+
+    #[test]
+    fn submitter_bonus_exceeds_same_round_non_submitter_with_no_votes() {
+        // alice (submitter in 35) should beat carol (same round, no votes, not a submitter).
+        let submitters = HashMap::from([(35, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35]), ("carol", &[35])]), HashMap::new(), submitters, 38);
+        let alice = neuron.calculate_bonus("alice".to_string());
+        let carol = neuron.calculate_bonus("carol".to_string());
+        assert_close(alice, final_squash(round_weight(38.0, 35.0)));
+        assert_close(carol, final_squash(0.0));
+        assert!(alice > carol, "submitter alice ({alice}) should beat non-submitter carol ({carol})");
+    }
+
+    #[test]
+    fn submitter_bonus_exceeds_same_round_non_submitter_with_votes() {
+        // alice (submitter in 35) should beat carol, who voted but only reached 0.75 active ratio.
+        let votes = votes_for_round(35, "carol", &[Vote::Yes, Vote::Yes, Vote::No, Vote::Delegate]);
+        let submitters = HashMap::from([(35, HashSet::from(["alice".to_string()]))]);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35]), ("carol", &[35])]), votes, submitters, 38);
+        let alice = neuron.calculate_bonus("alice".to_string());
+        let carol = neuron.calculate_bonus("carol".to_string());
+        let alice_expected = final_squash(round_weight(38.0, 35.0));
+        let carol_expected = final_squash(round_weight(38.0, 35.0) * 0.75);
+        assert_close(alice, alice_expected);
+        assert_close(carol, carol_expected);
+        assert!(alice > carol, "submitter alice ({alice}) should beat voting carol ({carol})");
+    }
+
+    #[test]
     fn post_32_round_without_votes_contributes_nothing() {
         // same round 35 but no votes_per_round entry -> the round adds nothing; sum stays 0.
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), HashMap::new(), HashMap::new(), 38);
         assert_close(neuron.calculate_bonus("alice".to_string()), final_squash(0.0));
     }
 
@@ -260,14 +339,14 @@ mod tests {
     fn active_ratio_floor_applies_in_bonus() {
         // 1 active of 5 -> true ratio 0.2, floored to ACTIVE_VOTES_MIN_RATIO (0.5).
         let votes = votes_for_round(35, "alice", &[Vote::Yes, Vote::Delegate, Vote::Delegate, Vote::Delegate, Vote::Delegate]);
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[35])]), votes, HashMap::new(), 38);
         let expected = final_squash(round_weight(38.0, 35.0) * ACTIVE_VOTES_MIN_RATIO);
         assert_close(neuron.calculate_bonus("alice".to_string()), expected);
     }
 
     #[test]
     fn calculate_result_maps_all_users() {
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("a", &[29]), ("b", &[30, 31])]), HashMap::new(), 38);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("a", &[29]), ("b", &[30, 31])]), HashMap::new(), HashMap::new(), 38);
         let users = vec!["a".to_string(), "b".to_string(), "c".to_string()];
         let result = neuron.calculate_result(&users);
         assert_eq!(result.len(), 3);
@@ -282,7 +361,7 @@ mod tests {
         // A current_round below ROUND_IMPORTANCE_DECAY_OFFSET (e.g. after a round reset to 0) would
         // underflow the u32 offset subtraction and silently wrap in the release wasm build, so
         // calculate_bonus guards it with an explicit assert. Holds in both debug and release.
-        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[3])]), HashMap::new(), 5);
+        let neuron = PriorVotingHistoryNeuron::from_data(history(&[("alice", &[3])]), HashMap::new(), HashMap::new(), 5);
         let _ = neuron.calculate_bonus("alice".to_string());
     }
 
