@@ -360,28 +360,30 @@ impl Governance for VotingSystem {
         require_admin(&env);
 
         let neural_governance = read_neural_governance(&env).unwrap();
-        let mut result: Map<Address, I256> = Map::new(&env);
-        for layer_id in neural_governance.layers {
-            let layer_result = VotingSystem::get_layer_result(env.clone(), layer_id)?;
-            for (key, value) in layer_result {
-                result.set(
-                    key.clone(),
-                    value.add(&result.get(key).unwrap_or_else(|| I256::from_i32(&env, 0))),
-                );
-            }
-        }
-
+        let layers = neural_governance.layers;
+        let layer_count = layers.len();
         let zero = I256::from_i32(&env, 0);
-        let mut voting_powers: Map<Address, I256> = Map::new(&env);
-        for (key, value) in result {
-            if value < zero {
-                voting_powers.set(key, zero.clone());
-            } else {
-                voting_powers.set(key, value);
+        let mut result: Map<Address, I256> = Map::new(&env);
+
+        for (layer_idx, layer_id) in layers.iter().enumerate() {
+            let layer_result = VotingSystem::get_layer_result(env.clone(), layer_id)?;
+            let is_last_layer = layer_idx as u32 + 1 == layer_count;
+            for (key, value) in layer_result.iter() {
+                let summed = value.add(
+                    &result
+                        .get(key.clone())
+                        .unwrap_or_else(|| I256::from_i32(&env, 0)),
+                );
+                let voting_power = if is_last_layer && summed < zero {
+                    zero.clone()
+                } else {
+                    summed
+                };
+                result.set(key, voting_power);
             }
         }
 
-        write_voting_powers(&env, Self::get_current_round(&env), &voting_powers);
+        write_voting_powers(&env, Self::get_current_round(&env), &result);
         Ok(())
     }
 

@@ -484,28 +484,43 @@ fn calculate_voting_powers_clamps_negative_nqg_to_zero() {
 
     let user_negative = Address::generate(&env);
     let user_positive = Address::generate(&env);
+    let user_recovers = Address::generate(&env);
     let neuron0 = String::from_str(&env, "0");
-    let neuron1 = String::from_str(&env, "1");
     let layer0 = String::from_str(&env, "0");
+    let layer1 = String::from_str(&env, "1");
 
     contract_client.add_layer(
         &soroban_sdk::vec![
             &env,
-            (neuron0.clone(), I256::from_i128(&env, DECIMALS)),
-            (neuron1.clone(), I256::from_i128(&env, DECIMALS)),
+            (
+                String::from_str(&env, "L0"),
+                I256::from_i128(&env, DECIMALS)
+            )
+        ],
+        &LayerAggregator::Sum,
+    );
+    contract_client.add_layer(
+        &soroban_sdk::vec![
+            &env,
+            (
+                String::from_str(&env, "L1"),
+                I256::from_i128(&env, DECIMALS)
+            )
         ],
         &LayerAggregator::Sum,
     );
 
-    let mut result0 = Map::new(&env);
-    result0.set(user_negative.clone(), I256::from_i128(&env, 100));
-    result0.set(user_positive.clone(), I256::from_i128(&env, 200));
-    contract_client.set_neuron_result(&layer0, &neuron0, &result0);
+    let mut layer0_result = Map::new(&env);
+    layer0_result.set(user_negative.clone(), I256::from_i128(&env, 100));
+    layer0_result.set(user_positive.clone(), I256::from_i128(&env, 200));
+    layer0_result.set(user_recovers.clone(), I256::from_i128(&env, -100));
+    contract_client.set_neuron_result(&layer0, &neuron0, &layer0_result);
 
-    let mut result1 = Map::new(&env);
-    result1.set(user_negative.clone(), I256::from_i128(&env, -500));
-    result1.set(user_positive.clone(), I256::from_i128(&env, 300));
-    contract_client.set_neuron_result(&layer0, &neuron1, &result1);
+    let mut layer1_result = Map::new(&env);
+    layer1_result.set(user_negative.clone(), I256::from_i128(&env, -500));
+    layer1_result.set(user_positive.clone(), I256::from_i128(&env, 300));
+    layer1_result.set(user_recovers.clone(), I256::from_i128(&env, 300));
+    contract_client.set_neuron_result(&layer1, &neuron0, &layer1_result);
 
     contract_client.calculate_voting_powers();
 
@@ -516,5 +531,9 @@ fn calculate_voting_powers_clamps_negative_nqg_to_zero() {
     assert_eq!(
         contract_client.get_voting_power_for_user(&user_positive),
         I256::from_i32(&env, 500)
+    );
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user_recovers),
+        I256::from_i32(&env, 200)
     );
 }
