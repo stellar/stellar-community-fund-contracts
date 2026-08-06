@@ -471,3 +471,50 @@ fn get_voting_power_for_user() {
         VotingSystemError::NGQResultForVoterMissing
     );
 }
+
+#[test]
+fn calculate_voting_powers_clamps_negative_nqg_to_zero() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
+
+    contract_client.set_current_round(&25);
+
+    let user_negative = Address::generate(&env);
+    let user_positive = Address::generate(&env);
+    let neuron0 = String::from_str(&env, "0");
+    let neuron1 = String::from_str(&env, "1");
+    let layer0 = String::from_str(&env, "0");
+
+    contract_client.add_layer(
+        &soroban_sdk::vec![
+            &env,
+            (neuron0.clone(), I256::from_i128(&env, DECIMALS)),
+            (neuron1.clone(), I256::from_i128(&env, DECIMALS)),
+        ],
+        &LayerAggregator::Sum,
+    );
+
+    let mut result0 = Map::new(&env);
+    result0.set(user_negative.clone(), I256::from_i128(&env, 100));
+    result0.set(user_positive.clone(), I256::from_i128(&env, 200));
+    contract_client.set_neuron_result(&layer0, &neuron0, &result0);
+
+    let mut result1 = Map::new(&env);
+    result1.set(user_negative.clone(), I256::from_i128(&env, -500));
+    result1.set(user_positive.clone(), I256::from_i128(&env, 300));
+    contract_client.set_neuron_result(&layer0, &neuron1, &result1);
+
+    contract_client.calculate_voting_powers();
+
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user_negative),
+        I256::from_i32(&env, 0)
+    );
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user_positive),
+        I256::from_i32(&env, 500)
+    );
+}

@@ -371,7 +371,17 @@ impl Governance for VotingSystem {
             }
         }
 
-        write_voting_powers(&env, Self::get_current_round(&env), &result);
+        let zero = I256::from_i32(&env, 0);
+        let mut voting_powers: Map<Address, I256> = Map::new(&env);
+        for (key, value) in result {
+            if value < zero {
+                voting_powers.set(key, zero.clone());
+            } else {
+                voting_powers.set(key, value);
+            }
+        }
+
+        write_voting_powers(&env, Self::get_current_round(&env), &voting_powers);
         Ok(())
     }
 
