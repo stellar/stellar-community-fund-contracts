@@ -364,10 +364,16 @@ impl Governance for VotingSystem {
         let layer_count = layers.len();
         let zero = I256::from_i32(&env, 0);
         let mut result: Map<Address, I256> = Map::new(&env);
+        let mut expected_users = 0u32;
 
-        for (layer_idx, layer_id) in layers.iter().enumerate() {
+        for (layer_idx, layer_id) in (0u32..).zip(layers.iter()) {
             let layer_result = VotingSystem::get_layer_result(env.clone(), layer_id)?;
-            let is_last_layer = layer_idx as u32 + 1 == layer_count;
+            if layer_idx == 0 {
+                expected_users = layer_result.len();
+            } else if layer_result.len() != expected_users {
+                return Err(VotingSystemError::LayerResultsUsersMismatch);
+            }
+            let is_last_layer = layer_idx + 1 == layer_count;
             for (key, value) in layer_result.iter() {
                 let summed = value.add(
                     &result
@@ -381,6 +387,10 @@ impl Governance for VotingSystem {
                 };
                 result.set(key, voting_power);
             }
+        }
+
+        if result.len() != expected_users {
+            return Err(VotingSystemError::LayerResultsUsersMismatch);
         }
 
         write_voting_powers(&env, Self::get_current_round(&env), &result);
