@@ -1,8 +1,10 @@
 use crate::{neurons::Neuron, types::generalised_logistic_function};
 use std::collections::HashMap;
 
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
-use web_sys::{self, console};
+#[cfg(target_arch = "wasm32")]
+use web_sys::console;
 
 const HOW_DEEP: u32 = 32;
 #[derive(Clone, Debug)]
@@ -80,6 +82,7 @@ impl Neuron for TrustLossNeuron {
             .map(|(user, lost_trust)| (user.to_string(), self.sum_nqg_of_users(lost_trust)))
             .collect();
 
+        #[cfg(target_arch = "wasm32")]
         console::log_1(&JsValue::from_str(&format!("untrusted_by_nqg_amount: {:?}", untrusted_by_nqg_amount)));
 
         // pass those sums through logistic curve
@@ -96,6 +99,9 @@ impl Neuron for TrustLossNeuron {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::generalised_logistic_function;
+
+    const EPS: f64 = 1e-9;
 
     fn users(names: &[&str]) -> Vec<String> {
         names.iter().map(|x| x.to_string()).collect()
@@ -105,12 +111,53 @@ mod tests {
         names.iter().map(|x| x.to_string()).collect()
     }
 
-    fn expected_result(user_names: &[&str], overrides: &[(&str, f64)]) -> HashMap<String, f64> {
-        let mut result: HashMap<String, f64> = user_names.iter().map(|name| (name.to_string(), 0.0)).collect();
-        for (name, value) in overrides {
-            result.insert(name.to_string(), *value);
+    fn nqg_for(name: &str) -> f64 {
+        match name {
+            "alice" => 10.0,
+            "bob" => 15.0,
+            "charlie" => 12.0,
+            "dave" => 8.0,
+            "eve" => 20.0,
+            "tom" => 18.0,
+            "andy" => 25.0,
+            "john" => 5.0,
+            "adam" => 3.0,
+            "newuser" => 7.0,
+            "unknown_user" => 2.0,
+            _ => 1.0,
         }
-        result
+    }
+
+    fn nqg_map(names: &[&str]) -> HashMap<String, f64> {
+        names.iter().map(|n| (n.to_string(), nqg_for(n))).collect()
+    }
+
+    fn expected_loss(untrusting_nqg_sum: f64, affected_user_nqg: f64) -> f64 {
+        let pct = generalised_logistic_function(0.0, 100.0, 1.0, 1.0, 0.2, 1.0, 50.0, untrusting_nqg_sum);
+        -affected_user_nqg * pct / 100.0
+    }
+
+    fn assert_result_close(result: &HashMap<String, f64>, user_list: &[&str], overrides: &[(&str, f64)]) {
+        assert_eq!(result.len(), user_list.len());
+        for name in user_list {
+            assert!(result.contains_key(*name), "missing key {name}");
+        }
+        for (name, expected) in overrides {
+            let actual = result[*name];
+            assert!(
+                (actual - expected).abs() < EPS,
+                "for {name}: expected {expected}, got {actual}"
+            );
+        }
+        for name in user_list {
+            if !overrides.iter().any(|(n, _)| n == name) {
+                assert!(
+                    result[*name].abs() < EPS,
+                    "expected {name} to be 0.0, got {}",
+                    result[*name]
+                );
+            }
+        }
     }
 
     #[test]
@@ -133,10 +180,10 @@ mod tests {
         trust_43.insert("john".to_string(), trust_list(&["tom", "bob", "alice", "andy"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "tom", "bob", "andy", "john", "adam"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
 
-        assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
+        assert_result_close(&neuron.calculate_result(&users(user_list)), user_list, &[]);
     }
 
     #[test]
@@ -159,10 +206,10 @@ mod tests {
         trust_43.insert("john".to_string(), trust_list(&["tom", "bob", "alice", "andy"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "tom", "bob", "andy", "john", "adam"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
 
-        assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
+        assert_result_close(&neuron.calculate_result(&users(user_list)), user_list, &[]);
     }
 
     #[test]
@@ -185,15 +232,19 @@ mod tests {
         trust_43.insert("john".to_string(), trust_list(&["tom", "bob", "alice", "andy"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "tom", "bob", "andy", "john"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
+        let result = neuron.calculate_result(&users(user_list));
 
-        assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[("andy", -2.0), ("bob", -1.0)]));
+        // alice (nqg=10) untrusted bob; tom (nqg=18) + bob (nqg=15) untrusted andy
+        let expected_bob = expected_loss(nqg_for("alice"), nqg_for("bob"));
+        let expected_andy = expected_loss(nqg_for("tom") + nqg_for("bob"), nqg_for("andy"));
+        assert_result_close(&result, user_list, &[("bob", expected_bob), ("andy", expected_andy)]);
     }
 
     #[test]
     fn name_returns_correct_value() {
-        let neuron = TrustLossNeuron::from_data(44, HashMap::new());
+        let neuron = TrustLossNeuron::from_data(44, HashMap::new(), HashMap::new());
         assert_eq!(neuron.name(), "trust_loss_neuron");
     }
 
@@ -208,15 +259,15 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, HashMap::new());
         assert_eq!(neuron.calculate_result(&[]), HashMap::new());
     }
 
     #[test]
     fn empty_trust_data_returns_all_users_with_zero() {
-        let neuron = TrustLossNeuron::from_data(44, HashMap::new());
         let user_list = &["alice", "bob"];
-        assert_eq!(neuron.calculate_result(&users(user_list)), expected_result(user_list, &[]));
+        let neuron = TrustLossNeuron::from_data(44, HashMap::new(), nqg_map(user_list));
+        assert_result_close(&neuron.calculate_result(&users(user_list)), user_list, &[]);
     }
 
     #[test]
@@ -232,10 +283,10 @@ mod tests {
         trust_43.insert("charlie".to_string(), trust_list(&["bob", "alice"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
-        assert_eq!(result, expected_result(user_list, &[]));
+        assert_result_close(&result, user_list, &[]);
     }
 
     #[test]
@@ -251,11 +302,13 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "newuser"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
+        // alice (nqg=10) untrusted charlie
+        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
     #[test]
@@ -270,10 +323,10 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "outsider"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
-        assert_eq!(result, expected_result(user_list, &[]));
+        assert_result_close(&result, user_list, &[]);
     }
 
     #[test]
@@ -292,11 +345,13 @@ mod tests {
         trust_43.insert("dave".to_string(), trust_list(&["bob", "eve"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "dave", "eve"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        assert_eq!(result, expected_result(user_list, &[("eve", -3.0)]));
+        // alice (10) + charlie (12) + dave (8) = 30 untrusted eve (20)
+        let expected_eve = expected_loss(nqg_for("alice") + nqg_for("charlie") + nqg_for("dave"), nqg_for("eve"));
+        assert_result_close(&result, user_list, &[("eve", expected_eve)]);
     }
 
     #[test]
@@ -311,11 +366,12 @@ mod tests {
         trust_40.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(40, trust_40);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
+        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
     #[test]
@@ -334,11 +390,13 @@ mod tests {
         trust_42.insert("alice".to_string(), trust_list(&["bob", "charlie", "dave"]));
         trusted_for_user_per_round.insert(42, trust_42);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "dave"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
+        // only charlie removed (comparing against round 43, not 42)
+        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
     #[test]
@@ -353,10 +411,10 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&[]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
-        assert_eq!(result, expected_result(user_list, &[]));
+        assert_result_close(&result, user_list, &[]);
     }
 
     #[test]
@@ -367,10 +425,10 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
-        assert_eq!(result, expected_result(user_list, &[]));
+        assert_result_close(&result, user_list, &[]);
     }
 
     #[test]
@@ -385,11 +443,12 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "dave"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
+        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
     #[test]
@@ -404,11 +463,12 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "unknown_user"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        assert_eq!(result, expected_result(user_list, &[("charlie", -1.0)]));
+        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
     #[test]
@@ -423,18 +483,12 @@ mod tests {
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round);
         let user_list = &["alice", "bob", "charlie", "dave", "eve"];
+        let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
         assert_eq!(result.len(), 5);
-        for name in user_list {
-            assert!(result.contains_key(*name));
-        }
-        assert_eq!(result["charlie"], -1.0);
-        assert_eq!(result["alice"], 0.0);
-        assert_eq!(result["bob"], 0.0);
-        assert_eq!(result["dave"], 0.0);
-        assert_eq!(result["eve"], 0.0);
+        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 }
