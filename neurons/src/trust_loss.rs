@@ -1,17 +1,24 @@
-use crate::neurons::Neuron;
+use crate::{neurons::Neuron, types::generalised_logistic_function};
 use std::collections::HashMap;
 
-const HOW_DEEP: u32 = 32;
+use wasm_bindgen::JsValue;
+use web_sys::{self, console};
 
+const HOW_DEEP: u32 = 32;
 #[derive(Clone, Debug)]
 pub struct TrustLossNeuron {
     round: u32,
     trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>>,
+    neurons_results_sum: HashMap<String, f64>,
 }
 
 impl TrustLossNeuron {
-    pub fn from_data(round: u32, trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>>) -> Self {
-        Self { round, trusted_for_user_per_round }
+    pub fn from_data(round: u32, trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>>, neurons_results_sum: HashMap<String, f64>) -> Self {
+        Self {
+            round,
+            trusted_for_user_per_round,
+            neurons_results_sum,
+        }
     }
     fn find_most_recent_previous_trust_list(&self, target_user: &String) -> Option<Vec<String>> {
         let mut counter: u32 = self.round - 1;
@@ -27,6 +34,9 @@ impl TrustLossNeuron {
         }
         most_recent_previous_trust_list
     }
+    fn sum_nqg_of_users(&self, lost_trust: &Vec<String>) -> f64 {
+        lost_trust.iter().fold(0.0, |acc, user| acc + self.neurons_results_sum.get(user).unwrap())
+    }
 }
 
 impl Neuron for TrustLossNeuron {
@@ -35,7 +45,9 @@ impl Neuron for TrustLossNeuron {
     }
 
     fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
-        let mut trust_diff_map: HashMap<String, f64> = users.iter().map(|user| (user.to_string(), 0.0)).collect();
+        let mut result: HashMap<String, f64> = users.iter().map(|user| (user.to_string(), 0.0)).collect();
+        let mut lost_trust_from: HashMap<String, Vec<String>> = HashMap::new();
+
         for user in users {
             // if this user doesn't have trust list for this round, skip this iteration completly
             // it implicates they couldn't have actively removed trust from someone.
@@ -55,14 +67,29 @@ impl Neuron for TrustLossNeuron {
             // iterate over who this user trusted in previous round
             previous_trust_list.iter().for_each(|trusted_user| {
                 if !current_trust_list.contains(trusted_user) {
-                    // only users present in the input slice are tracked in the output map
-                    if let Some(value) = trust_diff_map.get_mut(trusted_user) {
-                        *value -= 1.0;
-                    }
+                    // for this trusted_user insert a record that he was untrusted by this user
+                    let untrusting_users_list: &mut Vec<String> = lost_trust_from.entry(trusted_user.to_string()).or_insert(vec![]);
+                    untrusting_users_list.push(user.to_string());
                 }
             });
         }
-        trust_diff_map
+
+        // calculate a sum of nqg scores of all users who untrusted each user
+        let untrusted_by_nqg_amount: HashMap<String, f64> = lost_trust_from
+            .iter()
+            .map(|(user, lost_trust)| (user.to_string(), self.sum_nqg_of_users(lost_trust)))
+            .collect();
+
+        console::log_1(&JsValue::from_str(&format!("untrusted_by_nqg_amount: {:?}", untrusted_by_nqg_amount)));
+
+        // pass those sums through logistic curve
+        for (affected_user, amount) in untrusted_by_nqg_amount {
+            let percentage_of_nqg_to_remove = generalised_logistic_function(0.0, 100.0, 1.0, 1.0, 0.2, 1.0, 50.0, amount);
+            if let Some(value) = result.get_mut(&affected_user) {
+                *value = -self.neurons_results_sum.get(&affected_user).unwrap() * percentage_of_nqg_to_remove / 100.0;
+            }
+        }
+        result
     }
 }
 
