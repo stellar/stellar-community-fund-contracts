@@ -2,10 +2,11 @@
 use soroban_governor::{storage, types::ProposalAction, types::ProposalStatus};
 use soroban_sdk::{
     testutils::{Address as _, Events},
-    vec, Address, Env, Error, IntoVal, Symbol,
+    Address, Env, Error, Symbol,
 };
 use tests::{
     env::EnvTestUtils,
+    events::{contract_event, last_events},
     governor::{create_governor, default_governor_settings, default_proposal_data},
 };
 
@@ -55,23 +56,21 @@ fn test_close_successful() {
     assert_eq!(proposal.data.eta, e.ledger().sequence() + settings.timelock);
 
     let proposal_votes = fixture.governor.get_proposal_votes(&proposal_id);
-    let tx_events = vec![&e, events.last().unwrap()];
+    let tx_events = last_events(&events, 1);
     assert_eq!(
         tx_events,
-        vec![
+        [contract_event(
             &e,
+            &fixture.governor_address,
             (
-                fixture.governor_address.clone(),
-                (
-                    Symbol::new(&e, "proposal_voting_closed"),
-                    proposal_id,
-                    ProposalStatus::Successful as u32,
-                    e.ledger().sequence() + settings.timelock
-                )
-                    .into_val(&e),
-                proposal_votes.into_val(&e)
-            )
-        ]
+                Symbol::new(&e, "proposal_voting_closed"),
+                proposal_id,
+                ProposalStatus::Successful as u32,
+                e.ledger().sequence() + settings.timelock
+            ),
+            proposal_votes,
+        )]
+        .as_slice()
     );
 
     // creator can create another proposal
@@ -198,28 +197,29 @@ fn test_close_expired() {
     assert_eq!(proposal.data.eta, 0);
 
     let proposal_votes = fixture.governor.get_proposal_votes(&proposal_id);
-    let tx_events = events.slice((events.len() - 2)..events.len());
+    let tx_events = last_events(&events, 2);
     assert_eq!(
         tx_events,
-        vec![
-            &e,
-            (
-                fixture.governor_address.clone(),
-                (Symbol::new(&e, "proposal_expired"), proposal_id).into_val(&e),
-                ().into_val(&e)
+        [
+            contract_event(
+                &e,
+                &fixture.governor_address,
+                (Symbol::new(&e, "proposal_expired"), proposal_id),
+                (),
             ),
-            (
-                fixture.governor_address.clone(),
+            contract_event(
+                &e,
+                &fixture.governor_address,
                 (
                     Symbol::new(&e, "proposal_voting_closed"),
                     proposal_id,
                     ProposalStatus::Expired as u32,
-                    0_u32
-                )
-                    .into_val(&e),
-                proposal_votes.into_val(&e)
+                    0_u32,
+                ),
+                proposal_votes,
             )
         ]
+        .as_slice()
     );
 }
 

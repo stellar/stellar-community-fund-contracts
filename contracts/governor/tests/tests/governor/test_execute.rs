@@ -6,6 +6,7 @@ use soroban_sdk::{
 };
 use tests::{
     env::EnvTestUtils,
+    events::{contract_event, last_events},
     governor::{
         create_governor, create_mock_subcall_contract, create_sep41_token,
         default_governor_settings, default_proposal_data,
@@ -91,17 +92,16 @@ fn test_execute_settings() {
     let proposal = fixture.governor.get_proposal(&proposal_id).unwrap();
     assert_eq!(proposal.data.status, ProposalStatus::Executed);
 
-    let tx_events = vec![&e, events.last().unwrap()];
+    let tx_events = last_events(&events, 1);
     assert_eq!(
         tx_events,
-        vec![
+        [contract_event(
             &e,
-            (
-                fixture.governor_address.clone(),
-                (Symbol::new(&e, "proposal_executed"), proposal_id).into_val(&e),
-                ().into_val(&e)
-            )
-        ]
+            &fixture.governor_address,
+            (Symbol::new(&e, "proposal_executed"), proposal_id),
+            (),
+        )]
+        .as_slice()
     );
 }
 
@@ -132,17 +132,16 @@ fn test_execute_expired() {
     let proposal = fixture.governor.get_proposal(&proposal_id).unwrap();
     assert_eq!(proposal.data.status, ProposalStatus::Expired);
 
-    let tx_events = vec![&e, events.last().unwrap()];
+    let tx_events = last_events(&events, 1);
     assert_eq!(
         tx_events,
-        vec![
+        [contract_event(
             &e,
-            (
-                fixture.governor_address.clone(),
-                (Symbol::new(&e, "proposal_expired"), proposal_id).into_val(&e),
-                ().into_val(&e)
-            )
-        ]
+            &fixture.governor_address,
+            (Symbol::new(&e, "proposal_expired"), proposal_id),
+            (),
+        )]
+        .as_slice()
     );
 }
 
@@ -356,17 +355,16 @@ fn test_execute_calldata_no_auths() {
     let proposal = fixture.governor.get_proposal(&proposal_id).unwrap();
     assert_eq!(proposal.data.status, ProposalStatus::Executed);
 
-    let tx_events = vec![&e, events.last().unwrap()];
+    let tx_events = last_events(&events, 1);
     assert_eq!(
         tx_events,
-        vec![
+        [contract_event(
             &e,
-            (
-                fixture.governor_address.clone(),
-                (Symbol::new(&e, "proposal_executed"), proposal_id).into_val(&e),
-                ().into_val(&e)
-            )
-        ]
+            &fixture.governor_address,
+            (Symbol::new(&e, "proposal_executed"), proposal_id),
+            (),
+        )]
+        .as_slice()
     );
 }
 

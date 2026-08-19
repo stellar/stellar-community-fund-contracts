@@ -411,7 +411,7 @@ mod test {
                 .ledger()
                 .timestamp()
                 .saturating_add(u64::from(ledgers_jump) * 5),
-            protocol_version: 23,
+            protocol_version: 27,
             sequence_number: env.ledger().sequence().saturating_add(ledgers_jump),
             network_id: Default::default(),
             base_reserve: 10,
