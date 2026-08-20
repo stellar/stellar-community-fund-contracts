@@ -104,7 +104,7 @@ pub fn run_neurons(
     // Trust Loss
     let trust_loss_neuron = TrustLossNeuron::from_data(current_round, trusted_for_user_per_round, neurons_results_sum);
     let trust_loss_neuron_result = trust_loss_neuron.calculate_result(&users_base);
-        
+
     neurons_results.insert("trust_loss_neuron".to_string(), trust_loss_neuron_result);
 
     let results_fixed_point_decimal = results_to_fixed_point_decimal(neurons_results);
@@ -143,9 +143,9 @@ pub fn run_votes_normalization(votes: &str, delegatees_for_user: &str) -> Result
 }
 
 fn results_to_fixed_point_decimal(neurons_results: HashMap<String, HashMap<String, f64>>) -> HashMap<String, HashMap<String, String>> {
-    let mut  output:HashMap<String, HashMap<String, String>> = HashMap::new();
+    let mut output: HashMap<String, HashMap<String, String>> = HashMap::new();
     for (neuron_name, result) in neurons_results {
-        let fixed:HashMap<String, String> = result.into_iter().map(|(key, value)| (key, to_fixed_point_decimal(value).to_string())).collect();
+        let fixed: HashMap<String, String> = result.into_iter().map(|(key, value)| (key, to_fixed_point_decimal(value).to_string())).collect();
         output.insert(neuron_name, fixed);
     }
     output

@@ -144,18 +144,11 @@ mod tests {
         }
         for (name, expected) in overrides {
             let actual = result[*name];
-            assert!(
-                (actual - expected).abs() < EPS,
-                "for {name}: expected {expected}, got {actual}"
-            );
+            assert!((actual - expected).abs() < EPS, "for {name}: expected {expected}, got {actual}");
         }
         for name in user_list {
             if !overrides.iter().any(|(n, _)| n == name) {
-                assert!(
-                    result[*name].abs() < EPS,
-                    "expected {name} to be 0.0, got {}",
-                    result[*name]
-                );
+                assert!(result[*name].abs() < EPS, "expected {name} to be 0.0, got {}", result[*name]);
             }
         }
     }
