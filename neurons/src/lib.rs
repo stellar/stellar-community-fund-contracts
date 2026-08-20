@@ -113,13 +113,16 @@ pub fn run_neurons(
 }
 
 fn sum_neurons_results(neurons_results: HashMap<String, HashMap<String, f64>>) -> HashMap<String, f64> {
-    let mut neurons_sum: HashMap<String, f64> = neurons_results
-        .values()
-        .flat_map(|neuron_result| neuron_result.iter())
-        .fold(HashMap::new(), |mut acc, (user, score)| {
-            *acc.entry(user.clone()).or_default() += score;
-            acc
-        });
+    // sum in stable neuron-name order: float addition is order-dependent and HashMap
+    // iteration order is randomized, which would make the fixed-point output nondeterministic
+    let mut neuron_names: Vec<&String> = neurons_results.keys().collect();
+    neuron_names.sort();
+    let mut neurons_sum: HashMap<String, f64> = HashMap::new();
+    for name in neuron_names {
+        for (user, score) in &neurons_results[name] {
+            *neurons_sum.entry(user.clone()).or_default() += score;
+        }
+    }
     neurons_sum.values_mut().for_each(|sum| *sum = sum.max(0.0));
     neurons_sum
 }
