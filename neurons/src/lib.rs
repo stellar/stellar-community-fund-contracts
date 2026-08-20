@@ -113,13 +113,14 @@ pub fn run_neurons(
 }
 
 fn sum_neurons_results(neurons_results: HashMap<String, HashMap<String, f64>>) -> HashMap<String, f64> {
-    let neurons_sum: HashMap<String, f64> = neurons_results
+    let mut neurons_sum: HashMap<String, f64> = neurons_results
         .values()
         .flat_map(|neuron_result| neuron_result.iter())
         .fold(HashMap::new(), |mut acc, (user, score)| {
             *acc.entry(user.clone()).or_default() += score;
             acc
         });
+    neurons_sum.values_mut().for_each(|sum| *sum = sum.max(0.0));
     neurons_sum
 }
 
@@ -225,6 +226,14 @@ mod tests {
         let result = sum_neurons_results(input);
         assert_eq!(result["alice"], 4.0);
         assert_eq!(result["bob"], 6.0);
+    }
+
+    #[test]
+    fn negative_sum_is_capped_at_zero() {
+        let input = make_results(vec![("f1", vec![("alice", 1.0), ("bob", 2.0)]), ("f2", vec![("alice", -3.0), ("bob", -1.5)])]);
+        let result = sum_neurons_results(input);
+        assert_eq!(result["alice"], 0.0);
+        assert_eq!(result["bob"], 0.5);
     }
 
     #[test]
