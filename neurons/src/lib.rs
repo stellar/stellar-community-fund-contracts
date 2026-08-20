@@ -84,25 +84,47 @@ pub fn run_neurons(
     let trusted_for_user_current_round = trusted_for_user_per_round.get(&current_round).unwrap();
     let trust_graph_neuron = TrustGraphNeuron::from_data(trusted_for_user_current_round.clone());
 
-    // Trust Loss
-    let trust_loss_neuron = TrustLossNeuron::from_data(current_round, trusted_for_user_per_round);
-
     // Retro Vote Quality
     let retro_vote_quality_neuron = RetroVoteQualityNeuron::from_data(votes_per_round, normalized_votes_per_round, tranche_status_map, submissions_airtable_ids);
 
     // Run all neurons
-    let results = calculate_neuron_results(
+    let mut neurons_results: HashMap<String, HashMap<String, f64>> = calculate_neuron_results(
         &users_base,
         vec![
             Box::new(prior_voting_history_neuron),
             Box::new(assigned_reputation_neuron),
             Box::new(retro_vote_quality_neuron),
             Box::new(trust_graph_neuron),
-            Box::new(trust_loss_neuron),
         ],
     );
 
-    Ok(serde_json::to_string_pretty(&results).unwrap())
+    // calculate nqg scores
+    let neurons_results_sum: HashMap<String, f64> = sum_neurons_results(neurons_results.clone());
+
+    // Trust Loss
+    let trust_loss_neuron = TrustLossNeuron::from_data(current_round, trusted_for_user_per_round, neurons_results_sum);
+    let trust_loss_neuron_result = trust_loss_neuron.calculate_result(&users_base);
+
+    neurons_results.insert("trust_loss_neuron".to_string(), trust_loss_neuron_result);
+
+    let results_fixed_point_decimal = results_to_fixed_point_decimal(neurons_results);
+
+    Ok(serde_json::to_string_pretty(&results_fixed_point_decimal).unwrap())
+}
+
+fn sum_neurons_results(neurons_results: HashMap<String, HashMap<String, f64>>) -> HashMap<String, f64> {
+    // sum in stable neuron-name order: float addition is order-dependent and HashMap
+    // iteration order is randomized, which would make the fixed-point output nondeterministic
+    let mut neuron_names: Vec<&String> = neurons_results.keys().collect();
+    neuron_names.sort();
+    let mut neurons_sum: HashMap<String, f64> = HashMap::new();
+    for name in neuron_names {
+        for (user, score) in &neurons_results[name] {
+            *neurons_sum.entry(user.clone()).or_default() += score;
+        }
+    }
+    neurons_sum.values_mut().for_each(|sum| *sum = sum.max(0.0));
+    neurons_sum
 }
 
 #[wasm_bindgen]
@@ -124,12 +146,20 @@ pub fn run_votes_normalization(votes: &str, delegatees_for_user: &str) -> Result
     Ok(serde_json::to_string_pretty(&normalized_votes).unwrap())
 }
 
-fn calculate_neuron_results(users: &[String], neurons: Vec<Box<dyn Neuron>>) -> HashMap<String, HashMap<String, String>> {
-    let mut results: HashMap<String, HashMap<String, String>> = HashMap::new();
+fn results_to_fixed_point_decimal(neurons_results: HashMap<String, HashMap<String, f64>>) -> HashMap<String, HashMap<String, String>> {
+    let mut output: HashMap<String, HashMap<String, String>> = HashMap::new();
+    for (neuron_name, result) in neurons_results {
+        let fixed: HashMap<String, String> = result.into_iter().map(|(key, value)| (key, to_fixed_point_decimal(value).to_string())).collect();
+        output.insert(neuron_name, fixed);
+    }
+    output
+}
+
+fn calculate_neuron_results(users: &[String], neurons: Vec<Box<dyn Neuron>>) -> HashMap<String, HashMap<String, f64>> {
+    let mut results: HashMap<String, HashMap<String, f64>> = HashMap::new();
     for neuron in neurons {
         println!("running {}", neuron.name());
         let result = neuron.calculate_result(users);
-        let result: HashMap<String, String> = result.into_iter().map(|(key, value)| (key, to_fixed_point_decimal(value).to_string())).collect();
         results.insert(neuron.name(), result);
     }
     results
@@ -185,5 +215,40 @@ mod tests {
         let rep = &parsed["assigned_reputation_neuron"];
         assert_eq!(rep["alice"], to_fixed_point_decimal(3.0).to_string());
         assert_eq!(rep["bob"], to_fixed_point_decimal(0.0).to_string());
+    }
+
+    fn make_results(data: Vec<(&str, Vec<(&str, f64)>)>) -> HashMap<String, HashMap<String, f64>> {
+        data.into_iter()
+            .map(|(key, users)| (key.to_string(), users.into_iter().map(|(u, v)| (u.to_string(), v)).collect()))
+            .collect()
+    }
+
+    #[test]
+    fn basic_sum() {
+        let input = make_results(vec![("f1", vec![("alice", 1.0), ("bob", 2.0)]), ("f2", vec![("alice", 3.0), ("bob", 4.0)])]);
+        let result = sum_neurons_results(input);
+        assert_eq!(result["alice"], 4.0);
+        assert_eq!(result["bob"], 6.0);
+    }
+
+    #[test]
+    fn negative_sum_is_capped_at_zero() {
+        let input = make_results(vec![("f1", vec![("alice", 1.0), ("bob", 2.0)]), ("f2", vec![("alice", -3.0), ("bob", -1.5)])]);
+        let result = sum_neurons_results(input);
+        assert_eq!(result["alice"], 0.0);
+        assert_eq!(result["bob"], 0.5);
+    }
+
+    #[test]
+    fn four_neurons() {
+        let input = make_results(vec![
+            ("f1", vec![("alice", 1.0), ("bob", 2.0)]),
+            ("f2", vec![("alice", 10.0), ("bob", 20.0)]),
+            ("f3", vec![("alice", 100.0), ("bob", 200.0)]),
+            ("f4", vec![("alice", 1000.0), ("bob", 2000.0)]),
+        ]);
+        let result = sum_neurons_results(input);
+        assert_eq!(result["alice"], 1111.0);
+        assert_eq!(result["bob"], 2222.0);
     }
 }
