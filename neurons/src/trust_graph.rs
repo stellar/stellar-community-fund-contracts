@@ -8,6 +8,8 @@ use std::collections::{HashMap, HashSet};
 const HIGHLY_TRUSTED_PERCENT_THRESHOLD: usize = 10;
 // users trusted by highly trusted users will get a bonus of X % of their own score
 const HIGHLY_TRUSTED_PERCENT_BONUS: f64 = 15.0;
+// users that have their own trust list filled get a bonus of X % of their own score
+const FILLED_TRUST_LIST_PERCENT_BONUS: f64 = 10.0;
 
 #[derive(Clone, Debug)]
 pub struct TrustGraphNeuron {
@@ -85,6 +87,24 @@ impl TrustGraphNeuron {
 
         result_with_bonus
     }
+
+    fn handle_filled_trust_list_bonus(&self, trust_map: HashMap<String, f64>) -> HashMap<String, f64> {
+        trust_map
+            .into_iter()
+            .map(|(user, score)| {
+                let score = if self.has_filled_trust_list(&user) {
+                    score + (score / 100.0) * FILLED_TRUST_LIST_PERCENT_BONUS
+                } else {
+                    score
+                };
+                (user, score)
+            })
+            .collect()
+    }
+
+    fn has_filled_trust_list(&self, user: &str) -> bool {
+        self.trusted_for_user.get(user).is_some_and(|trusted_users| !trusted_users.is_empty())
+    }
 }
 
 impl Neuron for TrustGraphNeuron {
@@ -94,7 +114,8 @@ impl Neuron for TrustGraphNeuron {
     fn calculate_result(&self, users: &[String]) -> HashMap<String, f64> {
         let page_rank_result = self.handle_page_rank(users);
         let highly_trusted_bonus_result = self.handle_highly_trusted_bonus(page_rank_result, HIGHLY_TRUSTED_PERCENT_THRESHOLD, HIGHLY_TRUSTED_PERCENT_BONUS);
-        highly_trusted_bonus_result
+        let filled_trust_list_bonus_result = self.handle_filled_trust_list_bonus(highly_trusted_bonus_result);
+        filled_trust_list_bonus_result
     }
 }
 
@@ -278,6 +299,25 @@ mod tests {
     }
 
     #[test]
+    fn filled_trust_list_gets_extra_bonus_for_any_user_with_filled_list() {
+        let mut trust_map: HashMap<String, f64> = HashMap::new();
+        trust_map.insert("A".to_string(), 2.0);
+        trust_map.insert("B".to_string(), 2.0);
+        trust_map.insert("C".to_string(), 2.0);
+
+        let mut trusted_for_user: HashMap<String, Vec<String>> = HashMap::new();
+        trusted_for_user.insert("A".to_string(), vec!["B".to_string()]);
+        trusted_for_user.insert("B".to_string(), vec![]);
+        let neuron = TrustGraphNeuron { trusted_for_user };
+
+        let with_bonus = neuron.handle_filled_trust_list_bonus(trust_map);
+
+        assert_f64_near!(with_bonus.get("A").unwrap(), &(2.0 * 1.10));
+        assert_f64_near!(with_bonus.get("B").unwrap(), &2.0);
+        assert_f64_near!(with_bonus.get("C").unwrap(), &2.0);
+    }
+
+    #[test]
     fn calculate_result_full_pipeline() {
         let mut trusted_for_user = HashMap::new();
         trusted_for_user.insert("A".to_string(), vec!["B".to_string(), "C".to_string()]);
@@ -289,7 +329,7 @@ mod tests {
         let users = users_vec(&["A", "B", "C", "D", "E"]);
 
         let via_public = neuron.calculate_result(&users);
-        let manual = neuron.handle_highly_trusted_bonus(neuron.handle_page_rank(&users), HIGHLY_TRUSTED_PERCENT_THRESHOLD, HIGHLY_TRUSTED_PERCENT_BONUS);
+        let manual = neuron.handle_filled_trust_list_bonus(neuron.handle_highly_trusted_bonus(neuron.handle_page_rank(&users), HIGHLY_TRUSTED_PERCENT_THRESHOLD, HIGHLY_TRUSTED_PERCENT_BONUS));
 
         assert_eq!(via_public.len(), manual.len());
         for (k, v) in &manual {
