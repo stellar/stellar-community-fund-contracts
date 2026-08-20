@@ -360,15 +360,37 @@ impl Governance for VotingSystem {
         require_admin(&env);
 
         let neural_governance = read_neural_governance(&env).unwrap();
+        let layers = neural_governance.layers;
+        let layer_count = layers.len();
+        let zero = I256::from_i32(&env, 0);
         let mut result: Map<Address, I256> = Map::new(&env);
-        for layer_id in neural_governance.layers {
+        let mut expected_users = 0u32;
+
+        for (layer_idx, layer_id) in (0u32..).zip(layers.iter()) {
             let layer_result = VotingSystem::get_layer_result(env.clone(), layer_id)?;
-            for (key, value) in layer_result {
-                result.set(
-                    key.clone(),
-                    value.add(&result.get(key).unwrap_or_else(|| I256::from_i32(&env, 0))),
-                );
+            if layer_idx == 0 {
+                expected_users = layer_result.len();
+            } else if layer_result.len() != expected_users {
+                return Err(VotingSystemError::LayerResultsUsersMismatch);
             }
+            let is_last_layer = layer_idx + 1 == layer_count;
+            for (key, value) in layer_result.iter() {
+                let summed = value.add(
+                    &result
+                        .get(key.clone())
+                        .unwrap_or_else(|| I256::from_i32(&env, 0)),
+                );
+                let voting_power = if is_last_layer && summed < zero {
+                    zero.clone()
+                } else {
+                    summed
+                };
+                result.set(key, voting_power);
+            }
+        }
+
+        if result.len() != expected_users {
+            return Err(VotingSystemError::LayerResultsUsersMismatch);
         }
 
         write_voting_powers(&env, Self::get_current_round(&env), &result);

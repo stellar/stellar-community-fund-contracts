@@ -471,3 +471,156 @@ fn get_voting_power_for_user() {
         VotingSystemError::NGQResultForVoterMissing
     );
 }
+
+#[test]
+fn calculate_voting_powers_clamps_negative_nqg_to_zero() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
+
+    contract_client.set_current_round(&25);
+
+    let user_negative = Address::generate(&env);
+    let user_positive = Address::generate(&env);
+    let user_recovers = Address::generate(&env);
+    let neuron0 = String::from_str(&env, "0");
+    let layer0 = String::from_str(&env, "0");
+    let layer1 = String::from_str(&env, "1");
+
+    contract_client.add_layer(
+        &soroban_sdk::vec![
+            &env,
+            (
+                String::from_str(&env, "L0"),
+                I256::from_i128(&env, DECIMALS)
+            )
+        ],
+        &LayerAggregator::Sum,
+    );
+    contract_client.add_layer(
+        &soroban_sdk::vec![
+            &env,
+            (
+                String::from_str(&env, "L1"),
+                I256::from_i128(&env, DECIMALS)
+            )
+        ],
+        &LayerAggregator::Sum,
+    );
+
+    let mut layer0_result = Map::new(&env);
+    layer0_result.set(user_negative.clone(), I256::from_i128(&env, 100));
+    layer0_result.set(user_positive.clone(), I256::from_i128(&env, 200));
+    layer0_result.set(user_recovers.clone(), I256::from_i128(&env, -100));
+    contract_client.set_neuron_result(&layer0, &neuron0, &layer0_result);
+
+    let mut layer1_result = Map::new(&env);
+    layer1_result.set(user_negative.clone(), I256::from_i128(&env, -500));
+    layer1_result.set(user_positive.clone(), I256::from_i128(&env, 300));
+    layer1_result.set(user_recovers.clone(), I256::from_i128(&env, 300));
+    contract_client.set_neuron_result(&layer1, &neuron0, &layer1_result);
+
+    contract_client.calculate_voting_powers();
+
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user_negative),
+        I256::from_i32(&env, 0)
+    );
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user_positive),
+        I256::from_i32(&env, 500)
+    );
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user_recovers),
+        I256::from_i32(&env, 200)
+    );
+}
+
+#[test]
+fn calculate_voting_powers_rejects_layers_with_mismatched_users() {
+    let env = Env::default();
+    env.cost_estimate().budget().reset_unlimited();
+
+    let (contract_client, _admin) = deploy_contract(&env);
+    env.mock_all_auths();
+
+    contract_client.set_current_round(&25);
+
+    let user_negative = Address::generate(&env);
+    let user_positive = Address::generate(&env);
+    let neuron0 = String::from_str(&env, "0");
+    let layer0 = String::from_str(&env, "0");
+    let layer1 = String::from_str(&env, "1");
+
+    contract_client.add_layer(
+        &soroban_sdk::vec![
+            &env,
+            (
+                String::from_str(&env, "L0"),
+                I256::from_i128(&env, DECIMALS)
+            )
+        ],
+        &LayerAggregator::Sum,
+    );
+    contract_client.add_layer(
+        &soroban_sdk::vec![
+            &env,
+            (
+                String::from_str(&env, "L1"),
+                I256::from_i128(&env, DECIMALS)
+            )
+        ],
+        &LayerAggregator::Sum,
+    );
+
+    let mut layer0_result = Map::new(&env);
+    layer0_result.set(user_negative.clone(), I256::from_i128(&env, -100));
+    layer0_result.set(user_positive.clone(), I256::from_i128(&env, 200));
+    contract_client.set_neuron_result(&layer0, &neuron0, &layer0_result);
+
+    // user_negative is absent from the last layer, so its -100 would never be clamped
+    let mut layer1_result = Map::new(&env);
+    layer1_result.set(user_positive.clone(), I256::from_i128(&env, 300));
+    contract_client.set_neuron_result(&layer1, &neuron0, &layer1_result);
+
+    assert_eq!(
+        contract_client
+            .try_calculate_voting_powers()
+            .unwrap_err()
+            .unwrap(),
+        VotingSystemError::LayerResultsUsersMismatch
+    );
+
+    // Same user count per layer but different users must be rejected too
+    let mut layer1_result = Map::new(&env);
+    layer1_result.set(user_positive.clone(), I256::from_i128(&env, 300));
+    layer1_result.set(Address::generate(&env), I256::from_i128(&env, 300));
+    contract_client.set_neuron_result(&layer1, &neuron0, &layer1_result);
+
+    assert_eq!(
+        contract_client
+            .try_calculate_voting_powers()
+            .unwrap_err()
+            .unwrap(),
+        VotingSystemError::LayerResultsUsersMismatch
+    );
+
+    // With user sets aligned the calculation succeeds and the clamp applies
+    let mut layer1_result = Map::new(&env);
+    layer1_result.set(user_negative.clone(), I256::from_i128(&env, 50));
+    layer1_result.set(user_positive.clone(), I256::from_i128(&env, 300));
+    contract_client.set_neuron_result(&layer1, &neuron0, &layer1_result);
+
+    contract_client.calculate_voting_powers();
+
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user_negative),
+        I256::from_i32(&env, 0)
+    );
+    assert_eq!(
+        contract_client.get_voting_power_for_user(&user_positive),
+        I256::from_i32(&env, 500)
+    );
+}
