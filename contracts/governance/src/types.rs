@@ -53,4 +53,5 @@ pub enum VotingSystemError {
     SubmissionDoesNotExist = 14,
     VotingPowersNotSet = 15,
     TallyResultsNotSet = 16,
+    LayerResultsUsersMismatch = 17,
 }
