@@ -156,7 +156,6 @@ fn calculate_neuron_results(users: &[String], neurons: Vec<Box<dyn Neuron>>) -> 
     for neuron in neurons {
         println!("running {}", neuron.name());
         let result = neuron.calculate_result(users);
-        // let result: HashMap<String, String> = result.into_iter().map(|(key, value)| (key, to_fixed_point_decimal(value).to_string())).collect();
         results.insert(neuron.name(), result);
     }
     results
