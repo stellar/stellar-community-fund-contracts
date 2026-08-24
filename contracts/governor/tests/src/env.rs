@@ -5,6 +5,8 @@ use soroban_sdk::{
 
 use crate::ONE_DAY_LEDGERS;
 
+const PROTOCOL_VERSION: u32 = 27;
+
 pub trait EnvTestUtils {
     /// Jump the env by the given amount of ledgers. Assumes 5 seconds per ledger.
     fn jump(&self, ledgers: u32);
@@ -23,7 +25,7 @@ impl EnvTestUtils for Env {
                 .ledger()
                 .timestamp()
                 .saturating_add(u64::from(ledgers) * 5),
-            protocol_version: 23,
+            protocol_version: PROTOCOL_VERSION,
             sequence_number: self.ledger().sequence().saturating_add(ledgers),
             network_id: Default::default(),
             base_reserve: 10,
@@ -36,7 +38,7 @@ impl EnvTestUtils for Env {
     fn set_default_info(&self) {
         self.ledger().set(LedgerInfo {
             timestamp: 1_441_065_600, // Sept 1st, 2015 12:00:00 AM UTC
-            protocol_version: 23,
+            protocol_version: PROTOCOL_VERSION,
             sequence_number: 100,
             network_id: Default::default(),
             base_reserve: 10,

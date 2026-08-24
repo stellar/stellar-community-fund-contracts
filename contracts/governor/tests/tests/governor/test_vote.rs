@@ -6,6 +6,7 @@ use soroban_sdk::{
 };
 use tests::{
     env::EnvTestUtils,
+    events::{contract_event, last_events},
     governor::{create_governor, default_governor_settings, default_proposal_data},
 };
 
@@ -68,19 +69,18 @@ fn test_vote() {
     assert_eq!(vote_count._for, 0);
     assert_eq!(vote_count.abstain, 0);
 
-    let tx_events = vec![&e, events.last().unwrap()];
+    let tx_events = last_events(&events, 1);
     let event_data: soroban_sdk::Vec<Val> =
         vec![&e, voter_support.into_val(&e), samwise_votes.into_val(&e)];
     assert_eq!(
         tx_events,
-        vec![
+        [contract_event(
             &e,
-            (
-                fixture.governor_address.clone(),
-                (Symbol::new(&e, "vote_cast"), proposal_id, samwise.clone()).into_val(&e),
-                event_data.into_val(&e)
-            )
-        ]
+            &fixture.governor_address,
+            (Symbol::new(&e, "vote_cast"), proposal_id, samwise.clone()),
+            event_data,
+        )]
+        .as_slice()
     );
 }
 

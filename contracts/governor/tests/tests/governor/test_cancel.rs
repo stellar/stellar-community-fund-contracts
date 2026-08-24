@@ -2,10 +2,11 @@
 use soroban_governor::types::ProposalStatus;
 use soroban_sdk::{
     testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events},
-    vec, Address, Env, Error, IntoVal, Symbol, TryIntoVal,
+    vec, Address, Env, Error, Symbol, TryIntoVal,
 };
 use tests::{
     env::EnvTestUtils,
+    events::{contract_event, last_events},
     governor::{create_governor, default_governor_settings, default_proposal_data},
 };
 
@@ -51,17 +52,16 @@ fn test_cancel() {
     let proposal = fixture.governor.get_proposal(&proposal_id).unwrap();
     assert_eq!(proposal.data.status, ProposalStatus::Canceled);
 
-    let tx_events = vec![&e, events.last().unwrap()];
+    let tx_events = last_events(&events, 1);
     assert_eq!(
         tx_events,
-        vec![
+        [contract_event(
             &e,
-            (
-                fixture.governor_address.clone(),
-                (Symbol::new(&e, "proposal_canceled"), proposal_id).into_val(&e),
-                ().into_val(&e)
-            )
-        ]
+            &fixture.governor_address,
+            (Symbol::new(&e, "proposal_canceled"), proposal_id),
+            (),
+        )]
+        .as_slice()
     );
 
     // creator can create another proposal

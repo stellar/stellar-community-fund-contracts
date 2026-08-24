@@ -17,7 +17,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.85.0
+          toolchain: 1.95.0
           targets: wasm32v1-none
           components: clippy, rustfmt
           key: 2
@@ -34,7 +34,7 @@ jobs:
 
       - name: Install soroban cli
         run: |
-          cargo install --locked --version 23.0.1 soroban-cli --force
+          cargo install --locked --version 27.1.0 soroban-cli --force
 
       - name: Build contracts
         run: |
