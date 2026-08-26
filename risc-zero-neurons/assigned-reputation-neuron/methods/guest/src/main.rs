@@ -1,13 +1,12 @@
+use neuron_core::{calculate_result, NeuronInput, NeuronOutput};
 use risc0_zkvm::guest::env;
 
 fn main() {
-    // TODO: Implement your guest code here
+    // Read the users (public key, tier, discord roles) from the host.
+    let input: NeuronInput = env::read();
 
-    // read the input
-    let input: u32 = env::read();
+    let output: NeuronOutput = calculate_result(&input);
 
-    // TODO: do something with the input
-
-    // write public output to the journal
-    env::commit(&input);
+    // Commit the scores to the journal: this is the public, proven output.
+    env::commit(&output);
 }

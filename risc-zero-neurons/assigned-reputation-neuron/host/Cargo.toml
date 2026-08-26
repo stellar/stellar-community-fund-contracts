@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 methods = { path = "../methods" }
+neuron-core = { path = "../core" }
 risc0-zkvm = { version = "^3.0.6" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde = { version = "1.0", features = ["derive"] }

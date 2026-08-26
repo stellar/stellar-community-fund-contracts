@@ -6,4 +6,5 @@ edition = "2021"
 [workspace]
 
 [dependencies]
+neuron-core = { path = "../../core" }
 risc0-zkvm = { version = "^3.0.6", default-features = false, features = ['std'] }
