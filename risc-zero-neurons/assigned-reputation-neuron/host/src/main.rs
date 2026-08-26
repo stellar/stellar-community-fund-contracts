@@ -2,12 +2,38 @@
 // The ELF is used for proving and the ID is used for verification.
 use methods::{GUEST_CODE_FOR_ZK_PROOF_ELF, GUEST_CODE_FOR_ZK_PROOF_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::Path;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserDiscord {
+    pub id: String,
+    pub tier: i32,
+    pub username: Option<String>,
+    pub discord_roles: Vec<String>,
+    pub rounds_votes: Vec<u32>,
+    pub rounds_public_keys: Option<HashMap<String, String>>,
+}
+
+/// Map of Stellar public key -> Discord user data.
+pub type UsersDiscord = HashMap<String, UserDiscord>;
+
+fn read_users_discord(path: impl AsRef<Path>) -> UsersDiscord {
+    let raw = std::fs::read_to_string(path).expect("failed to read usersDiscord.json");
+    serde_json::from_str(&raw).expect("failed to parse usersDiscord.json")
+}
 
 fn main() {
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
         .init();
+
+    // Resolve the data file relative to this crate so it works from any cwd.
+    let data_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../data/usersDiscord.json");
+    let users = read_users_discord(data_path);
+    println!("Loaded {} users from usersDiscord.json", users.len());
 
     // An executor environment describes the configurations for the zkVM
     // including program inputs.
@@ -42,7 +68,6 @@ fn main() {
     let receipt = prove_info.receipt;
 
     // TODO: Implement code for retrieving receipt journal here.
-
     // For example:
     let _output: u32 = receipt.journal.decode().unwrap();
 
