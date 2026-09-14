@@ -49,16 +49,16 @@ fn role_to_bonus(role: &str) -> f64 {
         "SDF" => 1.0,
         "Tier 1 Validator" => 1.0,
 
-        "West Africa Ambassador" => 0.5,
-        "Brazil Ambassador" => 0.5,
-        "India Ambassador" => 0.5,
-        "Southern African Ambassador" => 0.5,
-        "East Africa Ambassador" => 0.5,
-        "Mexico Ambassador" => 0.5,
-        "Colombia Ambassador" => 0.5,
-        "Chile Ambassador" => 0.5,
         "Argentina Ambassador" => 0.5,
-        "Europe Ambassador" => 0.5,
+        "Bolivia Ambassador" => 0.5,
+        "Brazil Ambassador" => 0.5,
+        "Chile Ambassador" => 0.5,
+        "Colombia Ambassador" => 0.5,
+        "Costa Rica Ambassador" => 0.5,
+        "Mexico Ambassador" => 0.5,
+        "Peru Ambassador" => 0.5,
+        "Ghana Ambassador" => 0.5,
+        "Nigeria Ambassador" => 0.5,
 
         _ => 0.0,
     }
@@ -102,16 +102,32 @@ mod tests {
         assert_eq!(discord_roles_bonus(&vec!["SDF".to_string()]), 1.0);
         assert_eq!(discord_roles_bonus(&vec!["Tier 1 Validator".to_string()]), 1.0);
 
-        assert_eq!(discord_roles_bonus(&vec!["West Africa Ambassador".to_string()]), 0.5);
-        assert_eq!(discord_roles_bonus(&vec!["Brazil Ambassador".to_string()]), 0.5);
-        assert_eq!(discord_roles_bonus(&vec!["India Ambassador".to_string()]), 0.5);
-        assert_eq!(discord_roles_bonus(&vec!["Southern African Ambassador".to_string()]), 0.5);
-        assert_eq!(discord_roles_bonus(&vec!["East Africa Ambassador".to_string()]), 0.5);
-        assert_eq!(discord_roles_bonus(&vec!["Mexico Ambassador".to_string()]), 0.5);
-        assert_eq!(discord_roles_bonus(&vec!["Colombia Ambassador".to_string()]), 0.5);
-        assert_eq!(discord_roles_bonus(&vec!["Chile Ambassador".to_string()]), 0.5);
         assert_eq!(discord_roles_bonus(&vec!["Argentina Ambassador".to_string()]), 0.5);
-        assert_eq!(discord_roles_bonus(&vec!["Europe Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Bolivia Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Brazil Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Chile Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Colombia Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Costa Rica Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Mexico Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Peru Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Ghana Ambassador".to_string()]), 0.5);
+        assert_eq!(discord_roles_bonus(&vec!["Nigeria Ambassador".to_string()]), 0.5);
+    }
+
+    #[test]
+    fn legacy_chapter_roles_score_zero() {
+        // These chapters predate the airtable-driven chapter list and are no longer produced by
+        // anything. Deliberately unrecognized - a user still holding one scores 0.0 for it until
+        // patchAmbassadorRoles strips it.
+        for legacy in [
+            "West Africa Ambassador",
+            "India Ambassador",
+            "Southern African Ambassador",
+            "East Africa Ambassador",
+            "Europe Ambassador",
+        ] {
+            assert_eq!(discord_roles_bonus(&vec![legacy.to_string()]), 0.0, "{legacy}");
+        }
     }
 
     #[test]
@@ -145,10 +161,10 @@ mod tests {
         roles.insert(
             "alice".to_string(),
             vec![
-                "SDF".to_string(),                    // 1.0
-                "West Africa Ambassador".to_string(), // 0.5
-                "Europe Ambassador".to_string(),      // 0.5
-                "unrecognized role".to_string(),      // 0.0
+                "SDF".to_string(),                // 1.0
+                "Nigeria Ambassador".to_string(), // 0.5
+                "Ghana Ambassador".to_string(),   // 0.5
+                "unrecognized role".to_string(),  // 0.0
             ],
         );
         let neuron = AssignedReputationNeuron::from_data(reputation, roles);
