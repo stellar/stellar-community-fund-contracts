@@ -1,5 +1,5 @@
 use crate::{neurons::Neuron, types::generalised_logistic_function};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
@@ -7,6 +7,7 @@ use wasm_bindgen::JsValue;
 use web_sys::console;
 
 const HOW_DEEP: u32 = 32;
+const MIN_UNTRUSTING_USERS: usize = 3;
 #[derive(Clone, Debug)]
 pub struct TrustLossNeuron {
     round: u32,
@@ -79,6 +80,7 @@ impl Neuron for TrustLossNeuron {
         // calculate a sum of nqg scores of all users who untrusted each user
         let untrusted_by_nqg_amount: HashMap<String, f64> = lost_trust_from
             .iter()
+            .filter(|(_, lost_trust)| count_distinct_users(lost_trust) >= MIN_UNTRUSTING_USERS)
             .map(|(user, lost_trust)| (user.to_string(), self.sum_nqg_of_users(lost_trust)))
             .collect();
 
@@ -94,6 +96,10 @@ impl Neuron for TrustLossNeuron {
         }
         result
     }
+}
+
+fn count_distinct_users(users: &[String]) -> usize {
+    users.iter().collect::<HashSet<_>>().len()
 }
 
 #[cfg(test)]
@@ -214,7 +220,7 @@ mod tests {
         trust_44.insert("tom".to_string(), trust_list(&["alice", "bob", "john"]));
         trust_44.insert("bob".to_string(), trust_list(&["tom", "alice", "john", "adam"]));
         trust_44.insert("andy".to_string(), trust_list(&["tom", "bob", "alice", "john"]));
-        trust_44.insert("john".to_string(), trust_list(&["tom", "bob", "alice", "andy", "adam"]));
+        trust_44.insert("john".to_string(), trust_list(&["tom", "bob", "alice", "adam"]));
         trusted_for_user_per_round.insert(44, trust_44);
 
         let mut trust_43: HashMap<String, Vec<String>> = HashMap::new();
@@ -229,10 +235,10 @@ mod tests {
         let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        // alice (nqg=10) untrusted bob; tom (nqg=18) + bob (nqg=15) untrusted andy
-        let expected_bob = expected_loss(nqg_for("alice"), nqg_for("bob"));
-        let expected_andy = expected_loss(nqg_for("tom") + nqg_for("bob"), nqg_for("andy"));
-        assert_result_close(&result, user_list, &[("bob", expected_bob), ("andy", expected_andy)]);
+        // alice (nqg=10) alone untrusted bob -> below MIN_UNTRUSTING_USERS, no penalty
+        // tom (18) + bob (15) + john (5) untrusted andy -> 3 different users, penalized
+        let expected_andy = expected_loss(nqg_for("tom") + nqg_for("bob") + nqg_for("john"), nqg_for("andy"));
+        assert_result_close(&result, user_list, &[("andy", expected_andy)]);
     }
 
     #[test]
@@ -288,19 +294,23 @@ mod tests {
 
         let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
         trust_44.insert("alice".to_string(), trust_list(&["bob"]));
+        trust_44.insert("bob".to_string(), trust_list(&[]));
+        trust_44.insert("dave".to_string(), trust_list(&[]));
         trust_44.insert("newuser".to_string(), trust_list(&["alice"]));
         trusted_for_user_per_round.insert(44, trust_44);
 
         let mut trust_43: HashMap<String, Vec<String>> = HashMap::new();
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
+        trust_43.insert("bob".to_string(), trust_list(&["charlie"]));
+        trust_43.insert("dave".to_string(), trust_list(&["charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let user_list = &["alice", "bob", "charlie", "newuser"];
+        let user_list = &["alice", "bob", "charlie", "dave", "newuser"];
         let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        // alice (nqg=10) untrusted charlie
-        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        // alice (10) + bob (15) + dave (8) untrusted charlie; newuser has no previous list -> skipped
+        let expected_charlie = expected_loss(nqg_for("alice") + nqg_for("bob") + nqg_for("dave"), nqg_for("charlie"));
         assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
@@ -353,17 +363,21 @@ mod tests {
 
         let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
         trust_44.insert("alice".to_string(), trust_list(&["bob"]));
+        trust_44.insert("bob".to_string(), trust_list(&[]));
+        trust_44.insert("dave".to_string(), trust_list(&[]));
         trusted_for_user_per_round.insert(44, trust_44);
 
         let mut trust_40: HashMap<String, Vec<String>> = HashMap::new();
         trust_40.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
+        trust_40.insert("bob".to_string(), trust_list(&["charlie"]));
+        trust_40.insert("dave".to_string(), trust_list(&["charlie"]));
         trusted_for_user_per_round.insert(40, trust_40);
 
-        let user_list = &["alice", "bob", "charlie"];
+        let user_list = &["alice", "bob", "charlie", "dave"];
         let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        let expected_charlie = expected_loss(nqg_for("alice") + nqg_for("bob") + nqg_for("dave"), nqg_for("charlie"));
         assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
@@ -373,22 +387,29 @@ mod tests {
 
         let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
         trust_44.insert("alice".to_string(), trust_list(&["bob"]));
+        trust_44.insert("bob".to_string(), trust_list(&[]));
+        trust_44.insert("eve".to_string(), trust_list(&[]));
         trusted_for_user_per_round.insert(44, trust_44);
 
         let mut trust_43: HashMap<String, Vec<String>> = HashMap::new();
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
+        trust_43.insert("bob".to_string(), trust_list(&["charlie"]));
+        trust_43.insert("eve".to_string(), trust_list(&["charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
         let mut trust_42: HashMap<String, Vec<String>> = HashMap::new();
         trust_42.insert("alice".to_string(), trust_list(&["bob", "charlie", "dave"]));
+        trust_42.insert("bob".to_string(), trust_list(&["charlie", "dave"]));
+        trust_42.insert("eve".to_string(), trust_list(&["charlie", "dave"]));
         trusted_for_user_per_round.insert(42, trust_42);
 
-        let user_list = &["alice", "bob", "charlie", "dave"];
+        let user_list = &["alice", "bob", "charlie", "dave", "eve"];
         let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        // only charlie removed (comparing against round 43, not 42)
-        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        // only charlie removed by all three (comparing against round 43, not 42, where dave would
+        // also have counted as removed by three users)
+        let expected_charlie = expected_loss(nqg_for("alice") + nqg_for("bob") + nqg_for("eve"), nqg_for("charlie"));
         assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
@@ -430,17 +451,21 @@ mod tests {
 
         let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
         trust_44.insert("alice".to_string(), trust_list(&["bob", "dave"]));
+        trust_44.insert("eve".to_string(), trust_list(&["dave"]));
+        trust_44.insert("tom".to_string(), trust_list(&[]));
         trusted_for_user_per_round.insert(44, trust_44);
 
         let mut trust_43: HashMap<String, Vec<String>> = HashMap::new();
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
+        trust_43.insert("eve".to_string(), trust_list(&["charlie"]));
+        trust_43.insert("tom".to_string(), trust_list(&["charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let user_list = &["alice", "bob", "charlie", "dave"];
+        let user_list = &["alice", "bob", "charlie", "dave", "eve", "tom"];
         let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        let expected_charlie = expected_loss(nqg_for("alice") + nqg_for("eve") + nqg_for("tom"), nqg_for("charlie"));
         assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
@@ -450,17 +475,21 @@ mod tests {
 
         let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
         trust_44.insert("alice".to_string(), trust_list(&["bob"]));
+        trust_44.insert("bob".to_string(), trust_list(&[]));
+        trust_44.insert("dave".to_string(), trust_list(&[]));
         trusted_for_user_per_round.insert(44, trust_44);
 
         let mut trust_43: HashMap<String, Vec<String>> = HashMap::new();
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
+        trust_43.insert("bob".to_string(), trust_list(&["charlie"]));
+        trust_43.insert("dave".to_string(), trust_list(&["charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
-        let user_list = &["alice", "bob", "charlie", "unknown_user"];
+        let user_list = &["alice", "bob", "charlie", "dave", "unknown_user"];
         let neuron = TrustLossNeuron::from_data(44, trusted_for_user_per_round, nqg_map(user_list));
         let result = neuron.calculate_result(&users(user_list));
 
-        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        let expected_charlie = expected_loss(nqg_for("alice") + nqg_for("bob") + nqg_for("dave"), nqg_for("charlie"));
         assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
     }
 
@@ -470,10 +499,14 @@ mod tests {
 
         let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
         trust_44.insert("alice".to_string(), trust_list(&["bob"]));
+        trust_44.insert("dave".to_string(), trust_list(&[]));
+        trust_44.insert("eve".to_string(), trust_list(&[]));
         trusted_for_user_per_round.insert(44, trust_44);
 
         let mut trust_43: HashMap<String, Vec<String>> = HashMap::new();
         trust_43.insert("alice".to_string(), trust_list(&["bob", "charlie"]));
+        trust_43.insert("dave".to_string(), trust_list(&["charlie"]));
+        trust_43.insert("eve".to_string(), trust_list(&["charlie"]));
         trusted_for_user_per_round.insert(43, trust_43);
 
         let user_list = &["alice", "bob", "charlie", "dave", "eve"];
@@ -481,7 +514,59 @@ mod tests {
         let result = neuron.calculate_result(&users(user_list));
 
         assert_eq!(result.len(), 5);
-        let expected_charlie = expected_loss(nqg_for("alice"), nqg_for("charlie"));
+        let expected_charlie = expected_loss(nqg_for("alice") + nqg_for("dave") + nqg_for("eve"), nqg_for("charlie"));
         assert_result_close(&result, user_list, &[("charlie", expected_charlie)]);
+    }
+
+    /// Builds a fixture where every user in `revokers` trusted `target` in round 43 and dropped
+    /// them in round 44.
+    fn revocation_fixture(revokers: &[&str], target: &str) -> HashMap<u32, HashMap<String, Vec<String>>> {
+        let mut trusted_for_user_per_round: HashMap<u32, HashMap<String, Vec<String>>> = HashMap::new();
+        let mut trust_44: HashMap<String, Vec<String>> = HashMap::new();
+        let mut trust_43: HashMap<String, Vec<String>> = HashMap::new();
+        for revoker in revokers {
+            trust_44.insert(revoker.to_string(), trust_list(&[]));
+            trust_43.insert(revoker.to_string(), trust_list(&[target]));
+        }
+        trusted_for_user_per_round.insert(44, trust_44);
+        trusted_for_user_per_round.insert(43, trust_43);
+        trusted_for_user_per_round
+    }
+
+    #[test]
+    fn single_high_nqg_revoker_does_not_trigger_penalty() {
+        // andy (25) alone would push the logistic well past zero, but one revoker is below the
+        // MIN_UNTRUSTING_USERS safeguard
+        let user_list = &["andy", "bob"];
+        let neuron = TrustLossNeuron::from_data(44, revocation_fixture(&["andy"], "bob"), nqg_map(user_list));
+        assert_result_close(&neuron.calculate_result(&users(user_list)), user_list, &[]);
+    }
+
+    #[test]
+    fn two_revokers_do_not_trigger_penalty_regardless_of_nqg() {
+        // andy (25) + eve (20) = 45 NQG, still only two different users -> nothing happens
+        let user_list = &["andy", "eve", "bob"];
+        let neuron = TrustLossNeuron::from_data(44, revocation_fixture(&["andy", "eve"], "bob"), nqg_map(user_list));
+        assert_result_close(&neuron.calculate_result(&users(user_list)), user_list, &[]);
+    }
+
+    #[test]
+    fn three_low_nqg_revokers_trigger_penalty() {
+        // adam (3) + john (5) + unknown_user (2) = 10 NQG: tiny, but three different users
+        let user_list = &["adam", "john", "unknown_user", "bob"];
+        let neuron = TrustLossNeuron::from_data(44, revocation_fixture(&["adam", "john", "unknown_user"], "bob"), nqg_map(user_list));
+        let result = neuron.calculate_result(&users(user_list));
+        let expected_bob = expected_loss(nqg_for("adam") + nqg_for("john") + nqg_for("unknown_user"), nqg_for("bob"));
+        assert!(expected_bob < 0.0, "sanity: a penalty is expected");
+        assert_result_close(&result, user_list, &[("bob", expected_bob)]);
+    }
+
+    #[test]
+    fn threshold_counts_different_users_not_repeated_entries() {
+        // alice listed twice in the users input only counts once: alice + eve = 2 different users
+        let user_list = &["alice", "alice", "eve", "bob"];
+        let neuron = TrustLossNeuron::from_data(44, revocation_fixture(&["alice", "eve"], "bob"), nqg_map(user_list));
+        let result = neuron.calculate_result(&users(user_list));
+        assert!(result["bob"].abs() < EPS, "expected no penalty for bob, got {}", result["bob"]);
     }
 }

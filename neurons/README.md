@@ -41,9 +41,11 @@ This way users who are inactive slowly loose their bonus, allowing for new, more
 
 Assigns voting power based on the amount of users trusting given voter. Each user can select other voters as trusted.
 Final trust score calculation is done in 3 steps:
-1. min-max normalized PageRank algorithm to compute the initial score.
-2. voters trusted by users considered highly trusted (top **1%** of scores from page rank) get additional bonus of **0.1** point
-3. after steps 1 & 2 are done for current and previous round, difference between them is calculated. If voter lost more than **X%** of trust since previous round, **some** points are subtracted from his final score. This mechanism creates a penalty system for users who possibly did something very wrong and community doesn't consider them trustworthy anymore.
+1. min-max normalized PageRank algorithm to compute the initial score (scaled to **0–10**).
+2. voters trusted by users considered highly trusted (top **10%** of scores from page rank) get an additional bonus of **15%** of their own score, once per highly trusted truster. The total gain from this bonus is passed through a logistic curve `20 * tanh(gain / 20)` that is identity-like for small gains and saturates at **20**, so stacked bonuses can't compound into an unbounded score. The PageRank base score is not squashed.
+3. voters who filled their own trust list get an additional bonus of **10%** of their own score.
+
+Loss of trust between rounds is handled by the separate Trust Loss Neuron: if voters who trusted someone in the previous round drop them from their lists, a share of that person's total NQG score (logistic in the untrusting voters' NQG sum) is subtracted. As a safeguard, this only happens when at least **3 different** users revoked trust, regardless of how much NQG the revokers hold. This creates a penalty for users the community no longer considers trustworthy.
 
 ![trust graph neuron logic](./images/trust_neuron_logic.png)
 ## Development

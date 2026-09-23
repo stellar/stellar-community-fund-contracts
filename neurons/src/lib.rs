@@ -219,7 +219,8 @@ mod tests {
 
         let trust_graph = parsed.get("trust_graph_neuron").expect("missing trust_graph_neuron");
 
-        assert_eq!(trust_graph["alice"], ((to_fixed_point_decimal(3.0) * 110) / 100).to_string());
+        // alice: PageRank max (10.0) + 10% filled-trust-list bonus, no highly trusted bonus
+        assert_eq!(trust_graph["alice"], ((to_fixed_point_decimal(10.0) * 110) / 100).to_string());
         assert_eq!(trust_graph["carol"], to_fixed_point_decimal(0.0).to_string());
     }
 
