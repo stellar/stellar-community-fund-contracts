@@ -150,7 +150,6 @@ fn calculate_page_rank(nodes: &Vec<String>, edges: &Vec<(String, Vec<String>)>, 
     page_ranks
 }
 
-
 fn min_max_normalize_result(result: HashMap<String, f64>) -> HashMap<String, f64> {
     let min = result.values().copied().reduce(f64::min).unwrap();
     let max = result.values().copied().reduce(f64::max).unwrap();
