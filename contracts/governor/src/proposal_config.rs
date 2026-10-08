@@ -1,6 +1,6 @@
 use soroban_sdk::{
     auth::{ContractContext, InvokerContractAuthEntry, SubContractInvocation},
-    panic_with_error, vec, Env, String, Val, Vec,
+    panic_with_error, vec, ContractExecutable, Env, String, Val, Vec,
 };
 
 use crate::{
@@ -51,7 +51,8 @@ impl ProposalConfig {
                 storage::set_settings(e, settings);
             }
             ProposalAction::Upgrade(ref wasm_hash) => {
-                e.deployer().update_current_contract_wasm(wasm_hash.clone());
+                e.deployer()
+                    .update_current_contract(ContractExecutable::Wasm(wasm_hash.clone()));
             }
             ProposalAction::Council(ref council) => {
                 storage::set_council_address(e, council);
