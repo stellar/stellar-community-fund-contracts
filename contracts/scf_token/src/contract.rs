@@ -1,8 +1,8 @@
 use crate::admin::{read_admin, write_admin, Admin};
 use soroban_sdk::token::Interface;
 use soroban_sdk::{
-    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN, Env,
-    MuxedAddress, String, Vec, I256,
+    assert_with_error, contract, contractimpl, panic_with_error, Address, BytesN,
+    ContractExecutable, Env, MuxedAddress, String, Vec, I256,
 };
 
 use crate::balance::{extend_balance, read_balance, write_balance};
@@ -101,7 +101,8 @@ impl SCFToken {
         let admin = read_admin(&env);
         admin.require_auth();
 
-        env.deployer().update_current_contract_wasm(wasm_hash);
+        env.deployer()
+            .update_current_contract(ContractExecutable::Wasm(wasm_hash));
     }
 
     pub fn all_addresses(env: Env) -> Vec<Address> {

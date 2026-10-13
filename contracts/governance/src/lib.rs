@@ -7,7 +7,8 @@ use crate::fixed_mul_floor::fixed_mul_floor;
 use alloc::string::ToString;
 // use soroban_fixed_point_math::SorobanFixedPoint;
 use soroban_sdk::{
-    contract, contractimpl, contracttype, vec, Address, BytesN, Env, Map, String, Vec, I256,
+    contract, contractimpl, contracttype, vec, Address, BytesN, ContractExecutable, Env, Map,
+    String, Vec, I256,
 };
 
 use admin::require_admin;
@@ -235,7 +236,8 @@ impl Admin for VotingSystem {
     fn upgrade(env: Env, wasm_hash: BytesN<32>) {
         require_admin(&env);
 
-        env.deployer().update_current_contract_wasm(wasm_hash);
+        env.deployer()
+            .update_current_contract(ContractExecutable::Wasm(wasm_hash));
     }
 }
 

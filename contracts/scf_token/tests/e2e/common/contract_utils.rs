@@ -102,13 +102,13 @@ pub fn jump(env: &mut Env, ledgers: u32) {
             .ledger()
             .timestamp()
             .saturating_add(u64::from(ledgers) * 5),
-        protocol_version: 27,
         sequence_number: env.ledger().sequence().saturating_add(ledgers),
         network_id: Default::default(),
         base_reserve: 10,
         min_temp_entry_ttl: 10 * 17280,
         min_persistent_entry_ttl: 10 * 17280,
         max_entry_ttl: 365 * 17280,
+        ..env.ledger().get()
     });
 }
 
