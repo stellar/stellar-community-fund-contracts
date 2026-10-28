@@ -1,7 +1,7 @@
 # Neural Quorum Governance Contracts
 > ⚠️ Code in this repository has not been audited and is under development.
 
-### Head to the `development` branch to check out latest experimental changes that are still under development
+### Head to the [development](https://github.com/stellar/stellar-community-fund-contracts/tree/development) branch to check out latest experimental changes that are still under development
 
 [Neural Quorum Governance](https://stellarcommunityfund.gitbook.io/scf-handbook/community-involvement/governance/neural-quorum-governance) is a governance framework implemented on the Stellar blockchain.
 This repository contains smart contract used to conduct voting on-chain and rust modules used to interface with neurons
