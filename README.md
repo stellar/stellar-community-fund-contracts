@@ -1,6 +1,8 @@
 # Neural Quorum Governance Contracts
 > ⚠️ Code in this repository has not been audited and is under development.
 
+### Head to the [development](https://github.com/stellar/stellar-community-fund-contracts/tree/development) branch to check out latest experimental changes that are still under development
+
 [Neural Quorum Governance](https://stellarcommunityfund.gitbook.io/scf-handbook/community-involvement/governance/neural-quorum-governance) is a governance framework implemented on the Stellar blockchain.
 This repository contains smart contract used to conduct voting on-chain and rust modules used to interface with neurons
 
@@ -16,12 +18,6 @@ Contains the source code of various smart contracts:
 
 #### `governance`
 Neural Quorum Governance contract. [See contract docs for more details](contracts/governance/README.md).
-
-#### `scf_token`
-Stellar Community Fund Token contract. [See contract docs for more details](contracts/scf_token/README.md).
-
-#### `governor`
-[Soroban Governor](https://github.com/script3/soroban-governor) contract, slightly modified for our specific use case. [See contract docs for more details](contracts/governor/README.md).
 
 ## Reporting Bugs and Issues
 

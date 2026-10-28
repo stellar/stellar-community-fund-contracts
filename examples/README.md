@@ -68,20 +68,5 @@ After voting is complete, it is possible to change the round number on the contr
 
 `./scripts/governance_set_round.sh`
 
-## (Optional) Storing voting power as smart contract token value
-Voting powers calculated for the voting round can be easily used as a token, for example to use as voting power in DAO systems. For this we have our SCF Token smart contract. Source code is located in `/contracts/scf_token`. This contract will directly  call our previously deployed NQG contract to get voting powers of voters. Each user can have a balance of the token set to their voting power. Token contract we use also implements `votes` trait so it can be used as votes token in dao systems like Soroban Governor.
-
-### Deploy SCF token contract 
-First deploy and initialize the Token contract. Keep in mind that it needs address of the NQG contract to initialize, so make sure correct address is present in the .env file.
-`./scripts/token_deploy.sh`
-
-### Fetch voting powers from NQG contract
-Now we can set token balances. Do this by calling a `update_balance()` function, and providing target user publickey. Token contract will trigger `get_voting_powers()` on the Neural Governance contract, and set token balance of this user equal to his voting power from NQG contract. It doesn't set balance the of all users automatically, since you may want to allow only some group of voters to have the token.
-`./scripts/token_update_balance.sh`
-
-### Check total votes distribution
-To check total amount of votes distributed call `total_supply()`.
-`./scripts/token_total_supply.sh`
-
 ## What's next
 Now you have working bare-minimum setup of the Neural Quorum Governance Voting system. You can create a backend service that will nicely connect all of those elements into one api, however it suits your project, using one of many stellar sdk's

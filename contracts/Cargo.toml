@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["governance", "scf_token", "governor", "governor/tests", "mock-subcall"]
+members = ["governance", "mock-subcall"]
 
 [workspace.dependencies]
 soroban-sdk = "29.0.0"
