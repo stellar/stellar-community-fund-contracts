@@ -1,0 +1,11 @@
+{
+  "workspace": ".",
+  "rust_sast_enabled": true,
+  "rust_disabled_rules": "rust-panic-in-production",
+  "sast_ignore_overrides": "rust-hardcoded-secrets:contracts/governor/src/storage.rs,rust-memory-safety:neurons/src/lib.rs,rust-memory-safety:neurons/src/trust_loss.rs,rust-sql-injection:neurons/src/trust_loss.rs",
+  "secret_scanning_enabled": true,
+  "console_tabular_enabled": true,
+  "socket_tier_1_enabled": false,
+  "trivy_vuln_enabled": false,
+  "trufflehog_exclude_dir": "target,.git,yarn.lock,package-lock.json,pnpm-lock.yaml,Cargo.lock,go.sum,poetry.lock,Gemfile.lock,composer.lock"
+}
